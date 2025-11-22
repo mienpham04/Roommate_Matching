@@ -1,4 +1,4 @@
-package com.roommate.hackathon;
+package com.roommate.manager;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
