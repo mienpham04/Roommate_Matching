@@ -1,6 +1,6 @@
 package com.roommate.manager.model;
 
-public class Budget {
+public class BudgetModel {
     private int min;
     private int max;
 

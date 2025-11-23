@@ -5,7 +5,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
 @Document("users")
-public class User {
+public class UserModel {
 
     @Id
     private String id;
@@ -20,8 +20,8 @@ public class User {
     private String profileImageUrl;
     private String zipCode;
 
-    private Budget budget;
-    private Lifestyle lifestyle;
+    private BudgetModel budget;
+    private LifestyleModel lifestyle;
 
     private LocalDateTime createdAt;
 
@@ -83,17 +83,17 @@ public class User {
         this.zipCode = zipCode;
     }
 
-    public Budget getBudget() {
+    public BudgetModel getBudget() {
         return budget;
     }
-    public void setBudget(Budget budget) {
+    public void setBudget(BudgetModel budget) {
         this.budget = budget;
     }
 
-    public Lifestyle getLifestyle() {
+    public LifestyleModel getLifestyle() {
         return lifestyle;
     }
-    public void setLifestyle(Lifestyle lifestyle) {
+    public void setLifestyle(LifestyleModel lifestyle) {
         this.lifestyle = lifestyle;
     }
 
