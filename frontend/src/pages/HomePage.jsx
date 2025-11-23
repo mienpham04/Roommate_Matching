@@ -36,7 +36,6 @@ function HomePage() {
           </Link>
 
           {/* AUTH BTN */}
-          {/* <SignInButton className="btn btn-soft btn-primary">Login</SignInButton> */}
           <SignInButton mode="modal">
             <button className="group px-6 py-3 bg-linear-to-r from-primary to-secondary rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center gap-2">
               <span>Login</span>
@@ -59,7 +58,6 @@ function HomePage() {
                 Roommate Matching,
               </span>
               <br />
-              {/* <span className="text-base-content">Learn Together</span> */}
             </h1>
 
             <p className="text-xl text-base-content/70 leading-relaxed max-w-xl">
@@ -89,11 +87,6 @@ function HomePage() {
                   <ArrowRightIcon className="size-5" />
                 </button>
               </SignInButton>
-
-              {/* <button className="btn btn-outline btn-lg">
-                <VideoIcon className="size-5" />
-                Watch Demo
-              </button> */}
             </div>
 
             {/* STATS */}
