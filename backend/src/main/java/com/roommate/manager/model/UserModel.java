@@ -100,6 +100,7 @@ public class UserModel {
         this.zipCode = zipCode;
     }
 
+<<<<<<< HEAD
     public String getMoreAboutMe() {
         return moreAboutMe;
     }
@@ -107,6 +108,8 @@ public class UserModel {
         this.moreAboutMe = moreAboutMe;
     }
 
+=======
+>>>>>>> c1461ab (config initial kafka)
     public BudgetModel getBudget() {
         return budget;
     }
