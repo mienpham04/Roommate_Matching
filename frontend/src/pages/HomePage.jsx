@@ -43,7 +43,7 @@ function HomePage() {
           </SignInButton>
         </div>
       </nav>
-      {/* HERO SECTION */}
+      {/* MAIN SECTION */}
       <div className="max-w-7xl mx-auto px-4 py-20">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* LEFT CONTENT */}
@@ -63,7 +63,7 @@ function HomePage() {
             <p className="text-xl text-base-content/70 leading-relaxed max-w-xl">
               The ultimate platform to match your roommate effiently.
             </p>
-            {/* FEATURE PILLS */}
+            {/* FEATURE */}
             <div className="flex flex-wrap gap-3">
               <div className="badge badge-lg badge-outline">
                 <CheckIcon className="size-4 text-success" />
@@ -79,7 +79,7 @@ function HomePage() {
               </div>
             </div>
 
-            {/* CTA Buttons */}
+            {/* Buttons */}
             <div className="flex flex-wrap gap-4">
               <SignInButton mode="modal">
                 <button className="btn btn-primary btn-lg">
