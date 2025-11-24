@@ -9,8 +9,25 @@ import {
   Brain,
 } from "lucide-react";
 import { SignInButton } from "@clerk/clerk-react";
+import { Carousel } from "../components/Carousel";
 
 function HomePage() {
+  const data = {
+    slides: [
+      {
+        src: "https://picsum.photos/seed/img1/600/400",
+        alt: "Image 1 for carousel",
+      },
+      {
+        src: "https://picsum.photos/seed/img2/600/400",
+        alt: "Image 2 for carousel",
+      },
+      {
+        src: "https://picsum.photos/seed/img3/600/400",
+        alt: "Image 3 for carousel",
+      },
+    ],
+  };
   return (
     <div className="bg-linear-to-br from-base-100 via-base-200 to-base-300">
       {/* NAVBAR */}
@@ -182,12 +199,14 @@ function HomePage() {
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-4">How it works</h2>
         </div>
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* LEFT */}
-          <div>
-            <ul className="timeline timeline-vertical">
+
+        {/* RESPONSIVE GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          {/* LEFT — TIMELINE */}
+          <div className="order-1 lg:order-1">
+            <ul className="timeline timeline-vertical w-full">
               <li>
-                <div className="timeline-start timeline-box">
+                <div className="timeline-start timeline-box text-lg md:text-xl">
                   SignUp/Login with Email
                 </div>
                 <div className="timeline-middle">
@@ -206,6 +225,7 @@ function HomePage() {
                 </div>
                 <hr />
               </li>
+
               <li>
                 <hr />
                 <div className="timeline-middle">
@@ -222,14 +242,15 @@ function HomePage() {
                     />
                   </svg>
                 </div>
-                <div className="timeline-end timeline-box">
+                <div className="timeline-end timeline-box text-lg md:text-xl">
                   SetUp your information
                 </div>
                 <hr />
               </li>
+
               <li>
                 <hr />
-                <div className="timeline-start timeline-box">
+                <div className="timeline-start timeline-box text-lg md:text-xl">
                   Choose your preferences
                 </div>
                 <div className="timeline-middle">
@@ -248,6 +269,7 @@ function HomePage() {
                 </div>
                 <hr />
               </li>
+
               <li>
                 <hr />
                 <div className="timeline-middle">
@@ -264,12 +286,17 @@ function HomePage() {
                     />
                   </svg>
                 </div>
-                <div className="timeline-end timeline-box">Get Match</div>
+                <div className="timeline-end timeline-box text-lg md:text-xl">
+                  Get Match
+                </div>
                 <hr />
               </li>
+
               <li>
                 <hr />
-                <div className="timeline-start timeline-box">Enjoy!</div>
+                <div className="timeline-start timeline-box text-lg md:text-xl">
+                  Enjoy!
+                </div>
                 <div className="timeline-middle">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -288,8 +315,10 @@ function HomePage() {
             </ul>
           </div>
 
-          {/* RIGHT */}
-          <div>RIGHT</div>
+          {/* RIGHT — CAROUSEL */}
+          <div className="order-2 lg:order-2 flex justify-center">
+            <Carousel data={data.slides} />
+          </div>
         </div>
       </div>
     </div>
