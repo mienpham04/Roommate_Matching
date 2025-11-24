@@ -37,7 +37,7 @@ function HomePage() {
 
           {/* AUTH BTN */}
           <SignInButton mode="modal">
-            <button className="group px-6 py-3 bg-linear-to-r from-primary to-secondary rounded-xl text-pink-500 font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center gap-2">
+            <button className="group px-6 py-3 bg-linear-to-r from-primary to-secondary rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center gap-2">
               <span>Login</span>
             </button>
           </SignInButton>
@@ -55,7 +55,7 @@ function HomePage() {
 
             <h1 className="text-5xl lg:text-7xl font-black leading-tight">
               <span className="bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-                Roommate Matching,
+                Vibe Matching,
               </span>
               <br />
             </h1>
@@ -119,11 +119,12 @@ function HomePage() {
       <div className="max-w-7xl mx-auto px-4 py-20">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-4">
-            Everything You Need to {" "}
+            Everything You Need to{" "}
             <span className="text-primary font-mono">Live Better Together</span>
           </h2>
           <p className="text-lg text-base-content/70 max-w-2xl mx-auto">
-            Powerful features designed to make finding the right roommate effortless and stress-free
+            Powerful features designed to make finding the right roommate
+            effortless and stress-free
           </p>
         </div>
 
@@ -137,7 +138,9 @@ function HomePage() {
               </div>
               <h3 className="card-title">Smart Matchmaking</h3>
               <p className="text-base-content/70">
-                Find your ideal roommate instantly with AI-powered preference matching that analyzes lifestyle, habits, and compatibility in seconds.
+                Find your ideal roommate instantly with AI-powered preference
+                matching that analyzes lifestyle, habits, and compatibility in
+                seconds.
               </p>
             </div>
           </div>
@@ -150,7 +153,9 @@ function HomePage() {
               </div>
               <h3 className="card-title">Live Preference Matching</h3>
               <p className="text-base-content/70">
-                Preferences update in real time - budget, sleep schedule, cleanliness, noise tolerance - ensuring your matches always reflect who you are right now.
+                Preferences update in real time - budget, sleep schedule,
+                cleanliness, noise tolerance - ensuring your matches always
+                reflect who you are right now.
               </p>
             </div>
           </div>
@@ -163,10 +168,128 @@ function HomePage() {
               </div>
               <h3 className="card-title">Transparent Compatibility Insights</h3>
               <p className="text-base-content/70">
-                Get clear explanations for every match, including shared habits, potential conflicts, and personalized recommendations powered by AI.
+                Get clear explanations for every match, including shared habits,
+                potential conflicts, and personalized recommendations powered by
+                AI.
               </p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* PROCESS SECTION */}
+      <div className="max-w-7xl mx-auto px-4 py-20">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl font-bold mb-4">How it works</h2>
+        </div>
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* LEFT */}
+          <div>
+            <ul className="timeline timeline-vertical">
+              <li>
+                <div className="timeline-start timeline-box">
+                  SignUp/Login with Email
+                </div>
+                <div className="timeline-middle">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <hr />
+              </li>
+              <li>
+                <hr />
+                <div className="timeline-middle">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="timeline-end timeline-box">
+                  SetUp your information
+                </div>
+                <hr />
+              </li>
+              <li>
+                <hr />
+                <div className="timeline-start timeline-box">
+                  Choose your preferences
+                </div>
+                <div className="timeline-middle">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <hr />
+              </li>
+              <li>
+                <hr />
+                <div className="timeline-middle">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <div className="timeline-end timeline-box">Get Match</div>
+                <hr />
+              </li>
+              <li>
+                <hr />
+                <div className="timeline-start timeline-box">Enjoy!</div>
+                <div className="timeline-middle">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          {/* RIGHT */}
+          <div>RIGHT</div>
         </div>
       </div>
     </div>
