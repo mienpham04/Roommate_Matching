@@ -28,7 +28,7 @@ function ProfilePage() {
               User's name
             </h1>
 
-            <button className="px-5 py-2.5 bg-linear-to-r from-primary to-secondary rounded-xl text-pink-600 font-semibold text-sm shadow-md hover:scale-105 transition">
+            <button className="px-5 py-2.5 bg-linear-to-r from-primary to-secondary rounded-xl text-white font-semibold text-sm shadow-md hover:scale-105 transition">
               Save
             </button>
           </div>
