@@ -1,6 +1,73 @@
+import { useState } from "react";
 import Navbar from "../components/Navbar";
 
-const ProcessPage = () => {
+function ProcessPage() {
+  // ------------------ STEP DATA ------------------
+  const stepData = [
+    {
+      name: "Basic info",
+      title: "Let’s Make Sharing a Home Feel Easy",
+      description:
+        "Using AI-powered personalization to learn your habits and preferences to recommend roommates who naturally align with your daily life.",
+    },
+    {
+      name: "Preferences",
+      title: "Preferences",
+      description: "Tell us your daily habits.",
+    },
+    {
+      name: "Lifestyle",
+      title: "Lifestyle",
+      description: "Describe your routines & expectations.",
+    },
+  ];
+
+  // ------------------ STEP STATE ------------------
+  const [current, setCurrent] = useState(0);
+
+  const handleNext = () => {
+    if (current < stepData.length - 1) setCurrent(current + 1);
+  };
+
+  const handlePrev = () => {
+    if (current > 0) setCurrent(current - 1);
+  };
+
+  // ------------------ STEPPER COMPONENT ------------------
+  function Stepper() {
+    return (
+      <div>
+        <div className="card-body space-y-6">
+          {/* Steps */}
+          <ul className="steps w-full">
+            {stepData.map((step, i) => (
+              <li
+                key={i}
+                className={`step cursor-pointer ${
+                  i <= current ? "step-primary" : ""
+                }`}
+                onClick={() => setCurrent(i)}
+              >
+                {step.name}
+              </li>
+            ))}
+          </ul>
+
+          {/* Step Content */}
+          <div className="text-center space-y-3 mt-1">
+            <h3 className="text-3xl md:text-4xl font-bold text-base-content">
+              {stepData[current].title}
+            </h3>
+            <p className="text-sm md:text-base text-base-content/70 max-w-3xl mx-auto">
+              {stepData[current].description}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ------------------ PAGE LAYOUT ------------------
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
       {/* NAVBAR */}
@@ -8,17 +75,10 @@ const ProcessPage = () => {
 
       {/* MAIN CONTENT */}
       <main className="flex-1">
-        <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
-          {/* Title + Subtitle */}
-          <div className="text-center space-y-3 mt-8">
-            <h1 className="text-3xl md:text-4xl font-bold text-base-content">
-              Let’s Make Sharing a Home Feel Easy
-            </h1>
-            <p className="text-sm md:text-base text-base-content/70 max-w-3xl mx-auto">
-              Using AI-powered personalization to learn your habits and preferences to recommend roommates who naturally align with 
-              your daily life.
-            </p>
-          </div>
+        <div className="max-w-7xl mx-auto px-3 py-3 space-y-3">
+
+          {/* ⭐ STEPPER WITH TITLE & DESCRIPTION ⭐ */}
+          <Stepper />
 
           {/* TWO-COLUMN CARDS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -28,8 +88,8 @@ const ProcessPage = () => {
                 <div>
                   <h2 className="card-title text-xl">Basic Info</h2>
                   <p className="text-sm text-base-content/70">
-                    We’re pulling this information from your Google Account. If
-                    anything is incorrect, feel free to update it.
+                    We’re pulling this information from your Google Account.
+                    If anything is incorrect, feel free to update it.
                   </p>
                 </div>
 
@@ -130,17 +190,26 @@ const ProcessPage = () => {
 
       {/* BOTTOM NAVIGATION */}
       <footer className="w-full mt-auto pb-8">
-        <div className="max-w-6xl mx-auto px-4 flex items-center justify-between">
-          <button className="btn btn-outline btn-lg px-10 rounded-full">
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+          <button
+            onClick={handlePrev}
+            disabled={current === 0}
+            className="btn btn-outline btn-lg px-10 rounded-full disabled:opacity-40"
+          >
             BACK
           </button>
-          <button className="btn btn-primary btn-lg px-10 rounded-full">
+
+          <button
+            onClick={handleNext}
+            disabled={current === stepData.length - 1}
+            className="btn btn-primary btn-lg px-10 rounded-full disabled:opacity-40"
+          >
             NEXT
           </button>
         </div>
       </footer>
     </div>
   );
-};
+}
 
 export default ProcessPage;
