@@ -3,7 +3,7 @@ import { Toaster } from "react-hot-toast";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import ExplorePage from "./pages/ExplorePage";
-import CreateProfilePage from "./pages/CreateProfilePage";
+import ProcessPage from "./pages/ProcessPage";
 
 function App() {
   
@@ -12,7 +12,7 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />}/>
       <Route path="/profile/view/:id" element={<ProfilePage />}/>
-      <Route path="/profile/create" element={<CreateProfilePage />} />
+      <Route path="/process" element={<ProcessPage />} />
       <Route path="/explore" element={<ExplorePage />}/>
     </Routes>
 
