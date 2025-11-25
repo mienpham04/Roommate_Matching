@@ -83,16 +83,6 @@ function ProfilePage() {
               <h2 className="text-lg text-base-content/70 font-semibold mb-3">
                 Profile Information
               </h2>
-              {/* <label className="form-control w-full">
-                      <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
-                        Name
-                      </span>
-                      <input
-                        type="text"
-                        className="input input-bordered w-full"
-                        defaultValue="Shaan Ahuja"
-                      />
-                    </label> */}
 
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <label className="form-control w-full">
