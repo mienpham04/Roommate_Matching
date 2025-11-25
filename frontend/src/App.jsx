@@ -2,6 +2,8 @@ import { Routes, Route } from "react-router";
 import { Toaster } from "react-hot-toast";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
+import ExplorePage from "./pages/ExplorePage";
+import CreateProfilePage from "./pages/CreateProfilePage";
 
 function App() {
   
@@ -9,7 +11,9 @@ function App() {
     <>
     <Routes>
       <Route path="/" element={<HomePage />}/>
-      <Route path="/profile/:id" element={<ProfilePage />}/>
+      <Route path="/profile/view/:id" element={<ProfilePage />}/>
+      <Route path="/profile/create" element={<CreateProfilePage />} />
+      <Route path="/explore" element={<ExplorePage />}/>
     </Routes>
 
     <Toaster toastOptions={{ duration: 3000 }}/>
