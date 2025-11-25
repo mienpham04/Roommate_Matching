@@ -1,6 +1,6 @@
 package com.roommate.manager.model;
 
-public class Lifestyle {
+public class LifestyleModel {
 
     private boolean petFriendly;
     private boolean smoking;
