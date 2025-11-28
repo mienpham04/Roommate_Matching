@@ -26,7 +26,9 @@ public class VectorSearchService {
     private VectorSearchConfig config;
 
     /**
-     * Find similar roommates based on a user's profile using deployed Vector Search index
+     * Find similar roommates based on a user's PREFERENCES using deployed Vector Search index
+     * Compares: User A's PREFERENCES vs Other users' PROFILES
+     *
      * @param userId The user ID to find matches for
      * @param topK Number of top matches to return
      * @return List of similar users with similarity scores
@@ -40,30 +42,33 @@ public class VectorSearchService {
 
         UserModel targetUser = userOptional.get();
 
-        // Generate embedding for target user
-        List<Float> targetEmbedding = embeddingService.generateEmbedding(targetUser);
+        // Generate embedding for target user's PREFERENCES (what they want)
+        List<Float> preferenceEmbedding = embeddingService.generatePreferenceEmbedding(targetUser);
 
-        // Query the deployed index
-        return queryIndex(targetEmbedding, topK);
+        // Query the deployed index for matching PROFILES
+        return queryProfilesIndex(preferenceEmbedding, topK, userId);
     }
 
     /**
      * Find roommates matching a natural language query using deployed Vector Search index
+     * The query is treated as a preference - searches for matching PROFILES
+     *
      * @param query Natural language description (e.g., "quiet, clean, early bird")
      * @param topK Number of matches to return
      * @return List of matching users with similarity scores
      */
     public List<Map<String, Object>> searchByQuery(String query, int topK) throws IOException {
-        // Generate embedding for the query
-        List<Float> queryEmbedding = embeddingService.generateEmbeddingFromText(query);
+        // Generate embedding for the query (treated as a preference)
+        List<Float> queryEmbedding = embeddingService.generateEmbeddingFromText("Looking for: " + query);
 
-        // Query the deployed index
-        return queryIndex(queryEmbedding, topK);
+        // Query the deployed index for matching PROFILES
+        return queryProfilesIndex(queryEmbedding, topK, null);
     }
 
     /**
      * Search with filters (budget, location, etc.) and vector similarity
      * Note: Filters are applied AFTER vector search for now
+     *
      * @param query Natural language query
      * @param minBudget Minimum budget filter
      * @param maxBudget Maximum budget filter
@@ -78,12 +83,12 @@ public class VectorSearchService {
             String zipCode,
             int topK
     ) throws IOException {
-        // Generate embedding for the query
-        List<Float> queryEmbedding = embeddingService.generateEmbeddingFromText(query);
+        // Generate embedding for the query (treated as a preference)
+        List<Float> queryEmbedding = embeddingService.generateEmbeddingFromText("Looking for: " + query);
 
         // Query index with more results to account for filtering
         int expandedTopK = topK * 5; // Get 5x more results before filtering
-        List<Map<String, Object>> results = queryIndex(queryEmbedding, expandedTopK);
+        List<Map<String, Object>> results = queryProfilesIndex(queryEmbedding, expandedTopK, null);
 
         // Apply filters
         return results.stream()
@@ -116,12 +121,15 @@ public class VectorSearchService {
     }
 
     /**
-     * Query the deployed Vector Search index for nearest neighbors
-     * @param queryEmbedding The embedding vector to search for
+     * Query the deployed Vector Search index for nearest neighbors among PROFILE vectors
+     * This searches ONLY the "_profile" vectors, not the "_preference" vectors
+     *
+     * @param queryEmbedding The embedding vector to search for (usually a preference)
      * @param topK Number of nearest neighbors to return
+     * @param excludeUserId Optional user ID to exclude from results (to avoid matching with self)
      * @return List of users with similarity scores
      */
-    private List<Map<String, Object>> queryIndex(List<Float> queryEmbedding, int topK) throws IOException {
+    private List<Map<String, Object>> queryProfilesIndex(List<Float> queryEmbedding, int topK, String excludeUserId) throws IOException {
         if (config.getIndexEndpoint() == null || config.getIndexEndpoint().isEmpty()) {
             throw new IllegalStateException("Index endpoint not configured. Please set VERTEX_AI_INDEX_ENDPOINT in your .env file");
         }
@@ -158,7 +166,21 @@ public class VectorSearchService {
                 FindNeighborsResponse.NearestNeighbors neighbors = response.getNearestNeighbors(0);
 
                 for (FindNeighborsResponse.Neighbor neighbor : neighbors.getNeighborsList()) {
-                    String userId = neighbor.getDatapoint().getDatapointId();
+                    String datapointId = neighbor.getDatapoint().getDatapointId();
+
+                    // Skip if this is a preference vector (we only want profiles)
+                    if (datapointId.endsWith("_preference")) {
+                        continue;
+                    }
+
+                    // Extract actual user ID (remove "_profile" suffix)
+                    String userId = datapointId.replace("_profile", "");
+
+                    // Skip excluded user (avoid self-matching)
+                    if (excludeUserId != null && userId.equals(excludeUserId)) {
+                        continue;
+                    }
+
                     double distance = neighbor.getDistance();
 
                     // Convert distance to similarity score (cosine distance -> cosine similarity)
