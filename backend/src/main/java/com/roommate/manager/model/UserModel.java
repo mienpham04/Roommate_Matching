@@ -1,5 +1,6 @@
 package com.roommate.manager.model;
 
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDate;
@@ -26,6 +27,7 @@ public class UserModel {
     private LifestyleModel lifestyle;
     private PreferenceModel preferences;
 
+    @CreatedDate
     private LocalDateTime createdAt;
 
     // Getters and Setters

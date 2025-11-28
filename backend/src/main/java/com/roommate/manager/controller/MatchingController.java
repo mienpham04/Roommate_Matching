@@ -23,7 +23,7 @@ public class MatchingController {
     @GetMapping("/similar/{userId}")
     public ResponseEntity<Map<String, Object>> findSimilarRoommates(
             @PathVariable String userId,
-            @RequestParam(defaultValue = "10") int topK
+            @RequestParam(defaultValue = "3") int topK
     ) {
         try {
             List<Map<String, Object>> matches = vectorSearchService.findSimilarRoommates(userId, topK);

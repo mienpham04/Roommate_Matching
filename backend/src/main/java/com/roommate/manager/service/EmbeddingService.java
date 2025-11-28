@@ -41,11 +41,11 @@ public class EmbeddingService {
         if (user.getLifestyle() != null) {
             description.append("Lifestyle: ");
 
-            if (user.getLifestyle().isPetFriendly()) {
-                description.append("Pet-friendly, ");
-            } else {
-                description.append("No pets, ");
-            }
+            // if (user.getLifestyle().isPetFriendly()) {
+            //     description.append("Pet-friendly, ");
+            // } else {
+            //     description.append("No pets, ");
+            // }
 
             if (user.getLifestyle().isSmoking()) {
                 description.append("Smoker, ");
@@ -136,29 +136,5 @@ public class EmbeddingService {
         } catch (Exception e) {
             throw new IOException("Error generating embeddings: " + e.getMessage(), e);
         }
-    }
-
-    /**
-     * Calculate cosine similarity between two vectors
-     * @param vector1 First embedding vector
-     * @param vector2 Second embedding vector
-     * @return Similarity score between 0 and 1 (higher is more similar)
-     */
-    public double cosineSimilarity(List<Float> vector1, List<Float> vector2) {
-        if (vector1.size() != vector2.size()) {
-            throw new IllegalArgumentException("Vectors must be same length");
-        }
-
-        double dotProduct = 0.0;
-        double norm1 = 0.0;
-        double norm2 = 0.0;
-
-        for (int i = 0; i < vector1.size(); i++) {
-            dotProduct += vector1.get(i) * vector2.get(i);
-            norm1 += Math.pow(vector1.get(i), 2);
-            norm2 += Math.pow(vector2.get(i), 2);
-        }
-
-        return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
     }
 }

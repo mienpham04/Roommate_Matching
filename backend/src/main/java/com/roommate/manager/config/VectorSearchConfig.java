@@ -14,6 +14,9 @@ public class VectorSearchConfig {
     @Value("${gcp.location}")
     private String location;
 
+    @Value("${vertex.ai.index.id:#{null}}")
+    private String indexId;
+
     @Value("${vertex.ai.index.endpoint:#{null}}")
     private String indexEndpoint;
 
@@ -39,5 +42,9 @@ public class VectorSearchConfig {
 
     public String getDeployedIndexId() {
         return deployedIndexId;
+    }
+
+    public String getIndexId() {
+        return indexId;
     }
 }
