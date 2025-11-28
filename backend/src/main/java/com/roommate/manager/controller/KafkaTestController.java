@@ -1,6 +1,9 @@
 package com.roommate.manager.controller;
 
 import com.roommate.manager.kafka.KafkaProducerService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -11,6 +14,9 @@ import java.util.Map;
 public class KafkaTestController {
 
     private final KafkaProducerService kafkaProducerService;
+    @Autowired
+    private KafkaTemplate<String, Object> kafkaTemplate;
+
 
     public KafkaTestController(KafkaProducerService kafkaProducerService) {
         this.kafkaProducerService = kafkaProducerService;
@@ -31,5 +37,11 @@ public class KafkaTestController {
 
         kafkaProducerService.sendMessage("user_lifestyle", userId, event);
         return "Roommate event sent!";
+    }
+
+    @PostMapping("/send-score")
+    public String sendScoreTest(@RequestBody Map<String, Object> body) {
+        kafkaTemplate.send("match.score.updated", body.get("userId").toString(), body);
+        return "Test event sent!";
     }
 }

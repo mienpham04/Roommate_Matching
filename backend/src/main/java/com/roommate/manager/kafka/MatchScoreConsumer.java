@@ -15,4 +15,6 @@ public class MatchScoreConsumer {
             " -> new score: " + event.getScore()
         );
     }
+
+    
 }
