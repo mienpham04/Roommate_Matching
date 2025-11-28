@@ -1,7 +1,6 @@
 package com.roommate.manager.controller;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.roommate.manager.model.TestModel;
 import com.roommate.manager.repository.TestRepository;
