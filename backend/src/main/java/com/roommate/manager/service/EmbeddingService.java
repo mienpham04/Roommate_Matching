@@ -20,10 +20,12 @@ public class EmbeddingService {
     private static final String EMBEDDING_MODEL = "text-embedding-004";
 
     /**
-     * Convert a user profile to a text description for embedding
+     * Convert a user's PROFILE to a text description for embedding
+     * This describes WHO the user IS
      */
     public String userProfileToText(UserModel user) {
         StringBuilder description = new StringBuilder();
+        description.append("My profile: ");
 
         description.append(String.format("Age: %d, Gender: %s. ", user.getAge(), user.getGender()));
 
@@ -39,13 +41,13 @@ public class EmbeddingService {
 
         // Lifestyle information
         if (user.getLifestyle() != null) {
-            description.append("Lifestyle: ");
+            description.append("My lifestyle: ");
 
-            // if (user.getLifestyle().isPetFriendly()) {
-            //     description.append("Pet-friendly, ");
-            // } else {
-            //     description.append("No pets, ");
-            // }
+            if (user.getLifestyle().isPetFriendly()) {
+                description.append("Pet-friendly, ");
+            } else {
+                description.append("No pets, ");
+            }
 
             if (user.getLifestyle().isSmoking()) {
                 description.append("Smoker, ");
@@ -60,8 +62,7 @@ public class EmbeddingService {
             }
 
             if (user.getLifestyle().getGuestFrequency() != null) {
-                description.append(String.format("Has guests %s. ",
-                    user.getLifestyle().getGuestFrequency()));
+                description.append(String.format("%s. ", user.getLifestyle().getGuestFrequency()));
             }
         }
 
@@ -69,12 +70,84 @@ public class EmbeddingService {
     }
 
     /**
-     * Generate embedding vector for a user profile
-     * @param user User profile
-     * @return List of floats representing the embedding vector
+     * Convert a user's PREFERENCES to a text description for embedding
+     * This describes WHAT the user WANTS in a roommate
      */
-    public List<Float> generateEmbedding(UserModel user) throws IOException {
+    public String userPreferencesToText(UserModel user) {
+        if (user.getPreferences() == null) {
+            // If no preferences specified, assume they want someone similar to themselves
+            return "Looking for: Someone with a similar lifestyle. " + userProfileToText(user);
+        }
+
+        StringBuilder description = new StringBuilder();
+        description.append("Looking for: ");
+
+        // Age preference
+        if (user.getPreferences().getMinAge() != null || user.getPreferences().getMaxAge() != null) {
+            if (user.getPreferences().getMinAge() != null && user.getPreferences().getMaxAge() != null) {
+                description.append(String.format("Age %d-%d, ",
+                    user.getPreferences().getMinAge(), user.getPreferences().getMaxAge()));
+            } else if (user.getPreferences().getMinAge() != null) {
+                description.append(String.format("Age %d+, ", user.getPreferences().getMinAge()));
+            } else {
+                description.append(String.format("Age up to %d, ", user.getPreferences().getMaxAge()));
+            }
+        }
+
+        // Gender preference
+        if (user.getPreferences().getGender() != null && !user.getPreferences().getGender().equalsIgnoreCase("no preference")) {
+            description.append(String.format("Gender: %s, ", user.getPreferences().getGender()));
+        }
+
+        // Lifestyle preferences
+        if (user.getPreferences().getPetFriendly() != null) {
+            if (user.getPreferences().getPetFriendly()) {
+                description.append("Pet-friendly, ");
+            } else {
+                description.append("No pets, ");
+            }
+        }
+
+        if (user.getPreferences().getSmoking() != null) {
+            if (user.getPreferences().getSmoking()) {
+                description.append("Smoker okay, ");
+            } else {
+                description.append("Non-smoker, ");
+            }
+        }
+
+        if (user.getPreferences().getIsNightOwl() != null) {
+            if (user.getPreferences().getIsNightOwl()) {
+                description.append("Night owl, ");
+            } else {
+                description.append("Early bird, ");
+            }
+        }
+
+        if (user.getPreferences().getGuestFrequency() != null) {
+            description.append(user.getPreferences().getGuestFrequency());
+        }
+
+        return description.toString().trim();
+    }
+
+    /**
+     * Generate embedding vector for a user's PROFILE
+     * @param user User profile
+     * @return List of floats representing the profile embedding vector
+     */
+    public List<Float> generateProfileEmbedding(UserModel user) throws IOException {
         String text = userProfileToText(user);
+        return generateEmbeddingFromText(text);
+    }
+
+    /**
+     * Generate embedding vector for a user's PREFERENCES
+     * @param user User with preferences
+     * @return List of floats representing the preference embedding vector
+     */
+    public List<Float> generatePreferenceEmbedding(UserModel user) throws IOException {
+        String text = userPreferencesToText(user);
         return generateEmbeddingFromText(text);
     }
 
