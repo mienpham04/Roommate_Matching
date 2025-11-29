@@ -3,6 +3,7 @@ package com.roommate.manager.controller;
 import com.roommate.manager.model.UserModel;
 import com.roommate.manager.repository.UserRepository;
 import com.roommate.manager.service.IndexManagementService;
+import com.roommate.manager.service.EmbeddingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,6 +24,9 @@ public class IndexController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EmbeddingService embeddingService;
 
     /**
      * Batch upload all existing users to the Vector Search index
@@ -111,6 +115,61 @@ public class IndexController {
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Removal failed");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
+    /**
+     * Test query to verify vectors exist in the index
+     * Queries for nearest neighbors using a random user's profile
+     * Example: GET /api/index/test-query?userId=user123&count=10
+     */
+    @GetMapping("/test-query")
+    public ResponseEntity<Map<String, Object>> testQuery(
+            @RequestParam(required = false) String userId,
+            @RequestParam(defaultValue = "10") int count) {
+        try {
+            // If userId not provided, get a random user
+            UserModel testUser;
+            if (userId != null && !userId.isEmpty()) {
+                testUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+            } else {
+                List<UserModel> allUsers = userRepository.findAll();
+                if (allUsers.isEmpty()) {
+                    Map<String, Object> errorResponse = new HashMap<>();
+                    errorResponse.put("error", "No users in database");
+                    errorResponse.put("message", "Please add users first");
+                    return ResponseEntity.status(404).body(errorResponse);
+                }
+                testUser = allUsers.get(0); // Use first user
+            }
+
+            // Generate profile embedding for this user
+            List<Float> testVector = embeddingService.generateProfileEmbedding(testUser);
+
+            // Query the index
+            List<String> neighbors = indexManagementService.queryIndex(testVector, count);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Query successful");
+            response.put("queryUserId", testUser.getId());
+            response.put("queryUserName", testUser.getFirstName() + " " + testUser.getLastName());
+            response.put("nearestNeighbors", neighbors);
+            response.put("neighborCount", neighbors.size());
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "User not found");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(404).body(errorResponse);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Query failed");
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.status(500).body(errorResponse);
         }

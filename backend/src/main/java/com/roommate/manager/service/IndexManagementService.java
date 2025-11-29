@@ -6,6 +6,7 @@ import com.roommate.manager.model.UserModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+
 import java.io.IOException;
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class IndexManagementService {
     @Autowired
     private EmbeddingService embeddingService;
 
+    //CLAUD CODE START
     /**
      * Upload a user's embedding vectors to the Vector Search index
      * Uploads TWO vectors per user:
@@ -35,6 +37,9 @@ public class IndexManagementService {
             System.err.println("Index ID not configured, skipping vector upload");
             return;
         }
+
+        System.out.println("DEBUG: Index path being used: " + config.getIndexPath());
+        System.out.println("DEBUG: Project ID: " + config.getProjectId());
 
         // Generate BOTH embeddings for the user
         List<Float> profileEmbedding = embeddingService.generateProfileEmbedding(user);
@@ -53,9 +58,15 @@ public class IndexManagementService {
             .build();
 
         // Upload BOTH vectors to index
-        try (IndexServiceClient indexServiceClient = IndexServiceClient.create()) {
+        // Configure client with explicit endpoint for the region
+        String endpoint = String.format("%s-aiplatform.googleapis.com:443", config.getLocation());
+        IndexServiceSettings settings = IndexServiceSettings.newBuilder()
+            .setEndpoint(endpoint)
+            .build();
+
+        try (IndexServiceClient indexServiceClient = IndexServiceClient.create(settings)) {
             UpsertDatapointsRequest request = UpsertDatapointsRequest.newBuilder()
-                .setIndex(config.getIndexId())
+                .setIndex(config.getIndexPath())
                 .addDatapoints(profileDatapoint)
                 .addDatapoints(preferenceDatapoint)
                 .build();
@@ -67,6 +78,7 @@ public class IndexManagementService {
             throw new IOException("Failed to upload user vectors to index: " + e.getMessage(), e);
         }
     }
+    //CLAUD CODE END
 
     /**
      * Batch upload multiple users to the index
@@ -89,6 +101,52 @@ public class IndexManagementService {
     }
 
     /**
+     * Test query to verify vectors exist in the index
+     * Queries for nearest neighbors using a test vector
+     *
+     * @param testVector Test embedding vector (768 dimensions)
+     * @param numNeighbors Number of neighbors to return
+     * @return List of nearest neighbor datapoint IDs
+     */
+    public List<String> queryIndex(List<Float> testVector, int numNeighbors) throws IOException {
+        if (config.getIndexEndpoint() == null || config.getDeployedIndexId() == null) {
+            throw new IOException("Index endpoint or deployed index ID not configured");
+        }
+
+        String endpoint = String.format("%s-aiplatform.googleapis.com:443", config.getLocation());
+        MatchServiceSettings settings = MatchServiceSettings.newBuilder()
+            .setEndpoint(endpoint)
+            .build();
+
+        try (MatchServiceClient matchServiceClient = MatchServiceClient.create(settings)) {
+            FindNeighborsRequest.Query query = FindNeighborsRequest.Query.newBuilder()
+                .setDatapoint(IndexDatapoint.newBuilder()
+                    .addAllFeatureVector(testVector)
+                    .build())
+                .setNeighborCount(numNeighbors)
+                .build();
+
+            FindNeighborsRequest request = FindNeighborsRequest.newBuilder()
+                .setIndexEndpoint(config.getIndexEndpointPath())
+                .setDeployedIndexId(config.getDeployedIndexId())
+                .addQueries(query)
+                .build();
+
+            FindNeighborsResponse response = matchServiceClient.findNeighbors(request);
+
+            // Extract and return neighbor IDs
+            return response.getNearestNeighbors(0)
+                .getNeighborsList()
+                .stream()
+                .map(neighbor -> neighbor.getDatapoint().getDatapointId())
+                .toList();
+
+        } catch (Exception e) {
+            throw new IOException("Failed to query index: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Remove a user's vectors from the index
      * Removes BOTH profile and preference vectors
      *
@@ -99,9 +157,15 @@ public class IndexManagementService {
             return;
         }
 
-        try (IndexServiceClient indexServiceClient = IndexServiceClient.create()) {
+        // Configure client with explicit endpoint for the region
+        String endpoint = String.format("%s-aiplatform.googleapis.com:443", config.getLocation());
+        IndexServiceSettings settings = IndexServiceSettings.newBuilder()
+            .setEndpoint(endpoint)
+            .build();
+
+        try (IndexServiceClient indexServiceClient = IndexServiceClient.create(settings)) {
             RemoveDatapointsRequest request = RemoveDatapointsRequest.newBuilder()
-                .setIndex(config.getIndexId())
+                .setIndex(config.getIndexPath())
                 .addDatapointIds(userId + "_profile")
                 .addDatapointIds(userId + "_preference")
                 .build();

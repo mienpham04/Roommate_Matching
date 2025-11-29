@@ -36,6 +36,22 @@ public class UserController {
         return savedUser;
     }
 
+    // UPLOAD USER TO INDEX
+    @PostMapping("/upload-to-index/{id}")
+    public String uploadUserToIndex(@PathVariable String id) {
+        Optional<UserModel> userOpt = userRepository.findById(id);
+        if (userOpt.isPresent()) {
+            try {
+                indexManagementService.uploadUserToIndex(userOpt.get());
+                return "User uploaded to index successfully.";
+            } catch (Exception e) {
+                return "Failed to upload user to index: " + e.getMessage();
+            }
+        } else {
+            return "User not found.";
+        }
+    }
+
     // READ (Get all users)
     @GetMapping
     public List<UserModel> getAllUsers() {
