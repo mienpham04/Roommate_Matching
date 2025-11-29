@@ -14,8 +14,8 @@ import java.util.Map;
 public class KafkaTestController {
 
     private final KafkaProducerService kafkaProducerService;
-    @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    // @Autowired
+    // private KafkaTemplate<String, Object> kafkaTemplate;
 
 
     public KafkaTestController(KafkaProducerService kafkaProducerService) {
@@ -39,9 +39,9 @@ public class KafkaTestController {
         return "Roommate event sent!";
     }
 
-    @PostMapping("/send-score")
-    public String sendScoreTest(@RequestBody Map<String, Object> body) {
-        kafkaTemplate.send("match.score.updated", body.get("userId").toString(), body);
-        return "Test event sent!";
-    }
+    // @PostMapping("/send-score")
+    // public String sendScoreTest(@RequestBody Map<String, Object> body) {
+    //     kafkaTemplate.send("match.score.updated", body.get("userId").toString(), body);
+    //     return "Test event sent!";
+    // }
 }
