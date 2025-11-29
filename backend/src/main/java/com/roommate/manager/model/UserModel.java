@@ -2,7 +2,9 @@ package com.roommate.manager.model;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 
 @Document("users")
 public class UserModel {
@@ -14,7 +16,7 @@ public class UserModel {
     private String lastName;
     private String email;
 
-    private int age;
+    private LocalDate dateOfBirth;
     private String gender;
 
     private String profileImageUrl;
@@ -22,6 +24,7 @@ public class UserModel {
 
     private BudgetModel budget;
     private LifestyleModel lifestyle;
+    private PreferenceModel preferences;
 
     private LocalDateTime createdAt;
 
@@ -55,11 +58,19 @@ public class UserModel {
         this.email = email;
     }
 
-    public int getAge() {
-        return age;
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
     }
-    public void setAge(int age) {
-        this.age = age;
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    // Calculate age from date of birth
+    public int getAge() {
+        if (dateOfBirth == null) {
+            return 0;
+        }
+        return Period.between(dateOfBirth, LocalDate.now()).getYears();
     }
 
     public String getGender() {
@@ -102,5 +113,12 @@ public class UserModel {
     }
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public PreferenceModel getPreferences() {
+        return preferences;
+    }
+    public void setPreferences(PreferenceModel preferences) {
+        this.preferences = preferences;
     }
 }
