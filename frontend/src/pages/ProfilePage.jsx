@@ -107,7 +107,7 @@ function ProfilePage() {
                   <input
                     className="input input-bordered w-full"
                     placeholder="Full Name"
-                    defaultValue={user.fullName || ""}
+                    defaultValue={user?.fullName || ""}
                   />
                 </label>
 
@@ -118,7 +118,7 @@ function ProfilePage() {
                   <input
                     className="input input-bordered w-full"
                     placeholder="Nickname displayed"
-                    defaultValue={user.username || ""}
+                    defaultValue={user?.username || ""}
                   />
                 </label>
 
@@ -165,7 +165,7 @@ function ProfilePage() {
                     type="email"
                     className="input input-bordered w-full"
                     placeholder="Email"
-                    defaultValue={user.emailAddresses || ""}
+                    defaultValue={user?.emailAddresses || ""}
                   />
                 </label>
 
