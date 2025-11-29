@@ -21,11 +21,10 @@ function ProfilePage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="max-w-7xl mx-auto w-full px-6 py-4">
-
           {/* HEADER */}
           <div className="flex items-center justify-between mb-4">
-            <h1 className="font-black text-4xl bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent tracking-wider">
-              User's name
+            <h1 className="font-black text-3xl bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent tracking-wider">
+              Personal Information
             </h1>
 
             <button className="px-5 py-2.5 bg-linear-to-r from-primary to-secondary rounded-xl text-white font-semibold text-sm shadow-md hover:scale-105 transition">
@@ -35,7 +34,6 @@ function ProfilePage() {
 
           {/* MAIN GRID */}
           <div className="grid grid-cols-3 gap-6 h-[calc(100vh-180px)]">
-
             {/* LEFT SIDEBAR */}
             <div className="bg-base-100 rounded-xl p-4 shadow-md border flex flex-col">
               <h2 className="text-lg text-base-content/70 font-semibold mb-3">
@@ -87,19 +85,50 @@ function ProfilePage() {
               </h2>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <input className="input input-bordered w-full" placeholder="First Name" />
-                <input className="input input-bordered w-full" placeholder="Last Name" />
-                <input className="input input-bordered w-full" placeholder="Username" />
-                <input className="input input-bordered w-full" placeholder="Nickname displayed" />
-                <input type="date" className="input input-bordered w-full" placeholder="Birthdate" />
-                <select className="select select-bordered w-full" required>
-                  <option value="" disabled selected>Select Gender</option>
-                  <option value="female">Female</option>
-                  <option value="male">Male</option>
-                  <option value="nonbinary">Non-binary</option>
-                  <option value="other">Other</option>
-                  <option value="prefer_not_say">Prefer not to say</option>
-                </select>
+                <label className="form-control w-full">
+                  <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
+                    Full name
+                  </span>
+                  <input
+                    className="input input-bordered w-full"
+                    placeholder="First Name"
+                  />
+                </label>
+                <label className="form-control w-full">
+                  <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
+                    Nickname
+                  </span>
+                  <input
+                    className="input input-bordered w-full"
+                    placeholder="Nickname displayed"
+                  />
+                </label>
+                <label className="form-control w-full">
+                  <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
+                    Birthday
+                  </span>
+                  <input
+                    type="date"
+                    className="input input-bordered w-full"
+                    placeholder="Birthdate"
+                  />
+                </label>
+
+                <label className="form-control w-full">
+                  <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
+                    Gender
+                  </span>
+                  <select className="select select-bordered w-full" required>
+                    <option value="" disabled selected>
+                      Select Gender
+                    </option>
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                    <option value="nonbinary">Non-binary</option>
+                    <option value="other">Other</option>
+                    <option value="prefer_not_say">Prefer not to say</option>
+                  </select>
+                </label>
               </div>
 
               <h2 className="text-lg text-base-content/70 font-semibold mb-3">
@@ -107,8 +136,26 @@ function ProfilePage() {
               </h2>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <input type="email" className="input input-bordered w-full" placeholder="Email" />
-                <input type="url" className="input input-bordered w-full" placeholder="Social Media" />
+                <label className="form-control w-full">
+                  <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
+                    Email
+                  </span>
+                  <input
+                    type="email"
+                    className="input input-bordered w-full"
+                    placeholder="Email"
+                  />
+                </label>
+                <label className="form-control w-full">
+                  <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
+                    Social Media
+                  </span>
+                  <input
+                    type="url"
+                    className="input input-bordered w-full"
+                    placeholder="Social Media"
+                  />
+                </label>
               </div>
 
               <h2 className="text-lg text-base-content/70 font-semibold mb-2">
@@ -121,7 +168,6 @@ function ProfilePage() {
               ></textarea>
             </div>
           </div>
-
         </div>
       </div>
     </div>
