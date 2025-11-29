@@ -1,18 +1,24 @@
 import Navbar from "../components/Navbar";
 import { useState } from "react";
-import { Camera, X } from "lucide-react";
+import { X } from "lucide-react";
+import { UserAvatar, useUser } from "@clerk/clerk-react";
 
 function ProfilePage() {
-  const [photo, setPhoto] = useState("/profile.png");
-  const [showRemove, setShowRemove] = useState(false);
+  const { user } = useUser();
+
+  // State to store uploaded image
+  const [customPhoto, setCustomPhoto] = useState(null);
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       const url = URL.createObjectURL(file);
-      setPhoto(url);
-      setShowRemove(true);
+      setCustomPhoto(url);
     }
+  };
+
+  const handleRemove = () => {
+    setCustomPhoto(null);
   };
 
   return (
@@ -42,28 +48,36 @@ function ProfilePage() {
 
               {/* PROFILE PHOTO */}
               <div className="flex flex-col items-center mt-2">
-                <div className="relative">
-                  <div className="w-32 h-32 rounded-full overflow-hidden shadow-md bg-base-200 flex items-center justify-center">
-                    <img
-                      src={photo}
-                      alt="User profile"
-                      className="w-full h-full object-cover"
-                    />
+                <div className="relative w-32 h-32">
+                  {/* Avatar container */}
+                  <div className="w-full h-full rounded-full overflow-hidden shadow-md bg-base-200 flex items-center justify-center">
+                    {customPhoto ? (
+                      <img
+                        src={customPhoto}
+                        alt="Uploaded"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <UserAvatar
+                        user={user}
+                        size={160}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
                   </div>
 
-                  {showRemove && (
+                  {/* REMOVE BUTTON */}
+                  {customPhoto && (
                     <button
                       className="absolute -top-2 -right-2 bg-white shadow rounded-full p-1"
-                      onClick={() => {
-                        setPhoto("/profile.png");
-                        setShowRemove(false);
-                      }}
+                      onClick={handleRemove}
                     >
                       <X className="size-4 text-gray-600" />
                     </button>
                   )}
                 </div>
 
+                {/* UPLOAD BUTTON */}
                 <label className="mt-4 cursor-pointer w-full">
                   <div className="w-full py-2 border rounded-lg text-center bg-base-200 hover:bg-base-300 transition font-medium">
                     Upload Photo
@@ -80,6 +94,7 @@ function ProfilePage() {
 
             {/* RIGHT FORM */}
             <div className="col-span-2 bg-base-100 rounded-xl p-5 shadow-md border overflow-y-auto">
+              {/* PROFILE INFO FORM */}
               <h2 className="text-lg text-base-content/70 font-semibold mb-3">
                 Profile Information
               </h2>
@@ -91,9 +106,11 @@ function ProfilePage() {
                   </span>
                   <input
                     className="input input-bordered w-full"
-                    placeholder="First Name"
+                    placeholder="Full Name"
+                    defaultValue={user.fullName || ""}
                   />
                 </label>
+
                 <label className="form-control w-full">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
                     Nickname
@@ -101,8 +118,10 @@ function ProfilePage() {
                   <input
                     className="input input-bordered w-full"
                     placeholder="Nickname displayed"
+                    defaultValue={user.username || ""}
                   />
                 </label>
+
                 <label className="form-control w-full">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
                     Birthday
@@ -110,7 +129,6 @@ function ProfilePage() {
                   <input
                     type="date"
                     className="input input-bordered w-full"
-                    placeholder="Birthdate"
                   />
                 </label>
 
@@ -119,18 +137,21 @@ function ProfilePage() {
                     Gender
                   </span>
                   <select className="select select-bordered w-full" required>
-                    <option value="" disabled selected>
+                    <option disabled selected>
                       Select Gender
                     </option>
                     <option value="female">Female</option>
                     <option value="male">Male</option>
                     <option value="nonbinary">Non-binary</option>
                     <option value="other">Other</option>
-                    <option value="prefer_not_say">Prefer not to say</option>
+                    <option value="prefer_not_say">
+                      Prefer not to say
+                    </option>
                   </select>
                 </label>
               </div>
 
+              {/* CONTACT INFO */}
               <h2 className="text-lg text-base-content/70 font-semibold mb-3">
                 Contact Info
               </h2>
@@ -144,8 +165,10 @@ function ProfilePage() {
                     type="email"
                     className="input input-bordered w-full"
                     placeholder="Email"
+                    defaultValue={user.emailAddresses || ""}
                   />
                 </label>
+
                 <label className="form-control w-full">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
                     Social Media
@@ -158,6 +181,7 @@ function ProfilePage() {
                 </label>
               </div>
 
+              {/* BIO */}
               <h2 className="text-lg text-base-content/70 font-semibold mb-2">
                 Biographical Info
               </h2>
