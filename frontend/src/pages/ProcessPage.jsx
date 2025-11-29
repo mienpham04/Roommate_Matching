@@ -2,13 +2,12 @@ import { useState } from "react";
 import Navbar from "../components/Navbar";
 
 function ProcessPage() {
-  // ------------------ STEP DATA ------------------
   const stepData = [
     {
       name: "Basic info",
       title: "Let’s Make Sharing a Home Feel Easy",
       description:
-        "Using AI-powered personalization to learn your habits and preferences to recommend roommates who naturally align with your daily life.",
+        "Learn your habits and preferences to recommend roommates who naturally align with your daily life.",
     },
     {
       name: "Preferences",
@@ -22,7 +21,6 @@ function ProcessPage() {
     },
   ];
 
-  // ------------------ STEP STATE ------------------
   const [current, setCurrent] = useState(0);
 
   const handleNext = () => {
@@ -76,8 +74,6 @@ function ProcessPage() {
       {/* MAIN CONTENT */}
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-3 py-3 space-y-3">
-
-          {/* ⭐ STEPPER WITH TITLE & DESCRIPTION ⭐ */}
           <Stepper />
 
           {/* TWO-COLUMN CARDS */}
