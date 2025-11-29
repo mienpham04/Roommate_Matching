@@ -38,23 +38,34 @@ public class IndexManagementService {
             return;
         }
 
-        System.out.println("DEBUG: Index path being used: " + config.getIndexPath());
-        System.out.println("DEBUG: Project ID: " + config.getProjectId());
-
         // Generate BOTH embeddings for the user
         List<Float> profileEmbedding = embeddingService.generateProfileEmbedding(user);
         List<Float> preferenceEmbedding = embeddingService.generatePreferenceEmbedding(user);
 
         // Create datapoint for PROFILE (who they are)
+        // Add restricts to mark this as a profile vector for filtering
         IndexDatapoint profileDatapoint = IndexDatapoint.newBuilder()
             .setDatapointId(user.getId() + "_profile")
             .addAllFeatureVector(profileEmbedding)
+            .addRestricts(
+                IndexDatapoint.Restriction.newBuilder()
+                    .setNamespace("vector_type")
+                    .addAllowList("profile")
+                    .build()
+            )
             .build();
 
         // Create datapoint for PREFERENCE (what they want)
+        // Add restricts to mark this as a preference vector for filtering
         IndexDatapoint preferenceDatapoint = IndexDatapoint.newBuilder()
             .setDatapointId(user.getId() + "_preference")
             .addAllFeatureVector(preferenceEmbedding)
+            .addRestricts(
+                IndexDatapoint.Restriction.newBuilder()
+                    .setNamespace("vector_type")
+                    .addAllowList("preference")
+                    .build()
+            )
             .build();
 
         // Upload BOTH vectors to index
@@ -113,12 +124,13 @@ public class IndexManagementService {
             throw new IOException("Index endpoint or deployed index ID not configured");
         }
 
-        String endpoint = String.format("%s-aiplatform.googleapis.com:443", config.getLocation());
-        MatchServiceSettings settings = MatchServiceSettings.newBuilder()
-            .setEndpoint(endpoint)
+        // Configure MatchServiceClient to use public VDB endpoint
+        String vdbEndpoint = String.format("%s:443", config.getPublicEndpointDomain());
+        MatchServiceSettings matchSettings = MatchServiceSettings.newBuilder()
+            .setEndpoint(vdbEndpoint)
             .build();
 
-        try (MatchServiceClient matchServiceClient = MatchServiceClient.create(settings)) {
+        try (MatchServiceClient matchServiceClient = MatchServiceClient.create(matchSettings)) {
             FindNeighborsRequest.Query query = FindNeighborsRequest.Query.newBuilder()
                 .setDatapoint(IndexDatapoint.newBuilder()
                     .addAllFeatureVector(testVector)
