@@ -1,13 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import {
+  GoogleMap,
+  Marker,
+  Circle,
+  useLoadScript,
+  Autocomplete,
+} from "@react-google-maps/api";
 
 function ProcessPage() {
+  // ------------------ STEP DATA ------------------
   const stepData = [
     {
       name: "Basic info",
       title: "Let’s Make Sharing a Home Feel Easy",
       description:
         "Learn your habits and preferences to recommend roommates who naturally align with your daily life.",
+    },
+    {
+      name: "Choose location",
+      title: "Location",
+      description:
+        "Tell us where you want to live and adjust the search radius.",
     },
     {
       name: "Preferences",
@@ -23,6 +37,79 @@ function ProcessPage() {
 
   const [current, setCurrent] = useState(0);
 
+  // ------------------ MAP + AUTOCOMPLETE STATES ------------------
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: ["places"],
+  });
+
+  // FORM VALUES FROM AUTOCOMPLETE
+  const [addressFields, setAddressFields] = useState({
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "",
+  });
+
+  const [radius, setRadius] = useState(5000);
+
+  const [selectedPosition, setSelectedPosition] = useState({
+    lat: 39.9784,
+    lng: -86.118,
+  });
+
+  const [places, setPlaces] = useState([]);
+  const [autocompleteRef, setAutocompleteRef] = useState(null);
+  let mapRef = null;
+
+  // ------------------ AUTOCOMPLETE HANDLER ------------------
+  function onPlaceChanged() {
+    if (!autocompleteRef) return;
+
+    const place = autocompleteRef.getPlace();
+    if (!place.geometry) return;
+
+    // Move map marker
+    const pos = {
+      lat: place.geometry.location.lat(),
+      lng: place.geometry.location.lng(),
+    };
+    setSelectedPosition(pos);
+    mapRef.panTo(pos);
+
+    // Extract address fields
+    const components = place.address_components || [];
+    const get = (type) =>
+      components.find((c) => c.types.includes(type))?.long_name || "";
+
+    setAddressFields({
+      address: `${get("street_number")} ${get("route")}`.trim(),
+      city: get("locality"),
+      state: get("administrative_area_level_1"),
+      zip: get("postal_code"),
+      country: get("country"),
+    });
+  }
+
+  // ------------------ LOCATION SEARCH API (optional) ------------------
+  const [locationQuery, setLocationQuery] = useState("");
+
+  useEffect(() => {
+    if (!mapRef || !locationQuery) return;
+
+    const service = new window.google.maps.places.PlacesService(mapRef);
+
+    const request = {
+      query: locationQuery,
+      fields: ["name", "geometry", "opening_hours"],
+    };
+
+    service.findPlaceFromQuery(request, (results) => {
+      if (results) setPlaces(results);
+    });
+  }, [locationQuery]);
+
   const handleNext = () => {
     if (current < stepData.length - 1) setCurrent(current + 1);
   };
@@ -31,35 +118,190 @@ function ProcessPage() {
     if (current > 0) setCurrent(current - 1);
   };
 
-  // ------------------ STEPPER COMPONENT ------------------
+  // ------------------ STEP CONTENT ------------------
+  function renderStepContent() {
+    if (current === 0) {
+      return (
+        <div className="col-span-2 card bg-base-100 border shadow-sm">
+          <div className="card-body space-y-4">
+            <h2 className="card-title text-xl">Basic Info</h2>
+
+            <input
+              className="input input-bordered w-full"
+              placeholder="Your Name"
+            />
+            <input
+              className="input input-bordered w-full"
+              placeholder="Email"
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // ------------------ LOCATION PICKER WITH AUTOCOMPLETE ------------------
+    if (current === 1) {
+      if (!isLoaded) return <p>Loading map...</p>;
+
+      return (
+        <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 bg-base-100 border rounded-xl shadow overflow-hidden">
+          {/* LEFT PANEL — Starbucks-style */}
+          <div className="flex flex-col h-[600px] border-r">
+            {/* AUTOCOMPLETE INPUT */}
+            <div className="p-4 border-b">
+              <Autocomplete
+                onLoad={(ref) => setAutocompleteRef(ref)}
+                onPlaceChanged={onPlaceChanged}
+              >
+                <input
+                  type="text"
+                  className="input input-bordered w-full"
+                  placeholder="Search an address..."
+                />
+              </Autocomplete>
+            </div>
+
+            {/* Recommended title */}
+            {/* <div className="px-4 py-3 border-b text-lg font-semibold">
+              Location Recommendations
+            </div> */}
+
+            {/* Scrollable recommended list */}
+            <div className="flex-1 overflow-y-auto">
+              {places.map((p, i) => {
+                const pos = {
+                  lat: p.geometry.location.lat(),
+                  lng: p.geometry.location.lng(),
+                };
+
+                return (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-4 border-b hover:bg-gray-100 cursor-pointer"
+                    onClick={() => {
+                      setSelectedPosition(pos);
+                      mapRef.panTo(pos);
+                    }}
+                  >
+                    <div>
+                      <h3 className="font-semibold">{p.name}</h3>
+                      <p className="text-xs text-base-content/60">
+                        {p.opening_hours?.open_now ? "Open now" : "Closed"}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button>❤️</button>
+                      <button>ℹ️</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* RIGHT PANEL — Map */}
+          <div className="relative h-[600px] w-full">
+            <GoogleMap
+              zoom={13}
+              center={selectedPosition}
+              mapContainerStyle={{ width: "100%", height: "100%" }}
+              onLoad={(map) => (mapRef = map)}
+              onClick={(e) => {
+                setSelectedPosition({
+                  lat: e.latLng.lat(),
+                  lng: e.latLng.lng(),
+                });
+              }}
+            >
+              <Marker position={selectedPosition} />
+
+              <Circle
+                center={selectedPosition}
+                radius={radius}
+                options={{
+                  fillColor: "#3b82f6",
+                  strokeColor: "#2563eb",
+                  fillOpacity: 0.25,
+                  strokeOpacity: 0.5,
+                }}
+              />
+            </GoogleMap>
+
+            {/* Radius Slider */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[85%] bg-base-100/90 backdrop-blur p-4 rounded-xl shadow-xl">
+              <label className="text-sm font-medium text-base-content">
+                Match radius: {(radius / 1609.34).toFixed(1)} miles
+              </label>
+
+              <input
+                type="range"
+                min="1609" // 1 mile
+                max="32186" // 20 miles
+                step="804" // 0.5 miles
+                value={radius}
+                onChange={(e) => setRadius(Number(e.target.value))}
+                className="w-full mt-2 custom-range"
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ------------------ PREFERENCES ------------------
+    if (current === 2) {
+      return (
+        <div className="col-span-2 card bg-base-100 border shadow-sm">
+          <div className="card-body space-y-4">
+            <h2 className="card-title text-xl">Preferences</h2>
+            <label>
+              <input type="checkbox" className="checkbox" /> Night Owl
+            </label>
+          </div>
+        </div>
+      );
+    }
+
+    // ------------------ LIFESTYLE ------------------
+    if (current === 3) {
+      return (
+        <div className="col-span-2 card bg-base-100 border shadow-sm">
+          <div className="card-body space-y-4">
+            <h2 className="card-title text-xl">Lifestyle</h2>
+            <textarea
+              className="textarea textarea-bordered w-full"
+              placeholder="Describe your lifestyle..."
+            />
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // ------------------ STEPPER ------------------
   function Stepper() {
     return (
-      <div>
-        <div className="card-body space-y-6">
-          {/* Steps */}
-          <ul className="steps w-full">
-            {stepData.map((step, i) => (
-              <li
-                key={i}
-                className={`step cursor-pointer ${
-                  i <= current ? "step-primary" : ""
-                }`}
-                onClick={() => setCurrent(i)}
-              >
-                {step.name}
-              </li>
-            ))}
-          </ul>
+      <div className="card-body space-y-5">
+        <ul className="steps w-full">
+          {stepData.map((s, i) => (
+            <li
+              key={i}
+              className={`step cursor-pointer ${
+                i <= current ? "step-primary" : ""
+              }`}
+              onClick={() => setCurrent(i)}
+            >
+              {s.name}
+            </li>
+          ))}
+        </ul>
 
-          {/* Step Content */}
-          <div className="text-center space-y-3 mt-1">
-            <h3 className="text-3xl md:text-4xl font-bold text-base-content">
-              {stepData[current].title}
-            </h3>
-            <p className="text-sm md:text-base text-base-content/70 max-w-3xl mx-auto">
-              {stepData[current].description}
-            </p>
-          </div>
+        <div className="text-center">
+          <h3 className="text-3xl font-bold">{stepData[current].title}</h3>
+          <p className="text-base-content/60 max-w-2xl mx-auto">
+            {stepData[current].description}
+          </p>
         </div>
       </div>
     );
@@ -68,137 +310,30 @@ function ProcessPage() {
   // ------------------ PAGE LAYOUT ------------------
   return (
     <div className="min-h-screen bg-base-200 flex flex-col">
-      {/* NAVBAR */}
       <Navbar />
 
-      {/* MAIN CONTENT */}
       <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-3 py-3 space-y-3">
+        <div className="max-w-7xl mx-auto p-4 space-y-6">
           <Stepper />
-
-          {/* TWO-COLUMN CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            {/* LEFT CARD – Basic Info */}
-            <div className="card bg-base-100 border border-base-300 shadow-sm">
-              <div className="card-body space-y-4">
-                <div>
-                  <h2 className="card-title text-xl">Basic Info</h2>
-                  <p className="text-sm text-base-content/70">
-                    We’re pulling this information from your Google Account.
-                    If anything is incorrect, feel free to update it.
-                  </p>
-                </div>
-
-                <div className="flex flex-col md:flex-row gap-4">
-                  {/* Avatar */}
-                  <div className="flex md:flex-col items-center gap-4 md:gap-2 md:w-32">
-                    <div className="w-16 h-16 rounded-full bg-primary text-primary-content flex items-center justify-center text-2xl font-semibold">
-                      S
-                    </div>
-                  </div>
-
-                  {/* Form fields */}
-                  <div className="flex-1 space-y-3">
-                    <label className="form-control w-full">
-                      <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
-                        Name
-                      </span>
-                      <input
-                        type="text"
-                        className="input input-bordered w-full"
-                        defaultValue="Shaan Ahuja"
-                      />
-                    </label>
-
-                    <label className="form-control w-full">
-                      <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
-                        Email
-                      </span>
-                      <input
-                        type="email"
-                        className="input input-bordered w-full"
-                        defaultValue="shaanahuja737@gmail.com"
-                      />
-                    </label>
-
-                    <label className="form-control w-full">
-                      <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
-                        Birthday
-                      </span>
-                      <input
-                        type="text"
-                        className="input input-bordered w-full"
-                        defaultValue="March 19, 2001 (23 years old)"
-                      />
-                    </label>
-
-                    <label className="form-control w-full">
-                      <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
-                        Gender
-                      </span>
-                      <input
-                        type="text"
-                        className="input input-bordered w-full"
-                        defaultValue="Male"
-                      />
-                    </label>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT CARD – AI Onboarding */}
-            <div className="card bg-base-100 border border-base-300 shadow-sm">
-              <div className="card-body space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="card-title text-xl">
-                      AI Onboarding <span className="font-normal">[Optional]</span>
-                    </h2>
-                    <p className="text-sm text-base-content/70 mt-1 max-w-md">
-                      Uploading your Google Takeout data helps the system
-                      auto-fill onboarding questions. Your data is processed
-                      securely and never stored.
-                    </p>
-                  </div>
-
-                  <div className="text-xs text-base-content/60">
-                    Generated with{" "}
-                    <span className="text-primary font-semibold">Gemini</span>
-                  </div>
-                </div>
-
-                <button className="btn btn-lg w-full justify-start bg-linear-to-r from-amber-50 to-amber-100 border border-amber-200 text-base-content hover:from-amber-100 hover:to-amber-200 mt-2">
-                  <span className="mr-3">
-                    <span className="w-8 h-8 rounded-md bg-white flex items-center justify-center text-lg">
-                      📂
-                    </span>
-                  </span>
-                  <span className="font-semibold tracking-wide">
-                    UPLOAD GOOGLE TAKEOUT DATA
-                  </span>
-                </button>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderStepContent()}
           </div>
         </div>
       </main>
 
-      {/* BOTTOM NAVIGATION */}
       <footer className="w-full mt-auto pb-8">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
           <button
             onClick={handlePrev}
             disabled={current === 0}
-            className="btn btn-outline btn-lg px-10 rounded-full disabled:opacity-40"
+            className="btn btn-outline btn-lg rounded-full disabled:opacity-40"
           >
             BACK
           </button>
-
           <button
             onClick={handleNext}
             disabled={current === stepData.length - 1}
-            className="btn btn-primary btn-lg px-10 rounded-full disabled:opacity-40"
+            className="btn btn-primary btn-lg rounded-full disabled:opacity-40"
           >
             NEXT
           </button>
