@@ -26,6 +26,9 @@ public class VectorSearchConfig {
     @Value("${vertex.ai.deployed.index.id:#{null}}")
     private String deployedIndexId;
 
+    @Value("${vertex.ai.public.endpoint.domain:#{null}}")
+    private String publicEndpointDomain;
+
     @Bean
     public VertexAI vertexAI() {
         return new VertexAI(projectId, location);
@@ -45,6 +48,10 @@ public class VectorSearchConfig {
 
     public String getDeployedIndexId() {
         return deployedIndexId;
+    }
+
+    public String getPublicEndpointDomain() {
+        return publicEndpointDomain;
     }
 
     /** Returns FULL resource name, not just the numeric ID */

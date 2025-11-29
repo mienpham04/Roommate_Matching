@@ -26,8 +26,9 @@ public class VectorSearchService {
     private VectorSearchConfig config;
 
     /**
-     * Find similar roommates based on a user's PREFERENCES using deployed Vector Search index
-     * Compares: User A's PREFERENCES vs Other users' PROFILES
+     * Find similar roommates with the same LIFESTYLE as this user
+     * Compares: User A's PROFILE vs Other users' PROFILES
+     * Returns people who ARE like you (same habits, preferences, demographics)
      *
      * @param userId The user ID to find matches for
      * @param topK Number of top matches to return
@@ -42,11 +43,12 @@ public class VectorSearchService {
 
         UserModel targetUser = userOptional.get();
 
-        // Generate embedding for target user's PREFERENCES (what they want)
-        List<Float> preferenceEmbedding = embeddingService.generatePreferenceEmbedding(targetUser);
+        // Generate embedding for target user's PROFILE (who they are)
+        // This finds people with similar lifestyles, habits, demographics
+        List<Float> profileEmbedding = embeddingService.generateProfileEmbedding(targetUser);
 
-        // Query the deployed index for matching PROFILES
-        return queryProfilesIndex(preferenceEmbedding, topK, userId);
+        // Query the deployed index for similar PROFILES
+        return queryProfilesIndex(profileEmbedding, topK, userId);
     }
 
     /**
@@ -224,12 +226,25 @@ public class VectorSearchService {
             throw new IllegalStateException("Deployed index ID not configured. Please set VERTEX_AI_DEPLOYED_INDEX_ID in your .env file");
         }
 
-        try (MatchServiceClient matchServiceClient = MatchServiceClient.create()) {
-            // Build the query
+        // Configure MatchServiceClient to use public VDB endpoint
+        String vdbEndpoint = String.format("%s:443", config.getPublicEndpointDomain());
+        MatchServiceSettings matchSettings = MatchServiceSettings.newBuilder()
+            .setEndpoint(vdbEndpoint)
+            .build();
+
+        try (MatchServiceClient matchServiceClient = MatchServiceClient.create(matchSettings)) {
+            // Build the query with restricts to ONLY return profile vectors
+            // This is deterministic - we only get profiles, never preferences
             FindNeighborsRequest.Query query = FindNeighborsRequest.Query.newBuilder()
                 .setDatapoint(
                     IndexDatapoint.newBuilder()
                         .addAllFeatureVector(queryEmbedding)
+                        .addRestricts(
+                            IndexDatapoint.Restriction.newBuilder()
+                                .setNamespace("vector_type")
+                                .addAllowList("profile")
+                                .build()
+                        )
                         .build()
                 )
                 .setNeighborCount(topK)
@@ -237,7 +252,7 @@ public class VectorSearchService {
 
             // Build the request
             FindNeighborsRequest request = FindNeighborsRequest.newBuilder()
-                .setIndexEndpoint(config.getIndexEndpoint())
+                .setIndexEndpoint(config.getIndexEndpointPath())
                 .setDeployedIndexId(config.getDeployedIndexId())
                 .addQueries(query)
                 .build();
@@ -250,20 +265,20 @@ public class VectorSearchService {
 
             if (response.getNearestNeighborsCount() > 0) {
                 FindNeighborsResponse.NearestNeighbors neighbors = response.getNearestNeighbors(0);
+                System.out.println("DEBUG: Found " + neighbors.getNeighborsCount() + " neighbors from index");
 
                 for (FindNeighborsResponse.Neighbor neighbor : neighbors.getNeighborsList()) {
                     String datapointId = neighbor.getDatapoint().getDatapointId();
-
-                    // Skip if this is a preference vector (we only want profiles)
-                    if (datapointId.endsWith("_preference")) {
-                        continue;
-                    }
+                    System.out.println("DEBUG: Processing datapoint: " + datapointId);
 
                     // Extract actual user ID (remove "_profile" suffix)
+                    // Note: restricts ensure we ONLY get profile vectors, never preferences
                     String userId = datapointId.replace("_profile", "");
+                    System.out.println("DEBUG: Extracted user ID: " + userId);
 
                     // Skip excluded user (avoid self-matching)
                     if (excludeUserId != null && userId.equals(excludeUserId)) {
+                        System.out.println("DEBUG: Skipping excluded user (self)");
                         continue;
                     }
 
@@ -272,11 +287,13 @@ public class VectorSearchService {
                     // Convert distance to similarity score (cosine distance -> cosine similarity)
                     // Cosine similarity = 1 - cosine distance
                     double similarityScore = 1.0 - distance;
+                    System.out.println("DEBUG: Similarity score: " + similarityScore);
 
                     // Fetch user from MongoDB
                     Optional<UserModel> userOpt = userRepository.findById(userId);
                     if (userOpt.isPresent()) {
                         UserModel user = userOpt.get();
+                        System.out.println("DEBUG: Found user in MongoDB: " + user.getFirstName() + " " + user.getLastName());
 
                         Map<String, Object> result = new HashMap<>();
                         result.put("user", user);
@@ -285,9 +302,15 @@ public class VectorSearchService {
                         result.put("description", embeddingService.userProfileToText(user));
 
                         results.add(result);
+                    } else {
+                        System.out.println("DEBUG: User NOT found in MongoDB for ID: " + userId);
                     }
                 }
+            } else {
+                System.out.println("DEBUG: No neighbors found in response");
             }
+
+            System.out.println("DEBUG: Total results: " + results.size());
 
             return results;
 
