@@ -11,6 +11,9 @@ public class VectorSearchConfig {
     @Value("${gcp.project.id}")
     private String projectId;
 
+    @Value("${gcp.project.number}")
+    private String projectNumber;
+
     @Value("${gcp.location}")
     private String location;
 
@@ -44,7 +47,27 @@ public class VectorSearchConfig {
         return deployedIndexId;
     }
 
+    /** Returns FULL resource name, not just the numeric ID */
+    public String getIndexPath() {
+        if (indexId == null) return null;
+
+        return String.format(
+            "projects/%s/locations/%s/indexes/%s",
+            projectNumber,
+            location,
+            indexId
+        );
+    }
+
+    /** Returns JUST the numeric ID (optional) */
     public String getIndexId() {
         return indexId;
     }
+
+    public String getIndexEndpointPath() {
+    return String.format(
+        "projects/%s/locations/%s/indexEndpoints/%s",
+        projectNumber, location, indexEndpoint
+    );
+}
 }
