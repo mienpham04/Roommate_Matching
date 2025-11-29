@@ -1,13 +1,27 @@
 import Navbar from "../components/Navbar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { UserAvatar, useUser } from "@clerk/clerk-react";
+import { useParams } from "react-router-dom";
 
 function ProfilePage() {
-  const { user } = useUser();
+  const { id } = useParams(); // /view/:id
+  const [dbUser, setDbUser] = useState(null);
 
-  // State to store uploaded image
   const [customPhoto, setCustomPhoto] = useState(null);
+
+  // Fetch user from DB
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch(`http://localhost:8080/api/users/${id}`);
+        const data = await res.json();
+        setDbUser(data);
+      } catch (err) {
+        console.error("Failed to fetch DB user:", err);
+      }
+    };
+    fetchUser();
+  }, [id]);
 
   const handlePhotoUpload = (e) => {
     const file = e.target.files?.[0];
@@ -17,9 +31,15 @@ function ProfilePage() {
     }
   };
 
-  const handleRemove = () => {
-    setCustomPhoto(null);
-  };
+  const handleRemove = () => setCustomPhoto(null);
+
+  if (!dbUser) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-full bg-linear-to-br from-base-100 via-base-200 to-base-300 flex flex-col overflow-hidden">
@@ -27,6 +47,7 @@ function ProfilePage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="max-w-7xl mx-auto w-full px-6 py-4">
+
           {/* HEADER */}
           <div className="flex items-center justify-between mb-4">
             <h1 className="font-black text-3xl bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent tracking-wider">
@@ -40,16 +61,15 @@ function ProfilePage() {
 
           {/* MAIN GRID */}
           <div className="grid grid-cols-3 gap-6 h-[calc(100vh-180px)]">
+            
             {/* LEFT SIDEBAR */}
             <div className="bg-base-100 rounded-xl p-4 shadow-md border flex flex-col">
               <h2 className="text-lg text-base-content/70 font-semibold mb-3">
                 Account Management
               </h2>
 
-              {/* PROFILE PHOTO */}
               <div className="flex flex-col items-center mt-2">
                 <div className="relative w-32 h-32">
-                  {/* Avatar container */}
                   <div className="w-full h-full rounded-full overflow-hidden shadow-md bg-base-200 flex items-center justify-center">
                     {customPhoto ? (
                       <img
@@ -58,15 +78,14 @@ function ProfilePage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <UserAvatar
-                        user={user}
-                        size={160}
+                      <img
+                        src={dbUser.profileImageUrl}
+                        alt="Profile"
                         className="w-full h-full object-cover"
                       />
                     )}
                   </div>
 
-                  {/* REMOVE BUTTON */}
                   {customPhoto && (
                     <button
                       className="absolute -top-2 -right-2 bg-white shadow rounded-full p-1"
@@ -77,7 +96,7 @@ function ProfilePage() {
                   )}
                 </div>
 
-                {/* UPLOAD BUTTON */}
+                {/* UPLOAD */}
                 <label className="mt-4 cursor-pointer w-full">
                   <div className="w-full py-2 border rounded-lg text-center bg-base-200 hover:bg-base-300 transition font-medium">
                     Upload Photo
@@ -93,35 +112,37 @@ function ProfilePage() {
             </div>
 
             {/* RIGHT FORM */}
-            <div className="col-span-2 bg-base-100 rounded-xl p-5 shadow-md border overflow-y-auto">
-              {/* PROFILE INFO FORM */}
+            <div className="col-span-2 bg-base-100 rounded-xl p-5 shadow-md border">
+
+              {/* PROFILE INFO */}
               <h2 className="text-lg text-base-content/70 font-semibold mb-3">
                 Profile Information
               </h2>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
+                {/* First Name */}
                 <label className="form-control w-full">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
-                    Full name
+                    First Name
                   </span>
                   <input
                     className="input input-bordered w-full"
-                    placeholder="Full Name"
-                    defaultValue={user?.fullName || ""}
+                    defaultValue={dbUser.firstName}
                   />
                 </label>
 
+                {/* Last Name */}
                 <label className="form-control w-full">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
-                    Nickname
+                    Last Name
                   </span>
                   <input
                     className="input input-bordered w-full"
-                    placeholder="Nickname displayed"
-                    defaultValue={user?.username || ""}
+                    defaultValue={dbUser.lastName}
                   />
                 </label>
 
+                {/* DOB */}
                 <label className="form-control w-full">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
                     Birthday
@@ -129,24 +150,23 @@ function ProfilePage() {
                   <input
                     type="date"
                     className="input input-bordered w-full"
+                    defaultValue={dbUser.dateOfBirth}
                   />
                 </label>
 
+                {/* Gender */}
                 <label className="form-control w-full">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
                     Gender
                   </span>
-                  <select className="select select-bordered w-full" required>
-                    <option disabled selected>
-                      Select Gender
-                    </option>
+                  <select
+                    className="select select-bordered w-full"
+                    defaultValue={dbUser.gender}
+                  >
                     <option value="female">Female</option>
                     <option value="male">Male</option>
-                    <option value="nonbinary">Non-binary</option>
+                    <option value="non-binary">Non-binary</option>
                     <option value="other">Other</option>
-                    <option value="prefer_not_say">
-                      Prefer not to say
-                    </option>
                   </select>
                 </label>
               </div>
@@ -157,6 +177,7 @@ function ProfilePage() {
               </h2>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
+                {/* Email */}
                 <label className="form-control w-full">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
                     Email
@@ -164,33 +185,84 @@ function ProfilePage() {
                   <input
                     type="email"
                     className="input input-bordered w-full"
-                    placeholder="Email"
-                    defaultValue={user?.emailAddresses || ""}
+                    defaultValue={dbUser.email}
                   />
                 </label>
 
+                {/* ZIP CODE */}
                 <label className="form-control w-full">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
-                    Social Media
+                    Zip Code
                   </span>
                   <input
-                    type="url"
+                    type="text"
                     className="input input-bordered w-full"
-                    placeholder="Social Media"
+                    defaultValue={dbUser.zipCode}
                   />
                 </label>
               </div>
 
-              {/* BIO */}
-              <h2 className="text-lg text-base-content/70 font-semibold mb-2">
-                Biographical Info
+              {/* LIFESTYLE */}
+              <h2 className="text-lg text-base-content/70 font-semibold mb-3">
+                Lifestyle
               </h2>
 
-              <textarea
-                className="textarea textarea-bordered w-full h-28"
-                placeholder="Write something..."
-              ></textarea>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {/* Pet Friendly */}
+                <label className="form-control">
+                  <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
+                    Pet Friendly
+                  </span>
+                  <select
+                    className="select select-bordered"
+                    defaultValue={String(dbUser.lifestyle?.petFriendly)}
+                  >
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </label>
+
+                {/* Smoking */}
+                <label className="form-control">
+                  <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
+                    Smoking
+                  </span>
+                  <select
+                    className="select select-bordered"
+                    defaultValue={String(dbUser.lifestyle?.smoking)}
+                  >
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </label>
+
+                {/* Guest Frequency */}
+                <label className="form-control col-span-2">
+                  <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
+                    Guest Frequency
+                  </span>
+                  <input
+                    className="input input-bordered w-full"
+                    defaultValue={dbUser.lifestyle?.guestFrequency}
+                  />
+                </label>
+
+                {/* Night Owl */}
+                <label className="form-control col-span-2">
+                  <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
+                    Night Owl
+                  </span>
+                  <select
+                    className="select select-bordered w-full"
+                    defaultValue={String(dbUser.lifestyle?.nightOwl)}
+                  >
+                    <option value="false">No</option>
+                    <option value="true">Yes</option>
+                  </select>
+                </label>
+              </div>
             </div>
+
           </div>
         </div>
       </div>
