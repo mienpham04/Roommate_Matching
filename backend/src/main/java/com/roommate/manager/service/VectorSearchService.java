@@ -50,6 +50,92 @@ public class VectorSearchService {
     }
 
     /**
+     * Find mutual matches using BIDIRECTIONAL scoring
+     * Compares BOTH directions:
+     * 1. A's preferences vs B's profile (does B have what A wants?)
+     * 2. B's preferences vs A's profile (does A have what B wants?)
+     *
+     * Final score combines both directions for true mutual compatibility
+     *
+     * @param userId The user ID to find matches for
+     * @param topK Number of top mutual matches to return
+     * @return List of users ranked by mutual compatibility score
+     */
+    public List<Map<String, Object>> findMutualMatches(String userId, int topK) throws IOException {
+        // Get the user
+        Optional<UserModel> userOptional = userRepository.findById(userId);
+        if (userOptional.isEmpty()) {
+            throw new IllegalArgumentException("User not found: " + userId);
+        }
+
+        UserModel targetUser = userOptional.get();
+
+        // Step 1: Get candidates using A's preferences vs others' profiles
+        // Query more candidates than needed since we'll filter/rerank with mutual scores
+        int expandedK = topK * 3;
+        List<Float> aPreferenceEmbedding = embeddingService.generatePreferenceEmbedding(targetUser);
+        List<Map<String, Object>> candidates = queryProfilesIndex(aPreferenceEmbedding, expandedK, userId);
+
+        // Step 2: For each candidate, get reverse score (B's preferences vs A's profile)
+        List<Float> aProfileEmbedding = embeddingService.generateProfileEmbedding(targetUser);
+
+        for (Map<String, Object> candidate : candidates) {
+            UserModel candidateUser = (UserModel) candidate.get("user");
+            double forwardScore = (double) candidate.get("similarityScore");
+
+            // Get reverse score by querying with candidate's preferences
+            double reverseScore = getReverseScore(candidateUser, aProfileEmbedding, userId);
+
+            // Calculate mutual score (average of both directions)
+            double mutualScore = (forwardScore + reverseScore) / 2.0;
+
+            // Store all scores
+            candidate.put("forwardScore", forwardScore); // A wants B
+            candidate.put("reverseScore", reverseScore); // B wants A
+            candidate.put("mutualScore", mutualScore);   // Combined
+            candidate.put("similarityScore", mutualScore); // Update main score
+        }
+
+        // Sort by mutual score and return top K
+        return candidates.stream()
+            .sorted((a, b) -> Double.compare(
+                (double) b.get("mutualScore"),
+                (double) a.get("mutualScore")
+            ))
+            .limit(topK)
+            .toList();
+    }
+
+    /**
+     * Get reverse score: How well does candidate's PREFERENCES match target's PROFILE
+     * Uses index query with candidate's preferences to find target's profile ranking
+     *
+     * @param candidate The candidate user
+     * @param targetProfileEmbedding Target user's profile embedding
+     * @param targetUserId Target user ID
+     * @return Reverse similarity score
+     */
+    private double getReverseScore(UserModel candidate, List<Float> targetProfileEmbedding, String targetUserId) throws IOException {
+        // Generate candidate's preference embedding
+        List<Float> candidatePreferenceEmbedding = embeddingService.generatePreferenceEmbedding(candidate);
+
+        // Query index with candidate's preferences to see how well target's profile matches
+        // We need to search for target's profile among the results
+        List<Map<String, Object>> results = queryProfilesIndex(candidatePreferenceEmbedding, 100, candidate.getId());
+
+        // Find target user in the results
+        for (Map<String, Object> result : results) {
+            String userId = (String) result.get("userId");
+            if (userId.equals(targetUserId)) {
+                return (double) result.get("similarityScore");
+            }
+        }
+
+        // If target not found in top 100 results, return low score
+        return 0.0;
+    }
+
+    /**
      * Find roommates matching a natural language query using deployed Vector Search index
      * The query is treated as a preference - searches for matching PROFILES
      *
