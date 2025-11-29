@@ -134,10 +134,12 @@ function HomePage() {
 
       {/* FEATURES SECTION */}
       <div className="max-w-7xl mx-auto px-4 py-20">
-        <div className="text-center mb-16">
+        <div className="text-center mb-16 bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
           <h2 className="text-4xl font-bold mb-4">
-            Everything You Need to{" "}
-            <span className="text-primary font-mono">Live Better Together</span>
+            Everything You Need To {" "}
+            <span className="font-mono bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              Live Better Together
+            </span>
           </h2>
           <p className="text-lg text-base-content/70 max-w-2xl mx-auto">
             Powerful features designed to make finding the right roommate
@@ -197,122 +199,101 @@ function HomePage() {
       {/* PROCESS SECTION */}
       <div className="max-w-7xl mx-auto px-4 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">How it works</h2>
+          <h2 className="text-4xl font-bold mb-16 bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+            How Oday works
+          </h2>
         </div>
 
         {/* RESPONSIVE GRID */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* LEFT — TIMELINE */}
-          <div className="order-1 lg:order-1">
-            <ul className="timeline timeline-vertical w-full">
-              <li>
-                <div className="timeline-start timeline-box text-lg md:text-xl">
+          {/* LEFT */}
+          <div className="-space-y-0.5 w-full max-w-xl">
+            {/* Step 1 */}
+            <div className="flex items-start gap-6">
+              <div className="text-3xl font-semibold text-base-content/40">
+                1
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold text-base-content mb-2">
                   SignUp/Login with Email
-                </div>
-                <div className="timeline-middle">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <hr />
-              </li>
+                </h3>
+                <p className="text-base text-base-content/70 leading-relaxed max-w-xl">
+                  Quickly get started by creating an account or logging in with
+                  your email.
+                </p>
+              </div>
+            </div>
 
-              <li>
-                <hr />
-                <div className="timeline-middle">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="timeline-end timeline-box text-lg md:text-xl">
-                  SetUp your information
-                </div>
-                <hr />
-              </li>
+            <div className="divider"></div>
 
-              <li>
-                <hr />
-                <div className="timeline-start timeline-box text-lg md:text-xl">
+            {/* Step 2 */}
+            <div className="flex items-start gap-6">
+              <div className="text-3xl font-semibold text-base-content/40">
+                2
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold text-base-content mb-2">
+                  Set up your information
+                </h3>
+                <p className="text-base text-base-content/70 leading-relaxed max-w-xl">
+                  Tell us more about yourself so we can understand your
+                  lifestyle.
+                </p>
+              </div>
+            </div>
+
+            <div className="divider"></div>
+
+            {/* Step 3 */}
+            <div className="flex items-start gap-6">
+              <div className="text-3xl font-semibold text-base-content/40">
+                3
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold text-base-content mb-2">
                   Choose your preferences
-                </div>
-                <div className="timeline-middle">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <hr />
-              </li>
+                </h3>
+                <p className="text-base text-base-content/70 leading-relaxed max-w-xl">
+                  Select your living preferences - sleep schedule, cleanliness,
+                  and more.
+                </p>
+              </div>
+            </div>
 
-              <li>
-                <hr />
-                <div className="timeline-middle">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="timeline-end timeline-box text-lg md:text-xl">
+            <div className="divider"></div>
+
+            {/* Step 4 */}
+            <div className="flex items-start gap-6">
+              <div className="text-3xl font-semibold text-base-content/40">
+                4
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold text-base-content mb-2">
                   Get Match
-                </div>
-                <hr />
-              </li>
+                </h3>
+                <p className="text-base text-base-content/70 leading-relaxed max-w-xl">
+                  Instantly receive your best roommate matches based on
+                  compatibility.
+                </p>
+              </div>
+            </div>
 
-              <li>
-                <hr />
-                <div className="timeline-start timeline-box text-lg md:text-xl">
+            <div className="divider"></div>
+
+            {/* Step 5 */}
+            <div className="flex items-start gap-6">
+              <div className="text-3xl font-semibold text-base-content/40">
+                5
+              </div>
+              <div>
+                <h3 className="text-2xl font-semibold text-base-content mb-2">
                   Enjoy!
-                </div>
-                <div className="timeline-middle">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-              </li>
-            </ul>
+                </h3>
+                <p className="text-base text-base-content/70 leading-relaxed max-w-xl">
+                  Move in with confidence.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* RIGHT — CAROUSEL */}
