@@ -18,6 +18,7 @@ public class MatchingController {
 
     /**
      * Find similar roommates for a given user using AI embeddings
+     * ONE-WAY matching: Only checks if others match what this user wants
      * Example: GET /api/matching/similar/user123?topK=10
      */
     @GetMapping("/similar/{userId}")
@@ -44,6 +45,50 @@ public class MatchingController {
         } catch (Exception e) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Matching failed");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
+    /**
+     * Find mutual matches using BIDIRECTIONAL scoring
+     * Checks BOTH directions:
+     * - Does B have what A wants? (A's preferences vs B's profile)
+     * - Does A have what B wants? (B's preferences vs A's profile)
+     *
+     * Returns matches ranked by mutual compatibility score
+     * Example: GET /api/matching/mutual/user123?topK=10
+     */
+    @GetMapping("/mutual/{userId}")
+    public ResponseEntity<Map<String, Object>> findMutualMatches(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "3") int topK
+    ) {
+        try {
+            List<Map<String, Object>> matches = vectorSearchService.findMutualMatches(userId, topK);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", userId);
+            response.put("matchingType", "bidirectional");
+            response.put("totalMatches", matches.size());
+            response.put("matches", matches);
+            response.put("scoreExplanation", Map.of(
+                "forwardScore", "How well the match satisfies your preferences",
+                "reverseScore", "How well you satisfy the match's preferences",
+                "mutualScore", "Average of both scores (mutual compatibility)"
+            ));
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "User not found");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(404).body(errorResponse);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Mutual matching failed");
             errorResponse.put("message", e.getMessage());
             return ResponseEntity.status(500).body(errorResponse);
         }
