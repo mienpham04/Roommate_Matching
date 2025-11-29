@@ -29,7 +29,7 @@ public class UserModel {
 
     private BudgetModel budget;
     private LifestyleModel lifestyle;
-    private PreferenceModel preferences; // What they want in a roommate
+    private PreferenceModel preferences;
 
     @CreatedDate
     private LocalDateTime createdAt;
