@@ -25,7 +25,7 @@ public class UserController {
         // Save user to MongoDB
         UserModel savedUser = userRepository.save(user);
 
-        // Upload vector to index (async - don't block on failures)
+        // Upload vectors to STREAMING index (supports real-time upsert)
         try {
             indexManagementService.uploadUserToIndex(savedUser);
         } catch (Exception e) {
@@ -54,7 +54,7 @@ public class UserController {
         updatedUser.setId(id);
         UserModel savedUser = userRepository.save(updatedUser);
 
-        // Update vector in index
+        // Update vectors in STREAMING index
         try {
             indexManagementService.uploadUserToIndex(savedUser);
         } catch (Exception e) {
@@ -69,7 +69,7 @@ public class UserController {
     public void deleteUser(@PathVariable String id) {
         userRepository.deleteById(id);
 
-        // Remove vector from index
+        // Remove vectors from STREAMING index
         try {
             indexManagementService.removeUserFromIndex(id);
         } catch (Exception e) {
