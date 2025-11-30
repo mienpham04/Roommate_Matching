@@ -22,6 +22,16 @@ public class UserController {
     // CREATE
     @PostMapping("/new_user")
     public UserModel createUser(@RequestBody UserModel user) {
+        // Validate that Clerk ID is provided
+        if (user.getId() == null || user.getId().isEmpty()) {
+            throw new IllegalArgumentException("Clerk user ID must be provided as 'id' field.");
+        }
+
+        // Check if user with this Clerk ID already exists
+        if (userRepository.existsById(user.getId())) {
+            throw new IllegalArgumentException("User with ID " + user.getId() + " already exists.");
+        }
+
         // Check for duplicate email
         if (user.getEmail() != null) {
             UserModel existingUser = userRepository.findByEmail(user.getEmail());
@@ -30,7 +40,7 @@ public class UserController {
             }
         }
 
-        // Save user to MongoDB
+        // Save user to MongoDB (id is already set to Clerk ID)
         UserModel savedUser = userRepository.save(user);
 
         // Upload vectors to STREAMING index (supports real-time upsert)
@@ -70,6 +80,16 @@ public class UserController {
     @GetMapping("/{id}")
     public Optional<UserModel> getUserById(@PathVariable String id) {
         return userRepository.findById(id);
+    }
+
+    // READ (Get one user by email)
+    @GetMapping("/email/{email}")
+    public UserModel getUserByEmail(@PathVariable String email) {
+        UserModel user = userRepository.findByEmail(email);
+        if (user == null) {
+            throw new IllegalArgumentException("User with email " + email + " not found.");
+        }
+        return user;
     }
 
     // UPDATE (Replace entire user)
