@@ -15,6 +15,22 @@ function ExplorePage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentLimit, setCurrentLimit] = useState(5);
   const [loadingMessage, setLoadingMessage] = useState("");
+  const [steps, setSteps] = useState([
+    { text: "Finding people who match your vibe…", done: false },
+    { text: "Checking your profile settings…", done: false },
+    { text: "Finding people with similar lifestyles…", done: false },
+    { text: "Checking who fits your roommate preferences…", done: false },
+    { text: "Analyzing compatibility and merging results…", done: false },
+    { text: "Finalizing your matches…", done: false }
+  ]);
+
+  const completeStep = (index) => {
+    setSteps(prev =>
+      prev.map((step, i) =>
+        i === index ? { ...step, done: true } : step
+      )
+    );
+  };
 
   useEffect(() => {
     if (user?.primaryEmailAddress?.emailAddress) {
@@ -31,68 +47,82 @@ function ExplorePage() {
       } else {
         setLoadingMore(true);
       }
-      setError(null);
+
+      // Reset steps
+      setSteps(prev => prev.map(s => ({ ...s, done: false })));
+
+      /* STEP 0 */
+      completeStep(0);
 
       const userEmail = user.primaryEmailAddress.emailAddress;
 
-      // Fetch all users to find current user's MongoDB ID
+      /* STEP 1 — Fetch profile */
       const usersResponse = await fetch(`${API_URL}/users`);
       if (!usersResponse.ok) throw new Error("Failed to fetch users");
-
       const allUsers = await usersResponse.json();
       const currentUser = allUsers.find(u => u.email === userEmail);
-
-      if (!currentUser) {
-        throw new Error("User profile not found. Please complete your profile first.");
-      }
+      if (!currentUser) throw new Error("User profile not found.");
+      completeStep(1);
 
       const userId = currentUser.id;
 
-      // Fetch both similar and mutual matches in parallel
-      const [similarResponse, mutualResponse] = await Promise.all([
-        fetch(`${API_URL}/matching/similar/${userId}?topK=${currentLimit}`),
-        fetch(`${API_URL}/matching/mutual/${userId}?topK=${currentLimit}`)
-      ]);
-
+      /* STEP 2 — Fetch similar lifestyles */
+      const similarResponse = await fetch(
+        `${API_URL}/matching/similar/${userId}?topK=${currentLimit}`
+      );
       if (!similarResponse.ok) throw new Error("Failed to fetch similar matches");
-      if (!mutualResponse.ok) throw new Error("Failed to fetch mutual matches");
-
       const similarData = await similarResponse.json();
-      const mutualData = await mutualResponse.json();
+      completeStep(2);
 
+      /* STEP 3 — Fetch roommate potential */
+      const mutualResponse = await fetch(
+        `${API_URL}/matching/mutual/${userId}?topK=${currentLimit}`
+      );
+      if (!mutualResponse.ok) throw new Error("Failed to fetch roommate potential");
+      const mutualData = await mutualResponse.json();
+      completeStep(3);
+
+      /* STEP 4 — Merge results */
       const similarMatches = similarData.matches || [];
       const mutualMatches = mutualData.matches || [];
 
-      // Mark matches with type flags
-      const markedMutualMatches = mutualMatches.map(match => ({
-        ...match,
-        isMutualMatch: true
+      const markedSimilar = similarMatches.map(m => ({
+        ...m,
+        isMutualMatch: false,
+        isSimilarLifestyle: true,
       }));
 
-      const markedSimilarMatches = similarMatches.map(match => ({
-        ...match,
-        isMutualMatch: false
+      const markedMutual = mutualMatches.map(m => ({
+        ...m,
+        isMutualMatch: true,
+        isSimilarLifestyle: true,
       }));
 
-      // Combine and remove duplicates (prefer mutual matches)
-      const combined = [...markedMutualMatches];
-      const mutualIds = new Set(markedMutualMatches.map(m => m.userId));
+      const combined = [...markedMutual];
+      const mutualIds = new Set(markedMutual.map(m => m.userId));
 
-      markedSimilarMatches.forEach(match => {
+      markedSimilar.forEach(match => {
         if (!mutualIds.has(match.userId)) {
           combined.push(match);
         }
       });
+      completeStep(4);
 
-      setAllMatches(combined);
-    } catch (err) {
-      console.error("Error fetching matches:", err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
+      /* STEP 5 — Finalizing */
+        setAllMatches(combined);
+        completeStep(5);
+      } catch (err) {
+        console.error("Error fetching matches:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
   };
+
+
+
+
 
   const loadMore = () => {
     setCurrentLimit(prev => prev + 5);
@@ -119,7 +149,28 @@ function ExplorePage() {
     <div className="min-h-screen bg-base-100 relative">
       <Navbar />
 
-      {loading && <Loading />}
+    {loading && (
+      <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+        <h2 className="text-xl font-bold mb-4 text-primary">Preparing Your Matches…</h2>
+
+        <div className="w-full max-w-md space-y-3 text-left">
+          {steps.map((step, i) => (
+            <div key={i} className="flex items-center gap-2">
+              {step.done ? (
+                <span className="text-green-600 font-bold text-lg">✓</span>
+              ) : (
+                <span className="loading loading-spinner loading-sm text-gray-400"></span>
+              )}
+              <p className={`${step.done ? "text-green-700" : "text-gray-500"}`}>
+                {step.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+
 
       {!loading && error && (
         <div className="max-w-7xl mx-auto px-4 py-10">
@@ -151,7 +202,7 @@ function ExplorePage() {
           <div className="flex justify-center gap-4 mt-6 mb-8">
             <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg">
               <Home className="size-5 text-green-600" />
-              <span className="text-sm">Mutual Match (Both compatible)</span>
+                <span className="text-sm">Roommate Potential (Both interested)</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg">
               <Users className="size-5 text-blue-600" />
@@ -196,7 +247,7 @@ function ExplorePage() {
 
                       {/* Match type icon */}
                       {match.isMutualMatch ? (
-                        <div className="absolute top-3 left-3 bg-green-200 p-1 rounded-full shadow-sm" title="Mutual Match">
+                        <div className="absolute top-3 left-3 bg-green-200 p-1 rounded-full shadow-sm" title="Roommate Potential">
                           <Home className="size-4 text-green-600" />
                         </div>
                       ) : (
@@ -226,10 +277,22 @@ function ExplorePage() {
                       </h3>
 
                       <p className="text-sm text-base-content/60">{calculateAge(person.dateOfBirth)} years old</p>
+                      <div className="mt-3 text-center space-y-1">
+                        {match.mutualScore !== undefined && (
+                          <p className="text-green-600 font-semibold flex items-center justify-center gap-1">
+                            <Home className="size-4 text-green-600" />
+                            Roommate Potential: {Math.round(match.mutualScore * 100)}%
+                          </p>
+                        )}
 
-                      <p className={`font-semibold mt-2 ${match.isMutualMatch ? 'text-green-600' : 'text-blue-600'}`}>
-                        Match Score {Math.round(score * 100)}%
-                      </p>
+                        {match.similarityScore !== undefined && (
+                          <p className="text-blue-600 font-semibold flex items-center justify-center gap-1">
+                            <Users className="size-4 text-blue-600" />
+                            Similar Lifestyle: {Math.round(match.similarityScore * 100)}%
+                          </p>
+                        )}
+                      </div>
+
 
                 {/* DIVIDER */}
                 <div className="w-full mt-4 mb-3 border-t border-base-300"></div>
@@ -330,19 +393,29 @@ function ExplorePage() {
               {selected.isMutualMatch && (
                 <div className="mt-2 flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full">
                   <Home className="size-4 text-green-600" />
-                  <span className="text-sm text-green-700 font-medium">Mutual Match</span>
+                    <span className="text-sm text-green-700 font-medium">Roommate Potential</span>
                 </div>
               )}
             </div>
 
             {/* DETAILS */}
             <div className="mt-6 space-y-4">
-              <p className="font-semibold text-lg">
-                Match Score:{" "}
-                <span className={selected.isMutualMatch ? "text-green-600" : "text-blue-600"}>
-                  {Math.round((selected.similarityScore || selected.mutualScore || 0) * 100)}%
-                </span>
-              </p>
+              <div className="space-y-1">
+                {selected.mutualScore !== undefined && (
+                  <p className="font-semibold text-lg text-green-600 flex items-center gap-1">
+                    <Home className="size-5 text-green-600" />
+                    Roommate Potential: {Math.round(selected.mutualScore * 100)}%
+                  </p>
+                )}
+
+                {selected.similarityScore !== undefined && (
+                  <p className="font-semibold text-lg text-blue-600 flex items-center gap-1">
+                    <Users className="size-5 text-blue-600" />
+                    Similar Lifestyle: {Math.round(selected.similarityScore * 100)}%
+                  </p>
+                )}
+              </div>
+
 
               {selected.mutualScore && (
                 <div className="bg-base-200 p-3 rounded-lg">
@@ -350,7 +423,7 @@ function ExplorePage() {
                   <div className="space-y-1 text-sm">
                     <p>You want them: {Math.round((selected.forwardScore || 0) * 100)}%</p>
                     <p>They want you: {Math.round((selected.reverseScore || 0) * 100)}%</p>
-                    <p className="font-semibold">Mutual: {Math.round((selected.mutualScore || 0) * 100)}%</p>
+                    <p className="font-semibold">Roommate Potential: {Math.round((selected.mutualScore || 0) * 100)}%</p>
                   </div>
                 </div>
               )}
