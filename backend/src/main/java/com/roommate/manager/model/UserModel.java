@@ -12,7 +12,7 @@ import java.time.Period;
 public class UserModel {
 
     @Id
-    private String id;
+    private String id; // This will be the Clerk user ID
 
     private String firstName;
     private String lastName;
