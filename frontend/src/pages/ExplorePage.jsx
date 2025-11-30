@@ -17,7 +17,7 @@ function ExplorePage() {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [steps, setSteps] = useState([
     { text: "Finding people who match your vibe…", done: false },
-    { text: "Checking your profile settings…", done: false },
+    { text: "Getting your profile ID…", done: false },
     { text: "Finding people with similar lifestyles…", done: false },
     { text: "Checking who fits your roommate preferences…", done: false },
     { text: "Analyzing compatibility and merging results…", done: false },
@@ -54,17 +54,9 @@ function ExplorePage() {
       /* STEP 0 */
       completeStep(0);
 
-      const userEmail = user.primaryEmailAddress.emailAddress;
-
-      /* STEP 1 — Fetch profile */
-      const usersResponse = await fetch(`${API_URL}/users`);
-      if (!usersResponse.ok) throw new Error("Failed to fetch users");
-      const allUsers = await usersResponse.json();
-      const currentUser = allUsers.find(u => u.email === userEmail);
-      if (!currentUser) throw new Error("User profile not found.");
+      /* STEP 1 — Get user ID from Clerk (no API call needed!) */
+      const userId = user.id; // Clerk ID = MongoDB _id
       completeStep(1);
-
-      const userId = currentUser.id;
 
       /* STEP 2 — Fetch similar lifestyles */
       // Fetch a large number to get all possible matches
