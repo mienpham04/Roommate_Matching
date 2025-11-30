@@ -22,6 +22,14 @@ public class UserController {
     // CREATE
     @PostMapping("/new_user")
     public UserModel createUser(@RequestBody UserModel user) {
+        // Check for duplicate email
+        if (user.getEmail() != null) {
+            UserModel existingUser = userRepository.findByEmail(user.getEmail());
+            if (existingUser != null) {
+                throw new IllegalArgumentException("User with email " + user.getEmail() + " already exists.");
+            }
+        }
+
         // Save user to MongoDB
         UserModel savedUser = userRepository.save(user);
 
