@@ -5,8 +5,13 @@ import Info from "../components/process/Info";
 import Location from "../components/process/Location";
 import Preference from "../components/process/Preference";
 import Stepper from "../components/Stepper";
+import Additional from "../components/process/Additional";
+
+import { useNavigate } from "react-router";
 
 function ProcessPage() {
+  const navigate = useNavigate();
+
   const stepData = [
     {
       name: "Basic info",
@@ -23,16 +28,18 @@ function ProcessPage() {
     {
       name: "Preferences",
       title: "Preferences",
-      description: "Tell us your daily habits.",
+      description: "Tell us your roommate preferences.",
     },
     {
-      name: "Lifestyle",
-      title: "Lifestyle",
-      description: "Describe your routines & expectations.",
+      name: "Additional",
+      title: "Additional Information",
+      description: "Are there anything you want to add?",
     },
   ];
 
   const [current, setCurrent] = useState(0);
+
+  const handleSubmit = () => navigate(`/explore`);
 
   const handleNext = () => {
     if (current < stepData.length - 1) setCurrent(current + 1);
@@ -54,17 +61,7 @@ function ProcessPage() {
         return <Preference />;
 
       case 3:
-        return (
-          <div className="col-span-2 card bg-base-100 border shadow-sm">
-            <div className="card-body space-y-4">
-              <h2 className="card-title text-xl">Lifestyle</h2>
-              <textarea
-                className="textarea textarea-bordered w-full"
-                placeholder="Describe your lifestyle..."
-              />
-            </div>
-          </div>
-        );
+        return <Additional />;
 
       default:
         return null;
@@ -94,13 +91,21 @@ function ProcessPage() {
             BACK
           </button>
 
-          <button
-            onClick={handleNext}
-            disabled={current === stepData.length - 1}
-            className="btn btn-primary btn-lg rounded-full disabled:opacity-40"
-          >
-            NEXT
-          </button>
+          {current < stepData.length - 1 ? (
+            <button
+              onClick={handleNext}
+              className="btn btn-primary btn-lg rounded-full"
+            >
+              NEXT
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              className="btn btn-primary btn-lg rounded-full"
+            >
+              FINISH
+            </button>
+          )}
         </div>
       </footer>
     </div>

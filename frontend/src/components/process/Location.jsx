@@ -17,7 +17,7 @@ const Location = () => {
   const [zoom, setZoom] = useState(13);
 
   const [selectedPosition, setSelectedPosition] = useState(null);
-  const [places, setPlaces] = useState([]);
+  // const [places, setPlaces] = useState([]);
   const [locationQuery, setLocationQuery] = useState("");
 
   const autocompleteRef = useRef(null);
