@@ -67,16 +67,18 @@ function ExplorePage() {
       const userId = currentUser.id;
 
       /* STEP 2 — Fetch similar lifestyles */
+      // Fetch a large number to get all possible matches
       const similarResponse = await fetch(
-        `${API_URL}/matching/similar/${userId}?topK=${currentLimit}`
+        `${API_URL}/matching/similar/${userId}?topK=1000`
       );
       if (!similarResponse.ok) throw new Error("Failed to fetch similar matches");
       const similarData = await similarResponse.json();
       completeStep(2);
 
       /* STEP 3 — Fetch roommate potential */
+      // Fetch a large number to get all possible matches
       const mutualResponse = await fetch(
-        `${API_URL}/matching/mutual/${userId}?topK=${currentLimit}`
+        `${API_URL}/matching/mutual/${userId}?topK=1000`
       );
       if (!mutualResponse.ok) throw new Error("Failed to fetch roommate potential");
       const mutualData = await mutualResponse.json();
@@ -86,26 +88,43 @@ function ExplorePage() {
       const similarMatches = similarData.matches || [];
       const mutualMatches = mutualData.matches || [];
 
-      const markedSimilar = similarMatches.map(m => ({
-        ...m,
-        isMutualMatch: false,
-        isSimilarLifestyle: true,
-      }));
+      // Create a map to merge both scores for each user
+      const matchMap = new Map();
 
-      const markedMutual = mutualMatches.map(m => ({
-        ...m,
-        isMutualMatch: true,
-        isSimilarLifestyle: true,
-      }));
+      // Add mutual matches to map
+      mutualMatches.forEach(m => {
+        matchMap.set(m.userId, {
+          ...m,
+          mutualScore: m.mutualScore,
+          isMutualMatch: true,
+        });
+      });
 
-      const combined = [...markedMutual];
-      const mutualIds = new Set(markedMutual.map(m => m.userId));
-
-      markedSimilar.forEach(match => {
-        if (!mutualIds.has(match.userId)) {
-          combined.push(match);
+      // Merge similar matches - add similarity score to existing or create new entry
+      similarMatches.forEach(m => {
+        if (matchMap.has(m.userId)) {
+          // User exists - add similarity score
+          const existing = matchMap.get(m.userId);
+          matchMap.set(m.userId, {
+            ...existing,
+            similarityScore: m.similarityScore,
+          });
+        } else {
+          // User only in similar matches - add them
+          matchMap.set(m.userId, {
+            ...m,
+            similarityScore: m.similarityScore,
+            isMutualMatch: false,
+          });
         }
       });
+
+      // Convert to array and sort by mutualScore (highest first)
+      let combined = Array.from(matchMap.values())
+        .filter(match => match.mutualScore !== undefined && match.similarityScore !== undefined)
+        .sort((a, b) => (b.mutualScore || 0) - (a.mutualScore || 0))
+        .slice(0, currentLimit); // Limit to currentLimit for display
+
       completeStep(4);
 
       /* STEP 5 — Finalizing */
@@ -227,7 +246,6 @@ function ExplorePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
                 {allMatches.map((match) => {
                   const person = match.user;
-                  const score = match.similarityScore || match.mutualScore || 0;
 
                   return (
                     <div

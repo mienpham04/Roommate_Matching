@@ -25,6 +25,9 @@ public class VectorSearchService {
     @Autowired
     private VectorSearchConfig config;
 
+    @Autowired
+    private AttributeMatchingService attributeMatchingService;
+
     /**
      * Find similar roommates with the same LIFESTYLE as this user
      * Compares: User A's PROFILE vs Other users' PROFILES
@@ -48,23 +51,23 @@ public class VectorSearchService {
         List<Float> profileEmbedding = embeddingService.generateProfileEmbedding(targetUser);
 
         // Query the deployed index for similar PROFILES
+        // Use a large topK to get all users from the index
         return queryProfilesIndex(profileEmbedding, topK, userId);
     }
 
     /**
-     * Find mutual matches using BIDIRECTIONAL scoring
-     * Compares BOTH directions:
-     * 1. A's preferences vs B's profile (does B have what A wants?)
-     * 2. B's preferences vs A's profile (does A have what B wants?)
-     *
-     * Final score combines both directions for true mutual compatibility
+     * Find mutual matches using HYBRID scoring (rule-based + embeddings)
+     * STEP 1: Rule-based filtering - hard requirements (age, gender, lifestyle)
+     * STEP 2: Attribute scoring - compatibility based on preferences
+     * STEP 3: Embedding scoring - semantic similarity for personality/vibe
+     * STEP 4: Combine scores with weighting
      *
      * @param userId The user ID to find matches for
      * @param topK Number of top mutual matches to return
-     * @return List of users ranked by mutual compatibility score
+     * @return List of users ranked by hybrid compatibility score
      */
     public List<Map<String, Object>> findMutualMatches(String userId, int topK) throws IOException {
-        // Get the user
+        // Get the target user
         Optional<UserModel> userOptional = userRepository.findById(userId);
         if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("User not found: " + userId);
@@ -72,40 +75,106 @@ public class VectorSearchService {
 
         UserModel targetUser = userOptional.get();
 
-        // Step 1: Get candidates using A's preferences vs others' profiles
-        // Query more candidates than needed since we'll filter/rerank with mutual scores
-        int expandedK = topK * 3;
-        List<Float> aPreferenceEmbedding = embeddingService.generatePreferenceEmbedding(targetUser);
-        List<Map<String, Object>> candidates = queryProfilesIndex(aPreferenceEmbedding, expandedK, userId);
+        // Get all users from database
+        List<UserModel> allUsers = userRepository.findAll();
+        List<Map<String, Object>> results = new ArrayList<>();
 
-        // Step 2: For each candidate, get reverse score (B's preferences vs A's profile)
+        // Generate embeddings for target user (for later use)
+        List<Float> aPreferenceEmbedding = embeddingService.generatePreferenceEmbedding(targetUser);
         List<Float> aProfileEmbedding = embeddingService.generateProfileEmbedding(targetUser);
 
-        for (Map<String, Object> candidate : candidates) {
-            UserModel candidateUser = (UserModel) candidate.get("user");
-            double forwardScore = (double) candidate.get("similarityScore");
+        System.out.println("HYBRID MATCHING: Processing " + allUsers.size() + " users for " + targetUser.getFirstName());
 
-            // Get reverse score by querying with candidate's preferences
-            double reverseScore = getReverseScore(candidateUser, aProfileEmbedding, userId);
+        for (UserModel candidateUser : allUsers) {
+            // Skip self
+            if (candidateUser.getId().equals(userId)) {
+                continue;
+            }
 
-            // Calculate mutual score (average of both directions)
-            double mutualScore = (forwardScore + reverseScore) / 2.0;
+            // STEP 1: Hard requirements filter (bidirectional)
+            boolean aWantsBRequirements = attributeMatchingService.meetsHardRequirements(targetUser, candidateUser);
+            boolean bWantsARequirements = attributeMatchingService.meetsHardRequirements(candidateUser, targetUser);
 
-            // Store all scores
-            candidate.put("forwardScore", forwardScore); // A wants B
-            candidate.put("reverseScore", reverseScore); // B wants A
-            candidate.put("mutualScore", mutualScore);   // Combined
-            candidate.put("similarityScore", mutualScore); // Update main score
+            if (!aWantsBRequirements || !bWantsARequirements) {
+                System.out.println("  Filtered out " + candidateUser.getFirstName() + " (hard requirements not met)");
+                continue; // Skip if hard requirements not met
+            }
+
+            // STEP 2: Calculate attribute-based compatibility scores
+            double forwardAttributeScore = attributeMatchingService.calculateCompatibilityScore(targetUser, candidateUser);
+            double reverseAttributeScore = attributeMatchingService.calculateCompatibilityScore(candidateUser, targetUser);
+            double mutualAttributeScore = (forwardAttributeScore + reverseAttributeScore) / 2.0;
+
+            // STEP 3: Calculate embedding-based similarity (semantic/personality match)
+            List<Float> bProfileEmbedding = embeddingService.generateProfileEmbedding(candidateUser);
+            List<Float> bPreferenceEmbedding = embeddingService.generatePreferenceEmbedding(candidateUser);
+
+            double forwardEmbeddingScore = calculateCosineSimilarity(aPreferenceEmbedding, bProfileEmbedding);
+            double reverseEmbeddingScore = calculateCosineSimilarity(bPreferenceEmbedding, aProfileEmbedding);
+            double mutualEmbeddingScore = (forwardEmbeddingScore + reverseEmbeddingScore) / 2.0;
+
+            // STEP 4: Combine scores with weighting
+            // 70% attribute-based (hard compatibility) + 30% embedding-based (personality/vibe)
+            double hybridForwardScore = (forwardAttributeScore * 0.7) + (forwardEmbeddingScore * 0.3);
+            double hybridReverseScore = (reverseAttributeScore * 0.7) + (reverseEmbeddingScore * 0.3);
+            double hybridMutualScore = (hybridForwardScore + hybridReverseScore) / 2.0;
+
+            System.out.println("  " + candidateUser.getFirstName() + ": " +
+                "Attr=" + String.format("%.2f", mutualAttributeScore) +
+                " Embed=" + String.format("%.2f", mutualEmbeddingScore) +
+                " Hybrid=" + String.format("%.2f", hybridMutualScore));
+
+            // Build result
+            Map<String, Object> result = new HashMap<>();
+            result.put("user", candidateUser);
+            result.put("userId", candidateUser.getId());
+            result.put("description", embeddingService.userProfileToText(candidateUser));
+
+            // Compatibility scores
+            result.put("forwardScore", hybridForwardScore);
+            result.put("reverseScore", hybridReverseScore);
+            result.put("mutualScore", hybridMutualScore);
+
+            // Detailed breakdown
+            result.put("attributeScore", mutualAttributeScore);
+            result.put("embeddingScore", mutualEmbeddingScore);
+
+            results.add(result);
         }
 
-        // Sort by mutual score and return top K
-        return candidates.stream()
+        // Sort by hybrid mutual score and return top K
+        return results.stream()
             .sorted((a, b) -> Double.compare(
                 (double) b.get("mutualScore"),
                 (double) a.get("mutualScore")
             ))
             .limit(topK)
             .toList();
+    }
+
+    /**
+     * Calculate cosine similarity between two embedding vectors
+     */
+    private double calculateCosineSimilarity(List<Float> vec1, List<Float> vec2) {
+        if (vec1.size() != vec2.size()) {
+            throw new IllegalArgumentException("Vectors must have same dimension");
+        }
+
+        double dotProduct = 0.0;
+        double norm1 = 0.0;
+        double norm2 = 0.0;
+
+        for (int i = 0; i < vec1.size(); i++) {
+            dotProduct += vec1.get(i) * vec2.get(i);
+            norm1 += vec1.get(i) * vec1.get(i);
+            norm2 += vec2.get(i) * vec2.get(i);
+        }
+
+        if (norm1 == 0.0 || norm2 == 0.0) {
+            return 0.0;
+        }
+
+        return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
     }
 
     /**
