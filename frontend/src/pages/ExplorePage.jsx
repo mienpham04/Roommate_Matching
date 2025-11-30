@@ -33,7 +33,7 @@ function ExplorePage() {
   };
 
   useEffect(() => {
-    if (user?.primaryEmailAddress?.emailAddress) {
+    if (user?.id) {
       fetchMatches();
     } else {
       setLoading(false);
