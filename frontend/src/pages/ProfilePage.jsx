@@ -42,10 +42,11 @@ function ProfilePage() {
   }
 
   return (
-    <div className="h-screen w-full bg-linear-to-br from-base-100 via-base-200 to-base-300 flex flex-col overflow-hidden">
+    <div className="min-h-screen w-full bg-linear-to-br from-base-100 via-base-200 to-base-300 flex flex-col">
       <Navbar />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
+
         <div className="max-w-7xl mx-auto w-full px-6 py-4">
 
           {/* HEADER */}
@@ -60,7 +61,7 @@ function ProfilePage() {
           </div>
 
           {/* MAIN GRID */}
-          <div className="grid grid-cols-3 gap-6 h-[calc(100vh-180px)]">
+          <div className="grid grid-cols-3 gap-6 pb-10">
             
             {/* LEFT SIDEBAR */}
             <div className="bg-base-100 rounded-xl p-4 shadow-md border flex flex-col">
@@ -120,6 +121,7 @@ function ProfilePage() {
               </h2>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
+
                 {/* First Name */}
                 <label className="form-control w-full">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
@@ -207,8 +209,8 @@ function ProfilePage() {
                 Lifestyle
               </h2>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                {/* Pet Friendly */}
+              <div className="grid grid-cols-2 gap-4 mb-10">
+
                 <label className="form-control">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
                     Pet Friendly
@@ -222,7 +224,6 @@ function ProfilePage() {
                   </select>
                 </label>
 
-                {/* Smoking */}
                 <label className="form-control">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
                     Smoking
@@ -236,7 +237,6 @@ function ProfilePage() {
                   </select>
                 </label>
 
-                {/* Guest Frequency */}
                 <label className="form-control col-span-2">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
                     Guest Frequency
@@ -247,7 +247,6 @@ function ProfilePage() {
                   />
                 </label>
 
-                {/* Night Owl */}
                 <label className="form-control col-span-2">
                   <span className="label-text text-xs uppercase tracking-wide text-base-content/70">
                     Night Owl
@@ -261,10 +260,12 @@ function ProfilePage() {
                   </select>
                 </label>
               </div>
+
             </div>
 
           </div>
         </div>
+
       </div>
     </div>
   );
