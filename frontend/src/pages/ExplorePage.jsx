@@ -12,6 +12,9 @@ function ExplorePage() {
   const [selected, setSelected] = useState(null);
   const [allMatches, setAllMatches] = useState([]);
   const [error, setError] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentLimit, setCurrentLimit] = useState(5);
+  const [loadingMessage, setLoadingMessage] = useState("");
 
   useEffect(() => {
     if (user?.primaryEmailAddress?.emailAddress) {
@@ -19,11 +22,15 @@ function ExplorePage() {
     } else {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, currentLimit]);
 
   const fetchMatches = async () => {
     try {
-      setLoading(true);
+      if (currentLimit === 5) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
       setError(null);
 
       const userEmail = user.primaryEmailAddress.emailAddress;
@@ -43,8 +50,8 @@ function ExplorePage() {
 
       // Fetch both similar and mutual matches in parallel
       const [similarResponse, mutualResponse] = await Promise.all([
-        fetch(`${API_URL}/matching/similar/${userId}?topK=10`),
-        fetch(`${API_URL}/matching/mutual/${userId}?topK=10`)
+        fetch(`${API_URL}/matching/similar/${userId}?topK=${currentLimit}`),
+        fetch(`${API_URL}/matching/mutual/${userId}?topK=${currentLimit}`)
       ]);
 
       if (!similarResponse.ok) throw new Error("Failed to fetch similar matches");
@@ -83,7 +90,12 @@ function ExplorePage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const loadMore = () => {
+    setCurrentLimit(prev => prev + 5);
   };
 
   const calculateAge = (dateOfBirth) => {
@@ -153,8 +165,15 @@ function ExplorePage() {
             </div>
           ) : (
             <>
+              {/* MATCHES COUNT */}
+              <div className="text-center mt-8">
+                <p className="text-base-content/70">
+                  Showing {allMatches.length} {allMatches.length === 1 ? 'match' : 'matches'}
+                </p>
+              </div>
+
               {/* PEOPLE GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
                 {allMatches.map((match) => {
                   const person = match.user;
                   const score = match.similarityScore || match.mutualScore || 0;
@@ -259,10 +278,18 @@ function ExplorePage() {
               {/* LOAD MORE */}
               <div className="text-center mt-10">
                 <button
-                  className="btn btn-outline"
-                  onClick={fetchMatches}
+                  className="btn btn-primary"
+                  onClick={loadMore}
+                  disabled={loadingMore}
                 >
-                  Refresh Matches
+                  {loadingMore ? (
+                    <>
+                      <span className="loading loading-spinner loading-sm"></span>
+                      Loading...
+                    </>
+                  ) : (
+                    "Load More"
+                  )}
                 </button>
               </div>
             </>
