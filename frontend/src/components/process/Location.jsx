@@ -7,53 +7,74 @@ import {
   Autocomplete,
 } from "@react-google-maps/api";
 
-const Location = () => {
+function Location() {
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries: ["places"],
   });
 
-  const [radius, setRadius] = useState(0);
-  const [zoom, setZoom] = useState(13);
+  const DEFAULT_RADIUS = 2414; // 1.5 miles in meters
+  const DEFAULT_ZOOM = 14;
 
   const [selectedPosition, setSelectedPosition] = useState(null);
-  // const [places, setPlaces] = useState([]);
   const [locationQuery, setLocationQuery] = useState("");
+
+  const [minBudget, setMinBudget] = useState("");
+  const [maxBudget, setMaxBudget] = useState("");
+
+  const [zipCode, setZipCode] = useState("");
 
   const autocompleteRef = useRef(null);
   const mapRef = useRef(null);
 
-  function radiusToZoom(r) {
-    const scale = r / 500; 
-    const zoomLevel = Math.floor(16 - Math.log(scale) / Math.log(2));
-    return Math.max(2, Math.min(18, zoomLevel));
+  async function getZipCodeFromLatLng(lat, lng) {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (!data.results?.length) {
+        setZipCode("");
+        return;
+      }
+
+      for (let comp of data.results[0].address_components) {
+        if (comp.types.includes("postal_code")) {
+          setZipCode(comp.long_name);
+          return;
+        }
+      }
+
+      setZipCode("");
+    } catch (err) {
+      console.log("ZIP Error:", err);
+      setZipCode("");
+    }
   }
 
-  useEffect(() => {
-    if (!mapRef.current) return;
-    const newZoom = radiusToZoom(radius);
-    setZoom(newZoom);
-    mapRef.current.setZoom(newZoom);
-  }, [radius]);
-
+  // Geolocation on load
   useEffect(() => {
     if (!isLoaded) return;
 
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
         const { latitude, longitude } = pos.coords;
-        const userPos = { lat: latitude, lng: longitude };
-        setSelectedPosition(userPos);
+        setSelectedPosition({ lat: latitude, lng: longitude });
+        await getZipCodeFromLatLng(latitude, longitude);
       },
-      () => {
-        setSelectedPosition({ lat: 39.9784, lng: -86.118 });
+      async () => {
+        const fallback = { lat: 39.9784, lng: -86.118 };
+        setSelectedPosition(fallback);
+        await getZipCodeFromLatLng(fallback.lat, fallback.lng);
       }
     );
   }, [isLoaded]);
 
-  function onPlaceChanged() {
-    if (!autocompleteRef.current) return;
-
+  // When user selects a place
+  async function onPlaceChanged() {
     const place = autocompleteRef.current.getPlace();
     if (!place?.geometry) return;
 
@@ -64,30 +85,26 @@ const Location = () => {
 
     setSelectedPosition(pos);
     mapRef.current?.panTo(pos);
+    await getZipCodeFromLatLng(pos.lat, pos.lng);
   }
 
-//   useEffect(() => {
-//     if (!mapRef.current || !locationQuery) return;
+  // Clicking on map sets new location
+  async function handleMapClick(e) {
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
 
-//     const service = new window.google.maps.places.PlacesService(mapRef.current);
-
-//     service.findPlaceFromQuery(
-//       {
-//         query: locationQuery,
-//         fields: ["name", "geometry", "opening_hours"],
-//       },
-//       (results) => {
-//         if (results) setPlaces(results);
-//       }
-//     );
-//   }, [locationQuery]);
+    setSelectedPosition({ lat, lng });
+    await getZipCodeFromLatLng(lat, lng);
+  }
 
   if (!isLoaded || !selectedPosition) return <p>Loading map...</p>;
 
   return (
     <div className="col-span-2 grid grid-cols-1 md:grid-cols-2 bg-base-100 border rounded-xl shadow overflow-hidden">
-      {/* LEFT SIDEBAR */}
+
+      {/* LEFT PANEL */}
       <div className="flex flex-col h-[600px] border-r bg-base-100">
+
         {/* SEARCH BAR */}
         <div className="p-4 border-b">
           <Autocomplete
@@ -103,8 +120,9 @@ const Location = () => {
           </Autocomplete>
         </div>
 
-        {/* CENTERED CONTENT */}
-        <div className="flex-1 flex flex-col justify-center items-center text-center px-8 space-y-6">
+        {/* CENTER PANEL */}
+        <div className="flex-1 flex flex-col justify-center items-center text-center px-8 space-y-8">
+
           <div className="text-5xl">🏘️</div>
 
           <h2 className="text-xl font-semibold text-base-content">
@@ -112,55 +130,67 @@ const Location = () => {
           </h2>
 
           <p className="text-base-content/60 text-sm max-w-xs">
-            Set how far from your chosen location you're comfortable living.
-            Your roommate matches will be based on this distance.
+            We'll use this area to match you with suitable roommates nearby.
           </p>
 
-          <div className="w-full mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold">Match radius</span>
-              <span className="text-sm opacity-60">
-                {(radius / 1609.34).toFixed(1)} miles
-              </span>
+          {/* BUDGET INPUTS */}
+          <div className="w-full space-y-3 mt-4">
+            <h3 className="text-sm font-semibold text-base-content">
+              Budget Range (per month)
+            </h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="form-control">
+                <span className="label-text text-xs">Min</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={minBudget}
+                  onChange={(e) => setMinBudget(e.target.value)}
+                  placeholder="$500"
+                  className="input input-bordered w-full"
+                />
+              </label>
+
+              <label className="form-control">
+                <span className="label-text text-xs">Max</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={maxBudget}
+                  onChange={(e) => setMaxBudget(e.target.value)}
+                  placeholder="$1500"
+                  className="input input-bordered w-full"
+                />
+              </label>
             </div>
 
-            <input
-              type="range"
-              min="0"
-              max="32186"
-              step="800"
-              value={radius}
-              onChange={(e) => setRadius(Number(e.target.value))}
-              className="range range-success w-full"
-            />
+            {/* ZIP CODE */}
+            <p className="text-md text-base-content/70 mt-4">
+              ZIP Code:{" "}
+              <span className="font-bold text-base-content">
+                {zipCode || "—"}
+              </span>
+            </p>
           </div>
         </div>
       </div>
 
-      {/* RIGHT — MAP */}
+      {/* RIGHT PANEL — MAP */}
       <div className="relative h-[600px] w-full">
         <GoogleMap
-          zoom={zoom}
+          zoom={DEFAULT_ZOOM}
           center={selectedPosition}
           mapContainerStyle={{ width: "100%", height: "100%" }}
-          onLoad={(map) => {
-            mapRef.current = map;
-            setZoom(radiusToZoom(radius));
-          }}
-          onClick={(e) =>
-            setSelectedPosition({
-              lat: e.latLng.lat(),
-              lng: e.latLng.lng(),
-            })
-          }
+          onLoad={(map) => (mapRef.current = map)}
+          onClick={handleMapClick}
         >
-          {/* Default Marker */}
           <Marker position={selectedPosition} />
 
-          {/* Radius Circle */}
+          {/* CONSTANT 1.5-MILE RADIUS */}
           <Circle
             center={selectedPosition}
-            radius={radius}
+            radius={DEFAULT_RADIUS}
             options={{
               fillColor: "#5dd39e",
               strokeColor: "#3c8d66",
@@ -172,6 +202,6 @@ const Location = () => {
       </div>
     </div>
   );
-};
+}
 
 export default Location;

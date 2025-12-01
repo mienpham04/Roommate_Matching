@@ -1,5 +1,3 @@
-import React from "react";
-
 const Info = () => {
   return (
     <div className="col-span-2 card bg-base-100 border shadow-sm">

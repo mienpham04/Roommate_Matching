@@ -4,7 +4,6 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import ExplorePage from "./pages/ExplorePage";
 import ProcessPage from "./pages/ProcessPage";
-import Test from "./pages/Test";
 
 function App() {
   
@@ -15,7 +14,6 @@ function App() {
       <Route path="/profile/view/:id" element={<ProfilePage />}/>
       <Route path="/process" element={<ProcessPage />} />
       <Route path="/explore" element={<ExplorePage />}/>
-      <Route path="/test" element={<Test />}/>
     </Routes>
 
     <Toaster toastOptions={{ duration: 3000 }}/>
