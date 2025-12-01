@@ -1,69 +1,74 @@
 package com.roommate.manager.model;
 
+/**
+ * Represents what a user wants in their potential roommate
+ */
 public class PreferenceModel {
 
-    private boolean petFriendly;
-    private boolean smoking;
-    private String guestFrequency;
-    private boolean isNightOwl;
-    private int minAge;
-    private int maxAge;
-    private String gender;
+    private Boolean petFriendly;
+    private Boolean smoking;
+    private String guestFrequency; // e.g., "I prefer roommates who rarely have guests"
+    private Boolean isNightOwl;
+    private Integer minAge;
+    private Integer maxAge;
+    private String gender; // Preferred gender or "no preference"
+    private String moreAboutRoommate; // Free-form text for additional roommate preferences
 
-    // Getters & Setters
-    public boolean isPetFriendly() {
+    // Getters and Setters
+
+    public Boolean getPetFriendly() {
         return petFriendly;
     }
-
-    public void setPetFriendly(boolean petFriendly) {
+    public void setPetFriendly(Boolean petFriendly) {
         this.petFriendly = petFriendly;
     }
 
-    public boolean isSmoking() {
+    public Boolean getSmoking() {
         return smoking;
     }
-
-    public void setSmoking(boolean smoking) {
+    public void setSmoking(Boolean smoking) {
         this.smoking = smoking;
     }
 
     public String getGuestFrequency() {
         return guestFrequency;
     }
-
     public void setGuestFrequency(String guestFrequency) {
         this.guestFrequency = guestFrequency;
     }
 
-    public boolean isNightOwl() {
+    public Boolean getIsNightOwl() {
         return isNightOwl;
     }
-
-    public void setNightOwl(boolean nightOwl) {
+    public void setIsNightOwl(Boolean nightOwl) {
         isNightOwl = nightOwl;
     }
 
-    public int getMinAge() {
+    public Integer getMinAge() {
         return minAge;
     }
-
-    public void setMinAge(int minAge) {
+    public void setMinAge(Integer minAge) {
         this.minAge = minAge;
     }
 
-    public int getMaxAge() {
+    public Integer getMaxAge() {
         return maxAge;
     }
-
-    public void setMaxAge(int maxAge) {
+    public void setMaxAge(Integer maxAge) {
         this.maxAge = maxAge;
     }
 
     public String getGender() {
         return gender;
     }
-
     public void setGender(String gender) {
         this.gender = gender;
+    }
+
+    public String getMoreAboutRoommate() {
+        return moreAboutRoommate;
+    }
+    public void setMoreAboutRoommate(String moreAboutRoommate) {
+        this.moreAboutRoommate = moreAboutRoommate;
     }
 }

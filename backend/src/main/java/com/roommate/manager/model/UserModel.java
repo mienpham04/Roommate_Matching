@@ -1,6 +1,8 @@
 package com.roommate.manager.model;
 
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -10,10 +12,12 @@ import java.time.Period;
 public class UserModel {
 
     @Id
-    private String id;
+    private String id; // This will be the Clerk user ID
 
     private String firstName;
     private String lastName;
+
+    @Indexed(unique = true)
     private String email;
 
     private LocalDate dateOfBirth;
@@ -24,8 +28,9 @@ public class UserModel {
 
     private BudgetModel budget;
     private LifestyleModel lifestyle;
-    private PreferenceModel preferences;
+    private PreferenceModel preferences; // What they want in a roommate
 
+    @CreatedDate
     private LocalDateTime createdAt;
 
     // Getters and Setters
