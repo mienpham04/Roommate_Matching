@@ -12,6 +12,7 @@ public class PreferenceModel {
     private Integer minAge;
     private Integer maxAge;
     private String gender; // Preferred gender or "no preference"
+    private String moreAboutRoommate; // Free-form text for additional roommate preferences
 
     // Getters and Setters
 
@@ -62,5 +63,12 @@ public class PreferenceModel {
     }
     public void setGender(String gender) {
         this.gender = gender;
+    }
+
+    public String getMoreAboutRoommate() {
+        return moreAboutRoommate;
+    }
+    public void setMoreAboutRoommate(String moreAboutRoommate) {
+        this.moreAboutRoommate = moreAboutRoommate;
     }
 }
