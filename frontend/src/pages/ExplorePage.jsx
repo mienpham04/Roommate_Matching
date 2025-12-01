@@ -10,13 +10,12 @@ function ExplorePage() {
   const { user } = useUser();
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const [allMatches, setAllMatches] = useState([]);
+  const [allMatches, setAllMatches] = useState([]); // All fetched matches
+  const [displayedMatches, setDisplayedMatches] = useState([]); // Matches to display
   const [error, setError] = useState(null);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [currentLimit, setCurrentLimit] = useState(5);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [steps, setSteps] = useState([
-    { text: "Finding people who match your vibe…", done: false },
     { text: "Getting your profile ID…", done: false },
     { text: "Finding people with similar lifestyles…", done: false },
     { text: "Checking who fits your roommate preferences…", done: false },
@@ -32,21 +31,25 @@ function ExplorePage() {
     );
   };
 
+  // Fetch matches only when user changes
   useEffect(() => {
     if (user?.id) {
       fetchMatches();
     } else {
       setLoading(false);
     }
-  }, [user, currentLimit]);
+  }, [user]);
+
+  // Update displayed matches when allMatches or currentLimit changes
+  useEffect(() => {
+    setDisplayedMatches(allMatches.slice(0, currentLimit));
+  }, [allMatches, currentLimit]);
 
   const fetchMatches = async () => {
     try {
-      if (currentLimit === 5) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
+      setLoading(true);
+      setError(null);
+      setCurrentLimit(5); // Reset to initial display limit
 
       // Reset steps
       setSteps(prev => prev.map(s => ({ ...s, done: false })));
@@ -112,29 +115,29 @@ function ExplorePage() {
       });
 
       // Convert to array and sort by mutualScore (highest first)
+      // Store ALL matches without slicing
       let combined = Array.from(matchMap.values())
         .filter(match => match.mutualScore !== undefined && match.similarityScore !== undefined)
-        .sort((a, b) => (b.mutualScore || 0) - (a.mutualScore || 0))
-        .slice(0, currentLimit); // Limit to currentLimit for display
+        .sort((a, b) => (b.mutualScore || 0) - (a.mutualScore || 0));
 
       completeStep(4);
 
       /* STEP 5 — Finalizing */
-        setAllMatches(combined);
-        completeStep(5);
-      } catch (err) {
-        console.error("Error fetching matches:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-        setLoadingMore(false);
-      }
+      setAllMatches(combined);
+      completeStep(5);
+    } catch (err) {
+      console.error("Error fetching matches:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
 
 
 
 
+  // Load more matches by increasing the display limit (no re-fetching)
   const loadMore = () => {
     setCurrentLimit(prev => prev + 5);
   };
@@ -230,13 +233,13 @@ function ExplorePage() {
               {/* MATCHES COUNT */}
               <div className="text-center mt-8">
                 <p className="text-base-content/70">
-                  Showing {allMatches.length} {allMatches.length === 1 ? 'match' : 'matches'}
+                  Showing {displayedMatches.length} of {allMatches.length} {allMatches.length === 1 ? 'match' : 'matches'}
                 </p>
               </div>
 
               {/* PEOPLE GRID */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
-                {allMatches.map((match) => {
+                {displayedMatches.map((match) => {
                   const person = match.user;
 
                   return (
@@ -249,7 +252,8 @@ function ExplorePage() {
                         className="absolute top-3 right-3 bg-base-100 rounded-full shadow p-1 transition-transform duration-200 hover:scale-125 hover:shadow-md"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setAllMatches(allMatches.filter(m => m.userId !== match.userId));
+                          // Remove from allMatches - displayedMatches will update automatically
+                          setAllMatches(prev => prev.filter(m => m.userId !== match.userId));
                         }}
                       >
                         <X className="size-4 text-gray-600" />
@@ -349,22 +353,16 @@ function ExplorePage() {
                 })}
               </div>
               {/* LOAD MORE */}
-              <div className="text-center mt-10">
-                <button
-                  className="btn btn-primary"
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                >
-                  {loadingMore ? (
-                    <>
-                      <span className="loading loading-spinner loading-sm"></span>
-                      Loading...
-                    </>
-                  ) : (
-                    "Load More"
-                  )}
-                </button>
-              </div>
+              {displayedMatches.length < allMatches.length && (
+                <div className="text-center mt-10">
+                  <button
+                    className="btn btn-primary"
+                    onClick={loadMore}
+                  >
+                    Load More
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>

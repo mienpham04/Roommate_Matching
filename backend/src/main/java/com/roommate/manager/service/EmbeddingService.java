@@ -126,6 +126,13 @@ public class EmbeddingService {
 
         if (user.getPreferences().getGuestFrequency() != null) {
             description.append(user.getPreferences().getGuestFrequency());
+            description.append(", ");
+        }
+
+        // Additional free-form text about roommate preferences
+        if (user.getPreferences().getMoreAboutRoommate() != null &&
+            !user.getPreferences().getMoreAboutRoommate().trim().isEmpty()) {
+            description.append(user.getPreferences().getMoreAboutRoommate());
         }
 
         return description.toString().trim();
