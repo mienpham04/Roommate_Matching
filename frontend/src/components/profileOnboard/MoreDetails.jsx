@@ -9,7 +9,7 @@ function MoreDetails({ data, setData }) {
     <div className="max-w-3xl mx-auto w-full">
 
       {/* TITLE */}
-      <div className="text-base-content/60 my-10 text-lg">
+      <div className="text-base-content/60 my-15 text-xl">
         More Details
       </div>
 

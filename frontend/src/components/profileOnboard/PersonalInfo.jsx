@@ -84,27 +84,29 @@ function PersonalInfo() {
         <div>
           <label className="text-sm text-base-content/60">Phone Number</label>
           <input
-            type="text"
-            defaultValue="(+98) 9213690037"
+            type="number"
+            defaultValue="98 9213690037"
             className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
           />
         </div>
 
-        {/* ROLE */}
+        {/* GENDER */}
         <div>
-          <label className="text-sm text-base-content/60">Role</label>
+          <label className="text-sm text-base-content/60">Gender</label>
           <select className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none">
-            <option>Admin</option>
-            <option>User</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Non-binar</option>
+            <option>Other</option>
           </select>
         </div>
 
-        {/* HOTEL NAME */}
+        {/* BIRTHDAY */}
         <div>
-          <label className="text-sm text-base-content/60">Hotel Name</label>
+          <label className="text-sm text-base-content/60">Date of Birth</label>
           <input
-            type="text"
-            defaultValue="Espinas Palace"
+            type="date"
+            defaultValue="08/10/2002"
             className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
           />
         </div>
