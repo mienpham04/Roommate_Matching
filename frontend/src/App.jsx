@@ -4,6 +4,7 @@ import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import ExplorePage from "./pages/ExplorePage";
 import ProcessPage from "./pages/ProcessPage";
+import UserPage from "./pages/UserPage";
 
 function App() {
   
@@ -14,6 +15,7 @@ function App() {
       <Route path="/profile/view/:id" element={<ProfilePage />}/>
       <Route path="/process" element={<ProcessPage />} />
       <Route path="/explore" element={<ExplorePage />}/>
+      <Route path="/user/:id" element={<UserPage />} />
     </Routes>
 
     <Toaster toastOptions={{ duration: 3000 }}/>
