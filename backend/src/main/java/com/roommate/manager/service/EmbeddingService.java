@@ -66,6 +66,13 @@ public class EmbeddingService {
             }
         }
 
+        // Additional free-form text about themselves
+        if (user.getMoreAboutMe() != null && !user.getMoreAboutMe().trim().isEmpty()) {
+            description.append("More about me: ");
+            description.append(user.getMoreAboutMe());
+            description.append(" ");
+        }
+
         return description.toString().trim();
     }
 

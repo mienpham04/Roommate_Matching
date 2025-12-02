@@ -25,6 +25,7 @@ public class UserModel {
 
     private String profileImageUrl;
     private String zipCode;
+    private String moreAboutMe; // Free-form text for additional personal information
 
     private BudgetModel budget;
     private LifestyleModel lifestyle;
@@ -97,6 +98,13 @@ public class UserModel {
     }
     public void setZipCode(String zipCode) {
         this.zipCode = zipCode;
+    }
+
+    public String getMoreAboutMe() {
+        return moreAboutMe;
+    }
+    public void setMoreAboutMe(String moreAboutMe) {
+        this.moreAboutMe = moreAboutMe;
     }
 
     public BudgetModel getBudget() {
