@@ -8,7 +8,7 @@ function Preference2({ data, setData }) {
 
       {/* TITLE */}
       <div className="text-base-content/60 my-15 text-xl">
-        Tell us about your general lifestyle and our AI will learn to understand you better.
+        Tell us about your roommate preference to match with the most suitable ones.
       </div>
 
       {/* 2-COLUMN GRID */}
