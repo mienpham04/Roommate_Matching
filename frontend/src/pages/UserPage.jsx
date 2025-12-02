@@ -172,7 +172,7 @@ function UserPage() {
             <div className="w-full flex justify-center">
                 <button
                     onClick={handleNext}
-                    className="btn btn-primary btn-lg shadow-lg hover:scale-105 transition my-15"
+                    className="btn btn-primary btn-lg shadow-lg hover:scale-105 transition my-10"
                 >
                     Continue
                 </button>

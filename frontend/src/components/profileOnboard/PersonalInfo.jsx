@@ -17,7 +17,7 @@ function PersonalInfo() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-4xl mx-auto px-4 py-6">
 
       {/* PROFILE IMAGE SECTION */}
       <div className="flex justify-center mb-10 relative">
