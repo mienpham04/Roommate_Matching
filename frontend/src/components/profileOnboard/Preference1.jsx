@@ -6,7 +6,7 @@ function Preference1({ data, setData }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto w-full">
+    <div className="max-w-3xl mx-auto w-full">
 
       {/* TITLE */}
       <div className="text-base-content/60 my-15 text-xl">
@@ -14,7 +14,7 @@ function Preference1({ data, setData }) {
       </div>
 
       {/* GRID LAYOUT — 2 columns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
         {/* ===== MIN AGE ===== */}
         <div className="card bg-base-100 shadow-md p-6 rounded-2xl border border-base-200">

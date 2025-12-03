@@ -1,30 +1,46 @@
-import React, { useRef, useState } from "react";
-import { Pencil } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { Pencil, X } from "lucide-react";
 
-function PersonalInfo() {
+function PersonalInfo({ dbUser }) {
   const fileInputRef = useRef(null);
-  const [profileImg, setProfileImg] = useState("https://i.pravatar.cc/200");
 
-  // Handle user image selection
+  // Store uploaded image preview
+  const [customPhoto, setCustomPhoto] = useState(null);
+
+  // Use backend image if exists, otherwise placeholder
+  const [profileImg, setProfileImg] = useState(
+    dbUser?.profileImageUrl || "https://i.pravatar.cc/200"
+  );
+
+  // Sync dbUser when page loads
+  useEffect(() => {
+    if (dbUser?.profileImageUrl) setProfileImg(dbUser.profileImageUrl);
+  }, [dbUser]);
+
+  // Upload handler
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
+    const url = URL.createObjectURL(file);
+    setProfileImg(url);
+    setCustomPhoto(url);
+  };
 
-    const imgUrl = URL.createObjectURL(file);
-    setProfileImg(imgUrl); // Preview immediately
-
-    // TODO: Upload to backend if needed
+  // Remove uploaded image
+  const handleRemove = () => {
+    setCustomPhoto(null);
+    setProfileImg(dbUser?.profileImageUrl || "https://i.pravatar.cc/200");
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-6">
 
       {/* PROFILE IMAGE SECTION */}
       <div className="flex justify-center mb-10 relative">
-        <div className="relative">
+        <div className="relative w-40 h-40">
           <img
             src={profileImg}
-            alt="profile"
+            alt="Profile"
             className="w-40 h-40 rounded-full object-cover shadow-lg"
           />
 
@@ -36,7 +52,7 @@ function PersonalInfo() {
             <Pencil className="size-4 text-base-content/70" />
           </button>
 
-          {/* Hidden file input */}
+          {/* Hidden upload input */}
           <input
             type="file"
             accept="image/*"
@@ -45,18 +61,28 @@ function PersonalInfo() {
             onChange={handleImageUpload}
           />
         </div>
+
+        {/* Remove button only appears when custom photo is applied */}
+        {customPhoto && (
+          <button
+            className="absolute top-2 right-2 bg-white shadow rounded-full p-1 hover:bg-gray-100 transition"
+            onClick={handleRemove}
+          >
+            <X className="size-4 text-gray-600" />
+          </button>
+        )}
       </div>
 
       {/* FORM GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
         {/* FIRST NAME */}
         <div>
           <label className="text-sm text-base-content/60">First Name</label>
           <input
             type="text"
-            defaultValue="Dom"
-            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            defaultValue={dbUser?.firstName || ""}
+            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary"
           />
         </div>
 
@@ -65,8 +91,8 @@ function PersonalInfo() {
           <label className="text-sm text-base-content/60">Last Name</label>
           <input
             type="text"
-            defaultValue="Hill"
-            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            defaultValue={dbUser?.lastName || ""}
+            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary"
           />
         </div>
 
@@ -75,8 +101,8 @@ function PersonalInfo() {
           <label className="text-sm text-base-content/60">Email</label>
           <input
             type="email"
-            defaultValue="Dom.Hill@gmail.com"
-            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            defaultValue={dbUser?.email || ""}
+            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary"
           />
         </div>
 
@@ -84,32 +110,36 @@ function PersonalInfo() {
         <div>
           <label className="text-sm text-base-content/60">Phone Number</label>
           <input
-            type="number"
-            defaultValue="98 9213690037"
-            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            type="text"
+            defaultValue={dbUser?.phone || ""}
+            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary"
           />
         </div>
 
         {/* GENDER */}
         <div>
           <label className="text-sm text-base-content/60">Gender</label>
-          <select className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none">
+          <select
+            defaultValue={dbUser?.gender || "no preference"}
+            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary"
+          >
             <option>Male</option>
             <option>Female</option>
-            <option>Non-binar</option>
+            <option>Non-binary</option>
             <option>Other</option>
           </select>
         </div>
 
-        {/* BIRTHDAY */}
+        {/* DATE OF BIRTH */}
         <div>
           <label className="text-sm text-base-content/60">Date of Birth</label>
           <input
             type="date"
-            defaultValue="08/10/2002"
-            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            defaultValue={dbUser?.dob || ""}
+            className="w-full px-4 py-3 rounded-xl border border-base-300 bg-base-100 shadow-sm focus:ring-2 focus:ring-primary"
           />
         </div>
+
       </div>
     </div>
   );

@@ -6,7 +6,7 @@ function LifeStyle({ data, setData }) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto w-full">
+    <div className="max-w-3xl mx-auto w-full">
 
       {/* TITLE */}
       <div className="text-base-content/60 my-15 text-xl">
@@ -14,7 +14,7 @@ function LifeStyle({ data, setData }) {
       </div>
 
       {/* 2-COLUMN GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
         {/* -------- LEFT COLUMN -------- */}
 

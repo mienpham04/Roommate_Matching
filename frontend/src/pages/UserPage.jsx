@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, Speech } from "lucide-react";
 import Navbar from "../components/Navbar";
 import PersonalInfo from "../components/profileOnboard/PersonalInfo";
@@ -6,10 +6,27 @@ import LifeStyle from "../components/profileOnboard/LifeStyle";
 import Preference1 from "../components/profileOnboard/Preference1";
 import Preference2 from "../components/profileOnboard/Preference2";
 import MoreDetails from "../components/profileOnboard/MoreDetails";
+import { useParams } from "react-router";
+import Loading from "../components/Loading"
 
 function UserPage() {
+    const { id } = useParams(); // /user/:id
     const [active, setActive] = useState("Profile");
     const [subStep, setSubStep] = useState(0);
+    const [dbUser, setDbUser] = useState(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const res = await fetch(`http://localhost:8080/api/users/${id}`);
+                const data = await res.json();
+                setDbUser(data);
+            } catch (err) {
+                console.error("Failed to fetch DB user:", err);
+            }
+        };
+        fetchUser();
+    }, [id]);
 
     const tabs = ["Profile", "Lifestyle", "Preferences", "More details"];
 
@@ -40,7 +57,6 @@ function UserPage() {
     const currentIndex = tabs.indexOf(active);
     const progressPercent = ((currentIndex + 1) / tabs.length) * 100;
 
-    // ------- NEXT BUTTON HANDLER -------
     const handleNext = () => {
         // if (active === "Lifestyle") {
         //     if (subStep < 1) return setSubStep(subStep + 1); // Lifestyle Step 1 → 2
@@ -91,7 +107,7 @@ function UserPage() {
     const renderContent = () => {
         switch (active) {
             case "Profile":
-                return <PersonalInfo />;
+                return <PersonalInfo dbUser={dbUser}/>;
 
             case "Lifestyle":
                 return <LifeStyle data={lifestyleData} setData={setLifestyleData} />;
@@ -106,6 +122,12 @@ function UserPage() {
                 return null;
         }
     };
+
+    if (!dbUser) {
+        return (
+            <Loading />
+        );
+    }
 
     return (
         <div className="bg-linear-to-br from-base-100 via-base-200 to-base-300 min-h-screen overflow-hidden">
@@ -130,7 +152,7 @@ function UserPage() {
                     )}
 
                     {/* CENTER: TABS */}
-                    <div className="flex gap-14 text-sm font-semibold tracking-wide items-center">
+                    <div className="flex gap-14 text-lg font-semibold tracking-wide items-center">
                         {tabs.map((tab, i) => (
                             <button
                                 key={tab}
@@ -139,7 +161,7 @@ function UserPage() {
                                     setSubStep(0);
                                 }}
                                 className={`hover:scale-105 transition-transform duration-200 uppercase ${i <= currentIndex
-                                    ? "text-primary font-bold"
+                                    ? "text-pink-400 font-bold"
                                     : "text-base-content/60"
                                     }`}
                             >
