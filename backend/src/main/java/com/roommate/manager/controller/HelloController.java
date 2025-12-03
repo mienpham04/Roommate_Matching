@@ -6,8 +6,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.roommate.manager.model.TestModel;
 import com.roommate.manager.repository.TestRepository;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-
 
 @RestController
 @RequestMapping("/hello")
@@ -17,8 +15,6 @@ public class HelloController {
     public HelloController(TestRepository testRepository) {
         this.testRepository = testRepository;
     }
-
-    
 
     @GetMapping("/create")
     public String create() {
