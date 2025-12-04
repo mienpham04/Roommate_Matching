@@ -466,26 +466,9 @@ function ExplorePage() {
                           key={match.userId}
                           className="bg-base-100 rounded-xl shadow border p-4 flex flex-col items-center relative hover:shadow-lg transition-shadow"
                         >
-                          {/* HEART BUTTON */}
-                          <button
-                            className="absolute top-3 right-3 bg-base-100 rounded-full shadow p-2 transition-all duration-200 hover:scale-110 hover:shadow-md z-10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleLike(match.userId);
-                            }}
-                          >
-                            <Heart
-                              className={`size-5 transition-colors ${
-                                likedUsers.has(match.userId)
-                                  ? "fill-red-500 text-red-500"
-                                  : "text-gray-400 hover:text-red-500"
-                              }`}
-                            />
-                          </button>
-
                           {/* REMOVE BUTTON */}
                           <button
-                            className="absolute top-3 right-14 bg-base-100 rounded-full shadow p-1 transition-transform duration-200 hover:scale-125 hover:shadow-md"
+                            className="absolute top-3 right-3 bg-base-100 rounded-full shadow p-1 transition-transform duration-200 hover:scale-125 hover:shadow-md"
                             onClick={(e) => {
                               e.stopPropagation();
                               // Remove from allMatches - displayedMatches will update automatically
@@ -548,15 +531,19 @@ function ExplorePage() {
 
                           {/* BUTTON ROW */}
                           <div className="flex items-center justify-between w-full p-3 gap-3">
-                            {/* ADD FRIEND */}
+                            {/* SEND LIKE */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                alert("Friend request sent!");
+                                toggleLike(match.userId);
                               }}
-                              className="flex-1 py-2 rounded-lg bg-base-100 border text-green-600 font-medium hover:bg-base-300 transition"
+                              className={`flex-1 py-2 rounded-lg font-medium transition ${
+                                likedUsers.has(match.userId)
+                                  ? "bg-pink-300 text-pink-900 hover:bg-pink-400"
+                                  : "bg-base-100 border border-pink-300 text-pink-600 hover:bg-pink-100"
+                              }`}
                             >
-                              Add Friend
+                              {likedUsers.has(match.userId) ? "✨ Liked" : "✨ Send Like"}
                             </button>
 
                             {/* MESSAGE */}
@@ -685,11 +672,11 @@ function ExplorePage() {
                               }}
                               className={`flex-1 py-2 rounded-lg font-medium transition ${
                                 likedUsers.has(match.userId)
-                                  ? "bg-red-500 text-white hover:bg-red-600"
-                                  : "bg-pink-100 text-pink-600 hover:bg-pink-200"
+                                  ? "bg-pink-300 text-pink-900 hover:bg-pink-400"
+                                  : "bg-base-100 border border-pink-300 text-pink-600 hover:bg-pink-100"
                               }`}
                             >
-                              {likedUsers.has(match.userId) ? "💕 Match!" : "❤️ Like Back"}
+                              {likedUsers.has(match.userId) ? "✨ Matched!" : "✨ Like Back"}
                             </button>
                           </div>
                         </div>
@@ -777,9 +764,9 @@ function ExplorePage() {
                                 e.stopPropagation();
                                 toggleLike(match.userId);
                               }}
-                              className="flex-1 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition"
+                              className="flex-1 py-2 rounded-lg bg-pink-300 text-pink-900 font-medium hover:bg-pink-400 transition"
                             >
-                              💔 Unlike
+                              ✨ Unlike
                             </button>
                           </div>
                         </div>
