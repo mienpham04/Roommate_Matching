@@ -4,11 +4,11 @@ import { useState } from "react";
 function LifeStyle({ dbUser, userId, setDbUser }) {
 
   const lifestyle = {
-  petFriendly: dbUser?.lifestyle?.petFriendly ?? false,
-  smoking: dbUser?.lifestyle?.smoking ?? false,
-  isNightOwl: dbUser?.lifestyle?.isNightOwl ?? false,
-  guestFrequency: dbUser?.lifestyle?.guestFrequency ?? ""
-};
+    petFriendly: dbUser?.lifestyle?.petFriendly ?? false,
+    smoking: dbUser?.lifestyle?.smoking ?? false,
+    isNightOwl: dbUser?.lifestyle?.isNightOwl ?? false,
+    guestFrequency: dbUser?.lifestyle?.guestFrequency ?? ""
+  };
 
   const saveToDB = async (updatedLifestyle) => {
     const updatedUser = {
@@ -44,16 +44,14 @@ function LifeStyle({ dbUser, userId, setDbUser }) {
   };
 
   const ToggleCard = ({ title, desc, icon, field, checked }) => (
-    <div 
-      className={`card bg-base-100 shadow-sm border transition-all duration-200 ${
-        checked ? "border-primary ring-1 ring-primary" : "border-base-200"
-      }`}
+    <div
+      className={`card bg-base-100 shadow-sm border transition-all duration-200 ${checked ? "border-primary ring-1 ring-primary" : "border-base-200"
+        }`}
     >
       <div className="card-body p-5">
         <div className="flex items-start justify-between mb-2">
-          <div className={`p-2 rounded-lg ${
-            checked ? "bg-primary/10 text-primary" : "bg-base-200 text-base-content/70"
-          }`}>
+          <div className={`p-2 rounded-lg ${checked ? "bg-primary/10 text-primary" : "bg-base-200 text-base-content/70"
+            }`}>
             {icon}
           </div>
 
@@ -82,7 +80,7 @@ function LifeStyle({ dbUser, userId, setDbUser }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <ToggleCard 
+        <ToggleCard
           title="Pet Friendly"
           desc="Comfortable living with pets?"
           field="petFriendly"
@@ -90,7 +88,7 @@ function LifeStyle({ dbUser, userId, setDbUser }) {
           icon={<PawPrint className="w-6 h-6" />}
         />
 
-        <ToggleCard 
+        <ToggleCard
           title="Smoking"
           desc="Do you smoke or accept smoking?"
           field="smoking"
@@ -98,7 +96,7 @@ function LifeStyle({ dbUser, userId, setDbUser }) {
           icon={<Cigarette className="w-6 h-6" />}
         />
 
-        <ToggleCard 
+        <ToggleCard
           title="Night Owl"
           desc="Do you stay up late regularly?"
           field="isNightOwl"
@@ -150,7 +148,7 @@ function LifeStyle({ dbUser, userId, setDbUser }) {
             ) : (
               <>
                 <div className="flex items-center gap-2 bg-base-100 border border-primary rounded-lg px-3 py-2 ring-1 ring-primary/20 min-h-11">
-                  
+
                   <input
                     type="text"
                     className="grow bg-transparent outline-none text-sm text-base-content"

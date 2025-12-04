@@ -1,41 +1,75 @@
-import React from "react";
-import { Users, User, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { Users, User, ArrowRight, Mars, Venus, CircleDashed } from "lucide-react";
 
-const MarsIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 3h5v5"/><path d="m21 3-6.75 6.75"/><circle cx="10" cy="14" r="6"/></svg>
-);
-const VenusIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15v7"/><path d="M9 19h6"/><circle cx="12" cy="9" r="6"/></svg>
-);
-const GenderlessIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/></svg>
-);
+function Preference1({ dbUser, userId, setDbUser }) {
+  const [data, setData] = useState({
+    minAge: dbUser?.preferences?.minAge ?? "15",
+    maxAge: dbUser?.preferences?.maxAge ?? "99",
+    gender: dbUser?.preferences?.gender ?? "no preference",
+  });
 
-function Preference1({ data, setData }) {
-  
-  // LOGIC: Check if current data represents "Any Age" (18 - 99)
-  const isAnyAge = data.minAge === 18 && data.maxAge >= 99;
+  const saveToDB = async (updatedPreferences) => {
+    const updatedUser = {
+      ...dbUser,
+      preferences: updatedPreferences,
+    };
 
-  const handleChange = (field, value) => {
-    setData((prev) => ({ ...prev, [field]: value }));
+    try {
+      const res = await fetch(`http://localhost:8080/api/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedUser),
+      });
+
+      if (res.ok) {
+        setDbUser(updatedUser);
+      } else {
+        console.error("Failed saving preferences:", await res.text());
+      }
+    } catch (err) {
+      console.error("Error saving preferences:", err);
+    }
   };
 
-  // HANDLER: Toggles the "Does not matter" checkbox
-  const handleAnyAgeToggle = (checked) => {
-    if (checked) {
-      // Set to widest range
-      setData((prev) => ({ ...prev, minAge: 18, maxAge: 99 }));
-    } else {
-      // Restore a "typical" range so they can edit
-      setData((prev) => ({ ...prev, minAge: 20, maxAge: 30 }));
+  const handleChange = (field, value) => {
+    // if user clears input
+    if (value === "") {
+      const updated = { ...data, [field]: "" };
+      setData(updated);
+      saveToDB(updated);
+      return;
     }
+
+    const numeric = Number(value);
+    if (isNaN(numeric)) return;
+
+    const updated = { ...data, [field]: numeric };
+    setData(updated);
+    saveToDB(updated);
+  };
+
+  const isAnyAge = data.minAge === 15 && data.maxAge === 99;
+
+  const handleAnyAgeToggle = (checked) => {
+    const updated = checked
+      ? { ...data, minAge: 15, maxAge: 99 }
+      : { ...data, minAge: 20, maxAge: 30 };
+
+    setData(updated);
+    saveToDB(updated);
   };
 
   const GenderOption = ({ label, value, icon }) => {
     const isSelected = data.gender === value;
+
+    const updated = { ...data, gender: value };
+
     return (
       <button
-        onClick={() => handleChange("gender", value)}
+        onClick={() => {
+          setData(updated);
+          saveToDB(updated);
+        }}
         className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 h-32 w-full
           ${isSelected 
             ? "border-primary bg-primary/5 text-primary" 
@@ -61,13 +95,10 @@ function Preference1({ data, setData }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
 
-        {/* SECTION 1: AGE RANGE */}
+      <div className="grid grid-cols-1 gap-8">
         <div className="card bg-base-100 shadow-sm border border-base-200 overflow-visible">
           <div className="card-body p-6">
-            
-            {/* Header with Checkbox */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-base-200 rounded-lg text-base-content/70">
@@ -81,7 +112,6 @@ function Preference1({ data, setData }) {
                 </div>
               </div>
 
-              {/* NEW: DOES NOT MATTER CHECKBOX */}
               <label className="cursor-pointer flex items-center gap-3 p-2 rounded-lg hover:bg-base-200/50 transition-colors">
                 <span className="label-text font-medium">It does not matter</span>
                 <input 
@@ -92,60 +122,54 @@ function Preference1({ data, setData }) {
                 />
               </label>
             </div>
-
-            {/* Age Inputs Wrapper */}
             <div className={`flex flex-col md:flex-row items-center gap-4 bg-base-200/30 p-6 rounded-xl border border-base-200/50 transition-opacity duration-300 
               ${isAnyAge ? "opacity-50 pointer-events-none grayscale" : "opacity-100"}
             `}>
               
-              {/* Min Age */}
               <div className="form-control w-full">
                 <label className="label">
                   <span className="label-text text-xs uppercase font-bold text-base-content/50">Min Age</span>
                 </label>
                 <input
                   type="number"
-                  disabled={isAnyAge} // Disabled if "Any" is checked
+                  disabled={isAnyAge}
                   min="18"
-                  max={data.maxAge}
                   className="input input-lg input-bordered w-full font-bold text-center text-xl focus:input-primary"
                   value={data.minAge}
-                  onChange={(e) => handleChange("minAge", Number(e.target.value))}
+                  onChange={(e) => handleChange("minAge", e.target.value)}
                 />
               </div>
 
               <div className="hidden md:flex flex-col items-center justify-center pt-8 text-base-content/30">
                 <ArrowRight size={24} />
               </div>
-
-              {/* Max Age */}
               <div className="form-control w-full">
                 <label className="label">
                   <span className="label-text text-xs uppercase font-bold text-base-content/50">Max Age</span>
                 </label>
                 <input
                   type="number"
-                  disabled={isAnyAge} // Disabled if "Any" is checked
-                  min={data.minAge}
+                  disabled={isAnyAge}
+                  min={data.minAge || 18}
                   className="input input-lg input-bordered w-full font-bold text-center text-xl focus:input-primary"
                   value={data.maxAge}
-                  onChange={(e) => handleChange("maxAge", Number(e.target.value))}
+                  onChange={(e) => handleChange("maxAge", e.target.value)}
                 />
               </div>
             </div>
             
             <p className="text-center text-xs text-base-content/40 mt-3">
-               {isAnyAge 
-                 ? "You are open to roommates of any age." 
-                 : `Matches between ${data.minAge} and ${data.maxAge} years old.`
-               }
+              {isAnyAge 
+                ? "You are open to roommates of any age." 
+                : `Matches between ${data.minAge || "?"} and ${data.maxAge || "?"} years old.`
+              }
             </p>
           </div>
         </div>
-
-        {/* SECTION 2: GENDER PREFERENCE */}
+        
         <div className="card bg-base-100 shadow-sm border border-base-200">
           <div className="card-body p-6">
+
             <div className="mb-6">
               <h3 className="font-bold text-lg">Gender Preference</h3>
               <p className="text-sm text-base-content/60">
@@ -162,19 +186,20 @@ function Preference1({ data, setData }) {
               <GenderOption 
                 label="Female" 
                 value="female" 
-                icon={<VenusIcon />} 
+                icon={<Venus size={30} />} 
               />
               <GenderOption 
                 label="Male" 
                 value="male" 
-                icon={<MarsIcon />} 
+                icon={<Mars size={30} />} 
               />
               <GenderOption 
                 label="Non-binary" 
                 value="non-binary" 
-                icon={<GenderlessIcon />} 
+                icon={<CircleDashed size={30} />} 
               />
             </div>
+
           </div>
         </div>
 

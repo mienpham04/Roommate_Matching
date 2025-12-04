@@ -1,18 +1,52 @@
-import React from "react";
-import { FileText, Sparkles, Quote, Plus } from "lucide-react";
+import { useState } from "react";
+import { FileText, Sparkles, Quote, Plus, Check, X } from "lucide-react";
 
-function MoreDetails({ data, setData }) {
-  const handleChange = (value) => {
-    setData((prev) => ({ ...prev, moreDetails: value }));
+function MoreDetails({ dbUser, userId, setDbUser }) {
+  
+  const [data, setData] = useState({
+    moreDetails: dbUser?.moreAboutMe ?? ""
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [tempValue, setTempValue] = useState(data.moreAboutMe);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const saveToDB = async () => {
+    setIsSaving(true);
+
+    const updatedUser = {
+      ...dbUser,
+      moreAboutMe: tempValue,
+    };
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedUser),
+      });
+
+      if (res.ok) {
+        setDbUser(updatedUser);
+        setData({ moreAboutMe: tempValue });
+      }
+    } finally {
+      setIsSaving(false);
+      setIsEditing(false);
+    }
   };
 
-  // Helper function to append text when a chip is clicked
+  const cancelEdit = () => {
+    setTempValue(data.moreAboutMe);
+    setIsEditing(false);
+  };
+
   const addTopic = (topic) => {
-    const currentText = data.moreDetails || "";
-    // Avoid duplicates or awkward spacing
-    const separator = currentText.length > 0 && !currentText.endsWith(" ") ? " " : "";
-    const newText = currentText + separator + topic;
-    handleChange(newText);
+    const current = tempValue || "";
+    const separator = current.length > 0 && !current.endsWith(" ") ? " " : "";
+    const newText = current + separator + topic;
+    setTempValue(newText);
+    setIsEditing(true);
   };
 
   const topics = [
@@ -27,17 +61,15 @@ function MoreDetails({ data, setData }) {
   return (
     <div className="max-w-4xl mx-auto w-full px-4">
 
-      {/* HEADER */}
       <div className="text-center mb-10">
         <h2 className="text-3xl font-bold mb-2">Almost Done!</h2>
         <p className="text-base-content/60 max-w-lg mx-auto">
-          This is your chance to share anything else that might help us find your perfect match.
+          Share anything that might help us find your perfect match.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-        {/* LEFT COLUMN: Main Input */}
         <div className="md:col-span-2">
           <div className="card bg-base-100 shadow-sm border border-base-200 h-full">
             <div className="card-body p-6">
@@ -50,25 +82,48 @@ function MoreDetails({ data, setData }) {
               </div>
 
               <div className="relative h-full min-h-[200px]">
+
                 <textarea
                   className="textarea textarea-bordered w-full h-full text-base leading-relaxed p-4 rounded-xl focus:textarea-primary resize-none"
-                  placeholder="e.g. Hi! I'm a software engineer who loves hiking. I'm looking for a roommate who respects quiet hours during the week but enjoys hanging out on weekends..."
-                  value={data.moreDetails || ""}
-                  onChange={(e) => handleChange(e.target.value)}
+                  placeholder="Tell us a bit more about yourself..."
+                  value={tempValue}
+                  onChange={(e) => {
+                    setTempValue(e.target.value);
+                    setIsEditing(true);
+                  }}
                   maxLength={500}
                 ></textarea>
-                
-                {/* Character Counter */}
+
                 <div className="absolute bottom-4 right-4 text-xs text-base-content/40 bg-base-100 px-2 py-1 rounded-md border border-base-200">
-                  {(data.moreDetails || "").length} / 500
+                  {tempValue?.length} / 500
                 </div>
+
+                {isEditing && (
+                  <div className="absolute top-4 right-4 flex gap-2">
+
+                    <button
+                      className="btn btn-circle btn-sm btn-success text-white shadow"
+                      onClick={saveToDB}
+                      disabled={isSaving}
+                    >
+                      <Check size={16} />
+                    </button>
+
+                    <button
+                      className="btn btn-circle btn-sm btn-ghost shadow text-base-content/60"
+                      onClick={cancelEdit}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                )}
+
               </div>
 
             </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Suggestions / "Quick Add" */}
         <div className="md:col-span-1">
           <div className="card bg-base-100 shadow-sm border border-base-200 h-full">
             <div className="card-body p-6">
@@ -98,12 +153,12 @@ function MoreDetails({ data, setData }) {
               </div>
 
               <div className="mt-auto pt-6">
-                 <div className="alert alert-info bg-base-200 border-none text-xs text-base-content/70 p-3 rounded-lg flex items-start gap-2">
-                    <FileText size={16} className="shrink-0 mt-0.5" />
-                    <span>
-                      Detailed bios get <strong>2x more matches</strong> on average.
-                    </span>
-                 </div>
+                <div className="alert alert-info bg-base-200 border-none text-xs text-base-content/70 p-3 rounded-lg flex items-start gap-2">
+                  <FileText size={16} className="shrink-0 mt-0.5" />
+                  <span>
+                    Detailed bios get <strong>2x more matches</strong> on average.
+                  </span>
+                </div>
               </div>
 
             </div>

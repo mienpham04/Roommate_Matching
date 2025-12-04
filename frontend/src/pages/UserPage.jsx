@@ -46,12 +46,6 @@ function UserPage() {
         isNightOwl: true,
     });
 
-    const [preferenceData, setPreferenceData] = useState({
-        minAge: 20,
-        maxAge: 30,
-        gender: "no preference",
-    });
-
     const [moreDetailsData, setMoreDetailsData] = useState({
         moreDetails: "",
     });
@@ -89,8 +83,8 @@ function UserPage() {
     };
 
     const renderPreferences = () => {
-        if (subStep === 0) return <Preference1 data={preferenceData} setData={setPreferenceData} />;
-        if (subStep === 1) return <Preference2 data={rmData} setData={setRmData} />;
+        if (subStep === 0) return <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUser} />;
+        if (subStep === 1) return <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUser} />;
     };
 
     const renderContent = () => {
@@ -98,7 +92,7 @@ function UserPage() {
             case "Profile": return <PersonalInfo dbUser={dbUser} userId={id} setDbUser={setDbUser}/>;
             case "Lifestyle": return <LifeStyle dbUser={dbUser} userId={id} setDbUser={setDbUser} />;
             case "Preferences": return renderPreferences();
-            case "More details": return <MoreDetails data={moreDetailsData} setData={setMoreDetailsData} />;
+            case "More details": return <MoreDetails dbUser={dbUser} userId={id} setDbUser={setDbUser} />;
             default: return null;
         }
     };
@@ -119,7 +113,7 @@ function UserPage() {
                                 onClick={() => changeStep(tab, 0)}
                                 className={`tab tab-lg transition-all duration-200 gap-2
                                     ${active === tab 
-                                        ? "tab-active [--tab-bg:var(--color-base-100)] [--tab-border-color:transparent] font-bold text-pink-400" 
+                                        ? "tab-active [--tab-bg:var(--color-base-100)] [--tab-border-color:transparent] font-bold text-primary" 
                                         : "text-base-content/60 hover:text-base-content"}
                                 `}
                             >
