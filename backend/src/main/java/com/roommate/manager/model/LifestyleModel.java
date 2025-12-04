@@ -33,7 +33,7 @@ public class LifestyleModel {
     public boolean isNightOwl() {
         return isNightOwl;
     }
-    public void setNightOwl(boolean nightOwl) {
+    public void setIsNightOwl(boolean nightOwl) {
         isNightOwl = nightOwl;
     }
 }
