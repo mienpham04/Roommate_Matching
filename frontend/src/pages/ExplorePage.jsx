@@ -17,8 +17,9 @@ function ExplorePage() {
   const [currentLimit, setCurrentLimit] = useState(5);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [likedUsers, setLikedUsers] = useState(new Set()); // Track liked users
-  const [activeTab, setActiveTab] = useState("explore"); // "explore" or "likes"
+  const [activeTab, setActiveTab] = useState("explore"); // "explore", "likes", or "sent"
   const [receivedLikes, setReceivedLikes] = useState([]); // People who liked you
+  const [sentLikes, setSentLikes] = useState([]); // People you liked
   const [steps, setSteps] = useState([
     { text: "Getting your profile ID…", done: false },
     { text: "Finding people with similar lifestyles…", done: false },
@@ -41,6 +42,7 @@ function ExplorePage() {
       fetchMatches();
       fetchLikedUsers();
       fetchReceivedLikes();
+      fetchSentLikes();
     } else {
       setLoading(false);
     }
@@ -99,6 +101,49 @@ function ExplorePage() {
       }
     } catch (err) {
       console.error("Failed to fetch received likes:", err);
+    }
+  };
+
+  // Fetch users that current user has liked
+  const fetchSentLikes = async () => {
+    try {
+      const res = await fetch(`${API_URL}/likes/sent/${user.id}`);
+
+      if (res.status === 404) {
+        setSentLikes([]);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.success) {
+        const likedUserIds = data.likedUserIds || [];
+
+        // Fetch full user details for each liked user
+        const likedUsersWithDetails = await Promise.all(
+          likedUserIds.map(async (likedId) => {
+            try {
+              const userRes = await fetch(`${API_URL}/users/${likedId}`);
+              if (userRes.ok) {
+                const userData = await userRes.json();
+                return {
+                  userId: userData.id,
+                  user: userData,
+                  isMutualMatch: false // Will be updated if they liked back
+                };
+              }
+              return null;
+            } catch (err) {
+              console.error(`Failed to fetch user ${likedId}:`, err);
+              return null;
+            }
+          })
+        );
+
+        setSentLikes(likedUsersWithDetails.filter(match => match !== null));
+      }
+    } catch (err) {
+      console.error("Failed to fetch sent likes:", err);
     }
   };
 
@@ -345,6 +390,13 @@ function ExplorePage() {
                 <Heart className="w-4 h-4 mr-2 text-pink-500" />
                 Likes ({receivedLikes.length})
               </a>
+              <a
+                className={`tab ${activeTab === "sent" ? "tab-active" : ""}`}
+                onClick={() => setActiveTab("sent")}
+              >
+                <Heart className="w-4 h-4 mr-2 fill-red-500 text-red-500" />
+                Sent ({sentLikes.length})
+              </a>
             </div>
           </div>
 
@@ -520,7 +572,7 @@ function ExplorePage() {
                 </>
               )}
             </>
-          ) : (
+          ) : activeTab === "likes" ? (
             <div>
               {/* LIKES TAB - People who sent you hearts */}
               {receivedLikes.length === 0 ? (
@@ -618,7 +670,97 @@ function ExplorePage() {
                 </>
               )}
             </div>
-          )}
+          ) : activeTab === "sent" ? (
+            <div>
+              {/* SENT TAB - People you have liked */}
+              {sentLikes.length === 0 ? (
+                <div className="text-center py-20">
+                  <Heart className="w-16 h-16 text-base-content/20 mx-auto mb-4" />
+                  <p className="text-lg font-semibold text-base-content/60 mb-2">No likes sent yet</p>
+                  <p className="text-base-content/60">Start liking people in the Explore tab to see them here</p>
+                </div>
+              ) : (
+                <>
+                  {/* SENT COUNT */}
+                  <div className="text-center mt-8">
+                    <p className="text-base-content/70">
+                      You liked {sentLikes.length} {sentLikes.length === 1 ? 'person' : 'people'}
+                    </p>
+                  </div>
+
+                  {/* PEOPLE GRID */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
+                    {sentLikes.map((match) => {
+                      const person = match.user;
+
+                      return (
+                        <div
+                          key={match.userId}
+                          className="bg-base-100 rounded-xl shadow border p-4 flex flex-col items-center relative hover:shadow-lg transition-shadow"
+                        >
+                          {/* HEART BUTTON */}
+                          <button
+                            className="absolute top-3 right-3 bg-base-100 rounded-full shadow p-2 transition-all duration-200 hover:scale-110 hover:shadow-md z-10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleLike(match.userId);
+                            }}
+                          >
+                            <Heart
+                              className="size-5 fill-red-500 text-red-500"
+                            />
+                          </button>
+
+                          {/* Sent Badge */}
+                          <div className="absolute top-3 left-3 bg-red-200 px-2 py-1 rounded-full shadow-sm" title="You liked">
+                            <span className="text-xs text-red-700 font-semibold">Liked</span>
+                          </div>
+
+                          {/* PROFILE IMAGE */}
+                          <div
+                            className="w-24 h-24 rounded-full overflow-hidden shadow-md mt-6 cursor-pointer"
+                            onClick={() => setSelected(match)}
+                          >
+                            <img
+                              src={person.profileImageUrl || `https://ui-avatars.com/api/?name=${person.firstName}+${person.lastName}&size=200`}
+                              alt={`${person.firstName} ${person.lastName}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          {/* NAME */}
+                          <h3
+                            className="text-lg font-semibold mt-3 cursor-pointer hover:underline"
+                            onClick={() => setSelected(match)}
+                          >
+                            {person.firstName} {person.lastName}
+                          </h3>
+
+                          <p className="text-sm text-base-content/60">{calculateAge(person.dateOfBirth)} years old</p>
+
+                          {/* DIVIDER */}
+                          <div className="w-full mt-4 mb-3 border-t border-base-300"></div>
+
+                          {/* BUTTON ROW */}
+                          <div className="flex items-center justify-center w-full p-3 gap-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleLike(match.userId);
+                              }}
+                              className="flex-1 py-2 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 transition"
+                            >
+                              💔 Unlike
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : null}
         </div>
       )}
 
