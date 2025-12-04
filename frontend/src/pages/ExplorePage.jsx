@@ -1,7 +1,7 @@
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
 import { useEffect, useState } from "react";
-import { X, Home, Users, Heart } from "lucide-react";
+import { X, Home, Users, Heart, ArrowDown, ArrowUp } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 
@@ -290,6 +290,9 @@ function ExplorePage() {
             return newSet;
           });
           toast.success("Like removed");
+          // Refresh sent likes list
+          fetchSentLikes();
+          fetchReceivedLikes();
         }
       } else {
         // Send like
@@ -311,6 +314,9 @@ function ExplorePage() {
           } else {
             toast.success("Like sent!");
           }
+          // Refresh sent likes list
+          fetchSentLikes();
+          fetchReceivedLikes();
         }
       }
     } catch (err) {
@@ -387,14 +393,14 @@ function ExplorePage() {
                 className={`tab ${activeTab === "likes" ? "tab-active" : ""}`}
                 onClick={() => setActiveTab("likes")}
               >
-                <Heart className="w-4 h-4 mr-2 text-pink-500" />
-                Likes ({receivedLikes.length})
+                <ArrowDown className="w-4 h-4 mr-2 text-green-500" />
+                Received ({receivedLikes.length})
               </a>
               <a
                 className={`tab ${activeTab === "sent" ? "tab-active" : ""}`}
                 onClick={() => setActiveTab("sent")}
               >
-                <Heart className="w-4 h-4 mr-2 fill-red-500 text-red-500" />
+                <ArrowUp className="w-4 h-4 mr-2 text-blue-500" />
                 Sent ({sentLikes.length})
               </a>
             </div>

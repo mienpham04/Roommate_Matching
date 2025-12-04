@@ -20,7 +20,14 @@ function App() {
       <Route path="/matches" element={<MatchesPage />} />
     </Routes>
 
-    <Toaster toastOptions={{ duration: 3000 }}/>
+    <Toaster
+      toastOptions={{
+        duration: 3000,
+        style: {
+          minWidth: '250px',
+        }
+      }}
+    />
     </>
 
   );
