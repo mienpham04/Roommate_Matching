@@ -9,7 +9,6 @@ function Navbar() {
   const navItems = [
     { name: "Profile", path: `/user/${user?.id}`, icon: User },
     { name: "Matches", path: "/matches", icon: Users },
-    { name: "Favorites", path: "/favorites", icon: Heart },
     { name: "Explore", path: "/explore", icon: Compass }
   ];
 

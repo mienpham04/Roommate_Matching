@@ -1,7 +1,7 @@
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
 import { useEffect, useState } from "react";
-import { X, Home, Users, Heart, ArrowDown, ArrowUp } from "lucide-react";
+import { X, Home, Users, Heart, ArrowDown, ArrowUp, RefreshCw } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 
@@ -11,7 +11,11 @@ function ExplorePage() {
   const { user } = useUser();
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const [allMatches, setAllMatches] = useState([]); // All fetched matches
+  const [allMatches, setAllMatches] = useState(() => {
+    // Load cached matches from localStorage on initial render
+    const cached = localStorage.getItem(`matches_${user?.id}`);
+    return cached ? JSON.parse(cached) : [];
+  }); // All fetched matches
   const [displayedMatches, setDisplayedMatches] = useState([]); // Matches to display
   const [error, setError] = useState(null);
   const [currentLimit, setCurrentLimit] = useState(5);
@@ -36,10 +40,15 @@ function ExplorePage() {
     );
   };
 
-  // Fetch matches and liked users when user changes
+  // Only fetch likes when user changes, NOT matches
   useEffect(() => {
     if (user?.id) {
-      fetchMatches();
+      // Only fetch matches if we don't have any cached
+      if (allMatches.length === 0) {
+        fetchMatches();
+      } else {
+        setLoading(false);
+      }
       fetchLikedUsers();
       fetchReceivedLikes();
       fetchSentLikes();
@@ -231,6 +240,8 @@ function ExplorePage() {
 
       /* STEP 5 — Finalizing */
       setAllMatches(combined);
+      // Save to localStorage
+      localStorage.setItem(`matches_${user.id}`, JSON.stringify(combined));
       completeStep(5);
     } catch (err) {
       console.error("Error fetching matches:", err);
@@ -409,7 +420,7 @@ function ExplorePage() {
           {activeTab === "explore" ? (
             <>
               {/* LEGEND */}
-              <div className="flex justify-center gap-4 mt-6 mb-8">
+              <div className="flex justify-center gap-4 mt-6 mb-4">
                 <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg">
                   <Home className="size-5 text-green-600" />
                     <span className="text-sm">Roommate Potential (Both interested)</span>
@@ -418,6 +429,18 @@ function ExplorePage() {
                   <Users className="size-5 text-blue-600" />
                   <span className="text-sm">Similar Lifestyle</span>
                 </div>
+              </div>
+
+              {/* REFRESH BUTTON */}
+              <div className="flex justify-center mb-8">
+                <button
+                  onClick={fetchMatches}
+                  disabled={loading}
+                  className="btn btn-sm btn-outline btn-primary gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh Matches
+                </button>
               </div>
 
               {allMatches.length === 0 ? (
