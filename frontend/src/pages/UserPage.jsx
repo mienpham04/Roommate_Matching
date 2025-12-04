@@ -39,13 +39,6 @@ function UserPage() {
         "More details": <FileText className="w-4 h-4" />
     };
 
-    const [lifestyleData, setLifestyleData] = useState({
-        petFriendly: false,
-        smoking: false,
-        guestFrequency: "",
-        isNightOwl: true,
-    });
-
     const [rmData, setRmData] = useState({
         petFriendly: false,
         smoking: false,
@@ -102,8 +95,8 @@ function UserPage() {
 
     const renderContent = () => {
         switch (active) {
-            case "Profile": return <PersonalInfo dbUser={dbUser} />;
-            case "Lifestyle": return <LifeStyle data={lifestyleData} setData={setLifestyleData} />;
+            case "Profile": return <PersonalInfo dbUser={dbUser} userId={id} setDbUser={setDbUser}/>;
+            case "Lifestyle": return <LifeStyle dbUser={dbUser} userId={id} setDbUser={setDbUser} />;
             case "Preferences": return renderPreferences();
             case "More details": return <MoreDetails data={moreDetailsData} setData={setMoreDetailsData} />;
             default: return null;
@@ -113,10 +106,10 @@ function UserPage() {
     if (!dbUser) return <Loading />;
 
     return (
-        <div className="h-screen w-full bg-base-200 flex flex-col font-sans overflow-hidden">
+        <div className="min-h-screen w-full bg-base-200 flex flex-col font-sans">
             <Navbar />
 
-            <div className="grow flex flex-col items-center justify-center p-4">
+            <div className="grow flex flex-col items-center p-4 py-10">
                 
                 <div className="w-full max-w-6xl">
                     <div className="tabs tabs-lift">
@@ -134,10 +127,10 @@ function UserPage() {
                                 <span className="hidden sm:inline">{tab}</span>
                             </a>
                         ))}
-                        
                     </div>
                 </div>
-                <div className="bg-base-100 w-full max-w-6xl h-[75vh] md:h-[80vh] shadow-xl border border-base-200 rounded-b-2xl rounded-tr-2xl rounded-tl-2xl relative z-10 flex flex-col overflow-hidden">
+
+                <div className="bg-base-100 w-full max-w-6xl min-h-[500px] shadow-xl border border-base-200 rounded-b-2xl rounded-tr-2xl rounded-tl-2xl relative z-10 flex flex-col">
                     
                     <div className="p-6 border-b border-base-200 shrink-0 flex justify-between items-center">
                         <div>
@@ -149,14 +142,13 @@ function UserPage() {
                             </p>
                         </div>
                     </div>
-
-                    <div className="grow overflow-y-auto p-4 md:p-8 bg-base-100 relative">
+                    <div className="grow p-4 md:p-8 bg-base-100 relative">
                         <div className={`max-w-4xl mx-auto transition-opacity duration-300 ${animating ? 'opacity-0' : 'opacity-100'}`}>
                             {renderContent()}
                         </div>
                     </div>
 
-                    <div className="p-4 md:px-8 md:py-5 border-t border-base-200 bg-base-100 shrink-0 flex justify-between items-center">
+                    <div className="p-4 md:px-8 md:py-5 border-t border-base-200 bg-base-100 shrink-0 flex justify-between items-center rounded-b-2xl">
                         <button
                             onClick={handleBack}
                             disabled={currentIndex === 0 && subStep === 0}

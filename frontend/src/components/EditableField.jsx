@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pencil, X, Check } from "lucide-react";
 
-function EditableField({ label, value, icon: Icon, type = "text", options = [] }) {
+function EditableField({ label, field, value, icon: Icon, type = "text", options = [], onSave }) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
   const [tempValue, setTempValue] = useState(value);
@@ -14,7 +14,10 @@ function EditableField({ label, value, icon: Icon, type = "text", options = [] }
   const handleSave = () => {
     setCurrentValue(tempValue);
     setIsEditing(false);
-    console.log(`Saved ${label}: ${tempValue}`);
+
+    if (onSave) {
+      onSave(field, tempValue);
+    }
   };
 
   const handleCancel = () => {
@@ -24,15 +27,10 @@ function EditableField({ label, value, icon: Icon, type = "text", options = [] }
 
   return (
     <div className="form-control w-full">
-      {/* Reduced padding (p-1) and bottom margin (mb-1) for label */}
       <label className="label p-1 min-h-0 h-auto mb-1">
         <span className="label-text text-xs font-semibold text-base-content/60 uppercase tracking-wider">{label}</span>
       </label>
 
-      {/* COMPACT CONTAINER: 
-         - Changed py-3 to py-2 
-         - Added min-h-[2.75rem] to keep it slim but clickable
-      */}
       <div className={`relative flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-200 
         ${isEditing ? "border-primary bg-base-100 ring-1 ring-primary/20" : "border-base-300 bg-base-200/30"}
         min-h-11`}

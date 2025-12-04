@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { Pencil, X, User, Mail, Phone, Calendar } from "lucide-react";
 import EditableField from "../EditableField";
 
-function PersonalInfo({ dbUser }) {
+function PersonalInfo({ dbUser, userId, setDbUser }) {
   const fileInputRef = useRef(null);
   const [customPhoto, setCustomPhoto] = useState(null);
   const [profileImg, setProfileImg] = useState(
@@ -20,24 +20,31 @@ function PersonalInfo({ dbUser }) {
     setProfileImg(url);
     setCustomPhoto(url);
   };
-
   const handleRemove = (e) => {
     e.stopPropagation();
     setCustomPhoto(null);
     setProfileImg(dbUser?.profileImageUrl || "https://i.pravatar.cc/200");
   };
 
+  const handleFieldUpdate = async (field, newValue) => {
+    const updateUser = { ...dbUser, [field]: newValue };
+
+    await fetch(`http://localhost:8080/api/users/${userId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updateUser),
+    });
+    setDbUser(updateUser);
+  }
+
   return (
     <div className="w-full mx-auto">
-
-      {/* AVATAR SECTION: Reduced margins (mb-4 instead of mb-8) */}
       <div className="flex flex-col items-center justify-center mb-4">
-        <div 
+        <div
           className="relative group cursor-pointer"
           onClick={() => fileInputRef.current.click()}
         >
           <div className="avatar">
-            {/* Slightly smaller avatar to save space: w-32 -> w-28 */}
             <div className="w-28 h-28 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden shadow-lg hover:scale-105 transition-transform duration-300">
               <img src={profileImg} alt="Profile" className="object-cover" />
             </div>
@@ -58,47 +65,58 @@ function PersonalInfo({ dbUser }) {
         <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
       </div>
 
-      {/* FORM GRID: Tighter gaps (gap-x-4, gap-y-3) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
-        
+
         <EditableField
-          label="First Name" 
-          value={dbUser?.firstName || ""} 
-          icon={User} 
+          label="First Name"
+          field="firstName"
+          value={dbUser?.firstName || ""}
+          icon={User}
+          onSave={handleFieldUpdate}
         />
 
-        <EditableField 
-          label="Last Name" 
-          value={dbUser?.lastName || ""} 
-          icon={User} 
+        <EditableField
+          label="Last Name"
+          field="lastName"
+          value={dbUser?.lastName || ""}
+          icon={User}
+          onSave={handleFieldUpdate}
         />
 
-        <EditableField 
-          label="Email Address" 
-          value={dbUser?.email || ""} 
-          icon={Mail} 
-          type="email" 
+        <EditableField
+          label="Email Address"
+          field="email"
+          value={dbUser?.email || ""}
+          icon={Mail}
+          type="email"
+          onSave={handleFieldUpdate}
         />
 
-        <EditableField 
-          label="Phone Number" 
-          value={dbUser?.phone || ""} 
-          icon={Phone} 
-          type="tel" 
+        <EditableField
+          label="Phone Number"
+          field="phone"
+          value={dbUser?.phone || ""}
+          icon={Phone}
+          type="tel"
+          onSave={handleFieldUpdate}
         />
 
-        <EditableField 
-          label="Gender" 
-          value={dbUser?.gender || "No preference"} 
+        <EditableField
+          label="Gender"
+          field="gender"
+          value={dbUser?.gender || "No preference"}
           type="select"
           options={["Male", "Female", "Non-binary", "Other", "No preference"]}
+          onSave={handleFieldUpdate}
         />
 
-        <EditableField 
-          label="Date of Birth" 
-          value={dbUser?.dateOfBirth || ""} 
-          icon={Calendar} 
-          type="date" 
+        <EditableField
+          label="Date of Birth"
+          field="dateOfBirth"
+          value={dbUser?.dateOfBirth || ""}
+          icon={Calendar}
+          type="date"
+          onSave={handleFieldUpdate}
         />
 
       </div>
