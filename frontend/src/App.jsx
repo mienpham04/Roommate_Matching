@@ -5,9 +5,10 @@ import ProfilePage from "./pages/ProfilePage";
 import ExplorePage from "./pages/ExplorePage";
 import ProcessPage from "./pages/ProcessPage";
 import UserPage from "./pages/UserPage";
+import MatchesPage from "./pages/MatchesPage";
 
 function App() {
-  
+
   return (
     <>
     <Routes>
@@ -16,11 +17,12 @@ function App() {
       <Route path="/process" element={<ProcessPage />} />
       <Route path="/explore" element={<ExplorePage />}/>
       <Route path="/user/:id" element={<UserPage />} />
+      <Route path="/matches" element={<MatchesPage />} />
     </Routes>
 
     <Toaster toastOptions={{ duration: 3000 }}/>
     </>
-    
+
   );
 }
 

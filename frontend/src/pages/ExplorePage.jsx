@@ -1,8 +1,9 @@
 import Navbar from "../components/Navbar";
 import Loading from "../components/Loading";
 import { useEffect, useState } from "react";
-import { X, Home, Users } from "lucide-react";
+import { X, Home, Users, Heart } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
+import toast from "react-hot-toast";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
@@ -15,6 +16,9 @@ function ExplorePage() {
   const [error, setError] = useState(null);
   const [currentLimit, setCurrentLimit] = useState(5);
   const [loadingMessage, setLoadingMessage] = useState("");
+  const [likedUsers, setLikedUsers] = useState(new Set()); // Track liked users
+  const [activeTab, setActiveTab] = useState("explore"); // "explore" or "likes"
+  const [receivedLikes, setReceivedLikes] = useState([]); // People who liked you
   const [steps, setSteps] = useState([
     { text: "Getting your profile ID…", done: false },
     { text: "Finding people with similar lifestyles…", done: false },
@@ -31,14 +35,72 @@ function ExplorePage() {
     );
   };
 
-  // Fetch matches only when user changes
+  // Fetch matches and liked users when user changes
   useEffect(() => {
     if (user?.id) {
       fetchMatches();
+      fetchLikedUsers();
+      fetchReceivedLikes();
     } else {
       setLoading(false);
     }
   }, [user]);
+
+  // Fetch users that current user has liked
+  const fetchLikedUsers = async () => {
+    try {
+      const response = await fetch(`${API_URL}/likes/sent/${user.id}`);
+      const data = await response.json();
+      if (data.success) {
+        setLikedUsers(new Set(data.likedUserIds));
+      }
+    } catch (err) {
+      console.error("Failed to fetch liked users:", err);
+    }
+  };
+
+  // Fetch users who liked the current user
+  const fetchReceivedLikes = async () => {
+    try {
+      const res = await fetch(`${API_URL}/likes/received/${user.id}`);
+
+      if (res.status === 404) {
+        setReceivedLikes([]);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.success) {
+        const likerIds = data.likerIds || [];
+
+        // Fetch full user details for each liker
+        const likersWithDetails = await Promise.all(
+          likerIds.map(async (likerId) => {
+            try {
+              const userRes = await fetch(`${API_URL}/users/${likerId}`);
+              if (userRes.ok) {
+                const userData = await userRes.json();
+                return {
+                  userId: userData.id,
+                  user: userData,
+                  isMutualMatch: likedUsers.has(likerId)
+                };
+              }
+              return null;
+            } catch (err) {
+              console.error(`Failed to fetch user ${likerId}:`, err);
+              return null;
+            }
+          })
+        );
+
+        setReceivedLikes(likersWithDetails.filter(match => match !== null));
+      }
+    } catch (err) {
+      console.error("Failed to fetch received likes:", err);
+    }
+  };
 
   // Update displayed matches when allMatches or currentLimit changes
   useEffect(() => {
@@ -159,6 +221,59 @@ function ExplorePage() {
     return `$${budget.min} - $${budget.max}`;
   };
 
+  // Toggle like/heart for a user
+  const toggleLike = async (targetUserId) => {
+    const isLiked = likedUsers.has(targetUserId);
+
+    try {
+      if (isLiked) {
+        // Remove like
+        const response = await fetch(`${API_URL}/likes`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fromUserId: user.id,
+            toUserId: targetUserId
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          setLikedUsers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(targetUserId);
+            return newSet;
+          });
+          toast.success("Like removed");
+        }
+      } else {
+        // Send like
+        const response = await fetch(`${API_URL}/likes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fromUserId: user.id,
+            toUserId: targetUserId
+          })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          setLikedUsers(prev => new Set([...prev, targetUserId]));
+
+          if (data.isMutual) {
+            toast.success("🎉 It's a match! Check your Matches page", { duration: 5000 });
+          } else {
+            toast.success("Like sent!");
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to toggle like:", err);
+      toast.error("Failed to update like");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-base-100 relative">
       <Navbar />
@@ -182,6 +297,7 @@ function ExplorePage() {
           ))}
         </div>
       </div>
+     
     )}
 
 
@@ -208,162 +324,300 @@ function ExplorePage() {
           <h1 className="text-center bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent text-6xl tracking-wider font-black mb-2">
             Explore
           </h1>
-          <p className="text-center text-base-content/70 max-w-xl mx-auto">
+          <p className="text-center text-base-content/70 max-w-xl mx-auto mb-6">
             Oday believes these people are the best fit to be your hommie
           </p>
 
-          {/* LEGEND */}
-          <div className="flex justify-center gap-4 mt-6 mb-8">
-            <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg">
-              <Home className="size-5 text-green-600" />
-                <span className="text-sm">Roommate Potential (Both interested)</span>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg">
-              <Users className="size-5 text-blue-600" />
-              <span className="text-sm">Similar Lifestyle</span>
+          {/* TABS */}
+          <div className="flex justify-center mb-6">
+            <div className="tabs tabs-boxed">
+              <a
+                className={`tab ${activeTab === "explore" ? "tab-active" : ""}`}
+                onClick={() => setActiveTab("explore")}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Explore
+              </a>
+              <a
+                className={`tab ${activeTab === "likes" ? "tab-active" : ""}`}
+                onClick={() => setActiveTab("likes")}
+              >
+                <Heart className="w-4 h-4 mr-2 text-pink-500" />
+                Likes ({receivedLikes.length})
+              </a>
             </div>
           </div>
 
-          {allMatches.length === 0 ? (
-            <div className="text-center py-20">
-              <p className="text-base-content/60 text-lg">No matches found yet. Try updating your profile!</p>
-            </div>
-          ) : (
+          {activeTab === "explore" ? (
             <>
-              {/* MATCHES COUNT */}
-              <div className="text-center mt-8">
-                <p className="text-base-content/70">
-                  Showing {displayedMatches.length} of {allMatches.length} {allMatches.length === 1 ? 'match' : 'matches'}
-                </p>
-              </div>
-
-              {/* PEOPLE GRID */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
-                {displayedMatches.map((match) => {
-                  const person = match.user;
-
-                  return (
-                    <div
-                      key={match.userId}
-                      className="bg-base-100 rounded-xl shadow border p-4 flex flex-col items-center relative hover:shadow-lg transition-shadow"
-                    >
-                      {/* REMOVE BUTTON */}
-                      <button
-                        className="absolute top-3 right-3 bg-base-100 rounded-full shadow p-1 transition-transform duration-200 hover:scale-125 hover:shadow-md"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Remove from allMatches - displayedMatches will update automatically
-                          setAllMatches(prev => prev.filter(m => m.userId !== match.userId));
-                        }}
-                      >
-                        <X className="size-4 text-gray-600" />
-                      </button>
-
-                      {/* Match type icon */}
-                      {match.isMutualMatch ? (
-                        <div className="absolute top-3 left-3 bg-green-200 p-1 rounded-full shadow-sm" title="Roommate Potential">
-                          <Home className="size-4 text-green-600" />
-                        </div>
-                      ) : (
-                        <div className="absolute top-3 left-3 bg-blue-200 p-1 rounded-full shadow-sm" title="Similar Lifestyle">
-                          <Users className="size-4 text-blue-600" />
-                        </div>
-                      )}
-
-                      {/* PROFILE IMAGE */}
-                      <div
-                        className="w-24 h-24 rounded-full overflow-hidden shadow-md mt-2 cursor-pointer"
-                        onClick={() => setSelected(match)}
-                      >
-                        <img
-                          src={person.profileImageUrl || `https://ui-avatars.com/api/?name=${person.firstName}+${person.lastName}&size=200`}
-                          alt={`${person.firstName} ${person.lastName}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      {/* NAME */}
-                      <h3
-                        className="text-lg font-semibold mt-3 cursor-pointer hover:underline"
-                        onClick={() => setSelected(match)}
-                      >
-                        {person.firstName} {person.lastName}
-                      </h3>
-
-                      <p className="text-sm text-base-content/60">{calculateAge(person.dateOfBirth)} years old</p>
-                      <div className="mt-3 text-center space-y-1">
-                        {match.mutualScore !== undefined && (
-                          <p className="text-green-600 font-semibold flex items-center justify-center gap-1">
-                            <Home className="size-4 text-green-600" />
-                            Roommate Potential: {Math.round(match.mutualScore * 100)}%
-                          </p>
-                        )}
-
-                        {match.similarityScore !== undefined && (
-                          <p className="text-blue-600 font-semibold flex items-center justify-center gap-1">
-                            <Users className="size-4 text-blue-600" />
-                            Similar Lifestyle: {Math.round(match.similarityScore * 100)}%
-                          </p>
-                        )}
-                      </div>
-
-
-                {/* DIVIDER */}
-                <div className="w-full mt-4 mb-3 border-t border-base-300"></div>
-
-                {/* BUTTON ROW */}
-                      <div className="flex items-center justify-between w-full p-3 gap-3">
-                        {/* ADD FRIEND */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            alert("Friend request sent!");
-                          }}
-                          className="flex-1 py-2 rounded-lg bg-base-100 border text-green-600 font-medium hover:bg-base-300 transition"
-                        >
-                          Add Friend
-                        </button>
-
-                        {/* MESSAGE */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            alert("Opening chat...");
-                          }}
-                          className="p-2 bg-base-300 rounded-full shadow hover:bg-base-400 transition"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5 text-gray-700"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="1.6"
-                              d="M7 8h10M7 12h6M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.8L3 21l1.5-4.5A7.9 7.9 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* LOAD MORE */}
-              {displayedMatches.length < allMatches.length && (
-                <div className="text-center mt-10">
-                  <button
-                    className="btn btn-primary"
-                    onClick={loadMore}
-                  >
-                    Load More
-                  </button>
+              {/* LEGEND */}
+              <div className="flex justify-center gap-4 mt-6 mb-8">
+                <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg">
+                  <Home className="size-5 text-green-600" />
+                    <span className="text-sm">Roommate Potential (Both interested)</span>
                 </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg">
+                  <Users className="size-5 text-blue-600" />
+                  <span className="text-sm">Similar Lifestyle</span>
+                </div>
+              </div>
+
+              {allMatches.length === 0 ? (
+                <div className="text-center py-20">
+                  <p className="text-base-content/60 text-lg">No matches found yet. Try updating your profile!</p>
+                </div>
+              ) : (
+                <>
+                  {/* MATCHES COUNT */}
+                  <div className="text-center mt-8">
+                    <p className="text-base-content/70">
+                      Showing {displayedMatches.length} of {allMatches.length} {allMatches.length === 1 ? 'match' : 'matches'}
+                    </p>
+                  </div>
+
+                  {/* PEOPLE GRID */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
+                    {displayedMatches.map((match) => {
+                      const person = match.user;
+
+                      return (
+                        <div
+                          key={match.userId}
+                          className="bg-base-100 rounded-xl shadow border p-4 flex flex-col items-center relative hover:shadow-lg transition-shadow"
+                        >
+                          {/* HEART BUTTON */}
+                          <button
+                            className="absolute top-3 right-3 bg-base-100 rounded-full shadow p-2 transition-all duration-200 hover:scale-110 hover:shadow-md z-10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleLike(match.userId);
+                            }}
+                          >
+                            <Heart
+                              className={`size-5 transition-colors ${
+                                likedUsers.has(match.userId)
+                                  ? "fill-red-500 text-red-500"
+                                  : "text-gray-400 hover:text-red-500"
+                              }`}
+                            />
+                          </button>
+
+                          {/* REMOVE BUTTON */}
+                          <button
+                            className="absolute top-3 right-14 bg-base-100 rounded-full shadow p-1 transition-transform duration-200 hover:scale-125 hover:shadow-md"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Remove from allMatches - displayedMatches will update automatically
+                              setAllMatches(prev => prev.filter(m => m.userId !== match.userId));
+                            }}
+                          >
+                            <X className="size-4 text-gray-600" />
+                          </button>
+
+                          {/* Match type icon */}
+                          {match.isMutualMatch ? (
+                            <div className="absolute top-3 left-3 bg-green-200 p-1 rounded-full shadow-sm" title="Roommate Potential">
+                              <Home className="size-4 text-green-600" />
+                            </div>
+                          ) : (
+                            <div className="absolute top-3 left-3 bg-blue-200 p-1 rounded-full shadow-sm" title="Similar Lifestyle">
+                              <Users className="size-4 text-blue-600" />
+                            </div>
+                          )}
+
+                          {/* PROFILE IMAGE */}
+                          <div
+                            className="w-24 h-24 rounded-full overflow-hidden shadow-md mt-2 cursor-pointer"
+                            onClick={() => setSelected(match)}
+                          >
+                            <img
+                              src={person.profileImageUrl || `https://ui-avatars.com/api/?name=${person.firstName}+${person.lastName}&size=200`}
+                              alt={`${person.firstName} ${person.lastName}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          {/* NAME */}
+                          <h3
+                            className="text-lg font-semibold mt-3 cursor-pointer hover:underline"
+                            onClick={() => setSelected(match)}
+                          >
+                            {person.firstName} {person.lastName}
+                          </h3>
+
+                          <p className="text-sm text-base-content/60">{calculateAge(person.dateOfBirth)} years old</p>
+                          <div className="mt-3 text-center space-y-1">
+                            {match.mutualScore !== undefined && (
+                              <p className="text-green-600 font-semibold flex items-center justify-center gap-1">
+                                <Home className="size-4 text-green-600" />
+                                Roommate Potential: {Math.round(match.mutualScore * 100)}%
+                              </p>
+                            )}
+
+                            {match.similarityScore !== undefined && (
+                              <p className="text-blue-600 font-semibold flex items-center justify-center gap-1">
+                                <Users className="size-4 text-blue-600" />
+                                Similar Lifestyle: {Math.round(match.similarityScore * 100)}%
+                              </p>
+                            )}
+                          </div>
+
+                          {/* DIVIDER */}
+                          <div className="w-full mt-4 mb-3 border-t border-base-300"></div>
+
+                          {/* BUTTON ROW */}
+                          <div className="flex items-center justify-between w-full p-3 gap-3">
+                            {/* ADD FRIEND */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert("Friend request sent!");
+                              }}
+                              className="flex-1 py-2 rounded-lg bg-base-100 border text-green-600 font-medium hover:bg-base-300 transition"
+                            >
+                              Add Friend
+                            </button>
+
+                            {/* MESSAGE */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert("Opening chat...");
+                              }}
+                              className="p-2 bg-base-300 rounded-full shadow hover:bg-base-400 transition"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5 text-gray-700"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="1.6"
+                                  d="M7 8h10M7 12h6M21 12c0 4.418-4.03 8-9 8a9.77 9.77 0 01-4-.8L3 21l1.5-4.5A7.9 7.9 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* LOAD MORE */}
+                  {displayedMatches.length < allMatches.length && (
+                    <div className="text-center mt-10">
+                      <button
+                        className="btn btn-primary"
+                        onClick={loadMore}
+                      >
+                        Load More
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </>
+          ) : (
+            <div>
+              {/* LIKES TAB - People who sent you hearts */}
+              {receivedLikes.length === 0 ? (
+                <div className="text-center py-20">
+                  <Heart className="w-16 h-16 text-base-content/20 mx-auto mb-4" />
+                  <p className="text-lg font-semibold text-base-content/60 mb-2">No likes yet</p>
+                  <p className="text-base-content/60">When someone likes you, they'll appear here</p>
+                </div>
+              ) : (
+                <>
+                  {/* LIKES COUNT */}
+                  <div className="text-center mt-8">
+                    <p className="text-base-content/70">
+                      {receivedLikes.length} {receivedLikes.length === 1 ? 'person likes' : 'people like'} you
+                    </p>
+                  </div>
+
+                  {/* PEOPLE GRID */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
+                    {receivedLikes.map((match) => {
+                      const person = match.user;
+
+                      return (
+                        <div
+                          key={match.userId}
+                          className="bg-base-100 rounded-xl shadow border p-4 flex flex-col items-center relative hover:shadow-lg transition-shadow"
+                        >
+                          {/* HEART BUTTON */}
+                          <button
+                            className="absolute top-3 right-3 bg-base-100 rounded-full shadow p-2 transition-all duration-200 hover:scale-110 hover:shadow-md z-10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleLike(match.userId);
+                            }}
+                          >
+                            <Heart
+                              className={`size-5 transition-colors ${
+                                likedUsers.has(match.userId)
+                                  ? "fill-red-500 text-red-500"
+                                  : "text-gray-400 hover:text-red-500"
+                              }`}
+                            />
+                          </button>
+
+                          {/* Likes You Badge */}
+                          <div className="absolute top-3 left-3 bg-pink-200 px-2 py-1 rounded-full shadow-sm" title="Likes You">
+                            <span className="text-xs text-pink-700 font-semibold">Likes You</span>
+                          </div>
+
+                          {/* PROFILE IMAGE */}
+                          <div
+                            className="w-24 h-24 rounded-full overflow-hidden shadow-md mt-6 cursor-pointer"
+                            onClick={() => setSelected(match)}
+                          >
+                            <img
+                              src={person.profileImageUrl || `https://ui-avatars.com/api/?name=${person.firstName}+${person.lastName}&size=200`}
+                              alt={`${person.firstName} ${person.lastName}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+
+                          {/* NAME */}
+                          <h3
+                            className="text-lg font-semibold mt-3 cursor-pointer hover:underline"
+                            onClick={() => setSelected(match)}
+                          >
+                            {person.firstName} {person.lastName}
+                          </h3>
+
+                          <p className="text-sm text-base-content/60">{calculateAge(person.dateOfBirth)} years old</p>
+
+                          {/* DIVIDER */}
+                          <div className="w-full mt-4 mb-3 border-t border-base-300"></div>
+
+                          {/* BUTTON ROW */}
+                          <div className="flex items-center justify-center w-full p-3 gap-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleLike(match.userId);
+                              }}
+                              className={`flex-1 py-2 rounded-lg font-medium transition ${
+                                likedUsers.has(match.userId)
+                                  ? "bg-red-500 text-white hover:bg-red-600"
+                                  : "bg-pink-100 text-pink-600 hover:bg-pink-200"
+                              }`}
+                            >
+                              {likedUsers.has(match.userId) ? "💕 Match!" : "❤️ Like Back"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       )}

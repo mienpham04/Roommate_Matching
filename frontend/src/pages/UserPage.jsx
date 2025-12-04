@@ -6,7 +6,7 @@ import LifeStyle from "../components/profileOnboard/LifeStyle";
 import Preference1 from "../components/profileOnboard/Preference1";
 import Preference2 from "../components/profileOnboard/Preference2";
 import MoreDetails from "../components/profileOnboard/MoreDetails";
-import { useParams } from "react-router";
+import { useParams, useLocation } from "react-router";
 import Loading from "../components/Loading";
 
 function UserPage() {
@@ -29,6 +29,12 @@ function UserPage() {
         };
         fetchUser();
     }, [id]);
+
+    useEffect(() => {
+        if (location.state?.tab) {
+            setActive(location.state.tab);
+        }
+    }, [location.state]);
 
     const tabs = ["Profile", "Lifestyle", "Preferences", "More details"];
 

@@ -1,8 +1,21 @@
-import { Link } from "react-router";
-import { UsersRound } from "lucide-react";
-import { UserButton } from "@clerk/clerk-react";
+import { Link, useLocation } from "react-router";
+import { UsersRound, User, Users, Heart, Compass } from "lucide-react";
+import { UserButton, useUser, SignInButton } from "@clerk/clerk-react";
 
 function Navbar() {
+  const location = useLocation();
+  const { user } = useUser();
+
+  const navItems = [
+    { name: "Profile", path: `/user/${user?.id}`, icon: User },
+    { name: "Matches", path: "/matches", icon: Users },
+    { name: "Favorites", path: "/favorites", icon: Heart },
+    { name: "Explore", path: "/explore", icon: Compass }
+  ];
+
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
 
   return (
     <nav className="bg-base-100/80 backdrop-blur-md border-b border-primary/20 sticky top-0 z-50 shadow-lg">
@@ -26,10 +39,42 @@ function Navbar() {
             </div>
         </Link>
 
-        <div className="flex items-center gap-1">
-          <div className="ml-4 mt-2" >
-            <UserButton />
-          </div>
+        {/* NAV ITEMS (Float Right) */}
+        <div className="flex items-center gap-2 ml-auto">
+          {user ? (
+            <>
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.path}
+                    state={item.state}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                      active
+                        ? "bg-primary text-primary-content shadow-md"
+                        : "hover:bg-base-200 text-base-content/70 hover:text-base-content"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden md:inline font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
+
+              <div className="ml-4 mt-2">
+                <UserButton />
+              </div>
+            </>
+          ) : (
+            <SignInButton mode="modal">
+              <button className="group px-6 py-3 bg-linear-to-r from-primary to-secondary rounded-xl text-white font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center gap-2">
+                <span>Login</span>
+              </button>
+            </SignInButton>
+          )}
         </div>
       </div>
     </nav>
