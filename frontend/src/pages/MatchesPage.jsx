@@ -109,7 +109,7 @@ function MatchesPage() {
 
                 {/* Description */}
                 <div className="alert alert-info mb-6">
-                  <Heart className="w-5 h-5 fill-red-500 text-red-500" />
+                  <Heart className="w-5 h-5 fill-pink-500 text-red-500" />
                   <span className="text-sm">
                     People who you both liked each other! These are your mutual connections.
                   </span>
@@ -152,8 +152,8 @@ function MatchesPage() {
                               {/* Match Badge */}
                               <div className="mt-2">
                                 <div className="flex items-center gap-2">
-                                  <Heart className="w-4 h-4 fill-red-500 text-red-500" />
-                                  <span className="text-sm font-bold text-red-500">
+                                  <Heart className="w-4 h-4 fill-pink-500 text-red-500" />
+                                  <span className="text-sm font-bold text-pink-500">
                                     Mutual Match
                                   </span>
                                 </div>
