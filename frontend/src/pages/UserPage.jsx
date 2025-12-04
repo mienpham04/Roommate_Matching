@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, Speech } from "lucide-react";
+import { ChevronLeft, ChevronRight, User, Coffee, Heart, FileText } from "lucide-react";
 import Navbar from "../components/Navbar";
 import PersonalInfo from "../components/profileOnboard/PersonalInfo";
 import LifeStyle from "../components/profileOnboard/LifeStyle";
@@ -7,13 +7,14 @@ import Preference1 from "../components/profileOnboard/Preference1";
 import Preference2 from "../components/profileOnboard/Preference2";
 import MoreDetails from "../components/profileOnboard/MoreDetails";
 import { useParams } from "react-router";
-import Loading from "../components/Loading"
+import Loading from "../components/Loading";
 
 function UserPage() {
-    const { id } = useParams(); // /user/:id
+    const { id } = useParams();
     const [active, setActive] = useState("Profile");
     const [subStep, setSubStep] = useState(0);
     const [dbUser, setDbUser] = useState(null);
+    const [animating, setAnimating] = useState(false);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -23,24 +24,32 @@ function UserPage() {
                 setDbUser(data);
             } catch (err) {
                 console.error("Failed to fetch DB user:", err);
+                setDbUser({ name: "Test User" });
             }
         };
         fetchUser();
     }, [id]);
 
     const tabs = ["Profile", "Lifestyle", "Preferences", "More details"];
+    
+    const stepIcons = {
+        "Profile": <User className="w-4 h-4" />,
+        "Lifestyle": <Coffee className="w-4 h-4" />,
+        "Preferences": <Heart className="w-4 h-4" />,
+        "More details": <FileText className="w-4 h-4" />
+    };
 
     const [lifestyleData, setLifestyleData] = useState({
         petFriendly: false,
         smoking: false,
-        guestFrequency: "I occasionally have friends over on weekends",
+        guestFrequency: "",
         isNightOwl: true,
     });
 
     const [rmData, setRmData] = useState({
         petFriendly: false,
         smoking: false,
-        guestFrequency: "I occasionally have friends over on weekends",
+        guestFrequency: "",
         isNightOwl: true,
     });
 
@@ -55,149 +64,120 @@ function UserPage() {
     });
 
     const currentIndex = tabs.indexOf(active);
-    const progressPercent = ((currentIndex + 1) / tabs.length) * 100;
+
+    const changeStep = (newActive, newSubStep) => {
+        if (active === newActive) return;
+        setAnimating(true);
+        setTimeout(() => {
+            setActive(newActive);
+            setSubStep(newSubStep);
+            setAnimating(false);
+        }, 200);
+    };
 
     const handleNext = () => {
-        // if (active === "Lifestyle") {
-        //     if (subStep < 1) return setSubStep(subStep + 1); // Lifestyle Step 1 → 2
-        //     setSubStep(0);
-        //     return setActive("Preferences"); // Move to next main tab
-        // }
-
         if (active === "Preferences") {
-            if (subStep < 1) return setSubStep(subStep + 1); // Preferences Step 1 → 2
-            setSubStep(0);
-            return setActive("More details");
+            if (subStep < 1) return setSubStep(subStep + 1);
+            return changeStep("More details", 0);
         }
 
         if (currentIndex < tabs.length - 1) {
-            return setActive(tabs[currentIndex + 1]);
+            changeStep(tabs[currentIndex + 1], 0);
         }
     };
 
-    // ------- BACK BUTTON HANDLER -------
     const handleBack = () => {
-        // if (active === "Lifestyle" && subStep > 0) {
-        //     return setSubStep(subStep - 1);
-        // }
         if (active === "Preferences" && subStep > 0) {
             return setSubStep(subStep - 1);
         }
         if (currentIndex > 0) {
-            return setActive(tabs[currentIndex - 1]);
+            changeStep(tabs[currentIndex - 1], 0);
         }
     };
-
-    // ------- SUBPAGE CONTENT -------
-    // const renderLifestyle = () => {
-    //     if (subStep === 0)
-    //         return <LifeStyle1 data={lifestyleData} setData={setLifestyleData} />;
-    //     if (subStep === 1)
-    //         return <h2 className="mt-10 text-3xl font-bold text-primary">Lifestyle — Step 2</h2>;
-    // };
 
     const renderPreferences = () => {
-        if (subStep === 0)
-            return <Preference1 data={preferenceData} setData={setPreferenceData} />;
-        if (subStep === 1)
-            return <Preference2 data={rmData} setData={setRmData} />;
+        if (subStep === 0) return <Preference1 data={preferenceData} setData={setPreferenceData} />;
+        if (subStep === 1) return <Preference2 data={rmData} setData={setRmData} />;
     };
 
-    // ------- MAIN CONTENT -------
     const renderContent = () => {
         switch (active) {
-            case "Profile":
-                return <PersonalInfo dbUser={dbUser}/>;
-
-            case "Lifestyle":
-                return <LifeStyle data={lifestyleData} setData={setLifestyleData} />;
-
-            case "Preferences":
-                return renderPreferences();
-
-            case "More details":
-                return <MoreDetails data={moreDetailsData} setData={setMoreDetailsData} />
-
-            default:
-                return null;
+            case "Profile": return <PersonalInfo dbUser={dbUser} />;
+            case "Lifestyle": return <LifeStyle data={lifestyleData} setData={setLifestyleData} />;
+            case "Preferences": return renderPreferences();
+            case "More details": return <MoreDetails data={moreDetailsData} setData={setMoreDetailsData} />;
+            default: return null;
         }
     };
 
-    if (!dbUser) {
-        return (
-            <Loading />
-        );
-    }
+    if (!dbUser) return <Loading />;
 
     return (
-        <div className="bg-linear-to-br from-base-100 via-base-200 to-base-300 min-h-screen overflow-hidden">
+        <div className="h-screen w-full bg-base-200 flex flex-col font-sans overflow-hidden">
             <Navbar />
 
-            <div className="max-w-5xl mx-auto px-4 mt-6">
+            <div className="grow flex flex-col items-center justify-center p-4">
+                
+                <div className="w-full max-w-6xl">
+                    <div className="tabs tabs-lift">
+                        {tabs.map((tab) => (
+                            <a 
+                                key={tab}
+                                onClick={() => changeStep(tab, 0)}
+                                className={`tab tab-lg transition-all duration-200 gap-2
+                                    ${active === tab 
+                                        ? "tab-active [--tab-bg:var(--color-base-100)] [--tab-border-color:transparent] font-bold text-pink-400" 
+                                        : "text-base-content/60 hover:text-base-content"}
+                                `}
+                            >
+                                {stepIcons[tab]}
+                                <span className="hidden sm:inline">{tab}</span>
+                            </a>
+                        ))}
+                        
+                    </div>
+                </div>
+                <div className="bg-base-100 w-full max-w-6xl h-[75vh] md:h-[80vh] shadow-xl border border-base-200 rounded-b-2xl rounded-tr-2xl rounded-tl-2xl relative z-10 flex flex-col overflow-hidden">
+                    
+                    <div className="p-6 border-b border-base-200 shrink-0 flex justify-between items-center">
+                        <div>
+                            <h2 className="text-2xl font-bold text-base-content flex items-center gap-2">
+                                {stepIcons[active]} {active}
+                            </h2>
+                            <p className="text-sm text-base-content/60">
+                                Step {currentIndex + 1} of {tabs.length}
+                            </p>
+                        </div>
+                    </div>
 
-                {/* TOP BAR */}
-                <div className="flex items-center justify-between w-full">
+                    <div className="grow overflow-y-auto p-4 md:p-8 bg-base-100 relative">
+                        <div className={`max-w-4xl mx-auto transition-opacity duration-300 ${animating ? 'opacity-0' : 'opacity-100'}`}>
+                            {renderContent()}
+                        </div>
+                    </div>
 
-                    {/* LEFT: BACK BUTTON (disabled on first tab & first substep) */}
-                    {!(currentIndex === 0 && subStep === 0) ? (
+                    <div className="p-4 md:px-8 md:py-5 border-t border-base-200 bg-base-100 shrink-0 flex justify-between items-center">
                         <button
                             onClick={handleBack}
-                            className="flex items-center gap-1 text-base-content/70 hover:text-base-content transition"
+                            disabled={currentIndex === 0 && subStep === 0}
+                            className={`btn btn-ghost gap-2 transition-opacity duration-200
+                                ${(currentIndex === 0 && subStep === 0) ? 'opacity-0 pointer-events-none' : 'opacity-100'}
+                            `}
                         >
                             <ChevronLeft size={18} />
-                            <span className="underline hover:scale-105 transition-transform duration-200">Back</span>
+                            Back
                         </button>
-                    ) : (
-                        <div className="w-[70px]" />
-                    )}
 
-                    {/* CENTER: TABS */}
-                    <div className="flex gap-14 text-lg font-semibold tracking-wide items-center">
-                        {tabs.map((tab, i) => (
-                            <button
-                                key={tab}
-                                onClick={() => {
-                                    setActive(tab);
-                                    setSubStep(0);
-                                }}
-                                className={`hover:scale-105 transition-transform duration-200 uppercase ${i <= currentIndex
-                                    ? "text-pink-400 font-bold"
-                                    : "text-base-content/60"
-                                    }`}
-                            >
-                                {tab}
-                            </button>
-                        ))}
+                        <button
+                            onClick={handleNext}
+                            className="btn btn-primary px-8 shadow-lg hover:scale-105 transition-transform"
+                        >
+                            {(currentIndex === tabs.length - 1) ? 'Finish Profile' : 'Next'}
+                            <ChevronRight size={18} />
+                        </button>
                     </div>
 
-                    {/* RIGHT ICON */}
-                    <div className="w-[70px] flex justify-end">
-                        <Speech className="size-6 text-pink-400" />
-                    </div>
                 </div>
-
-                {/* PROGRESS BAR */}
-                <div className="w-full h-2 bg-base-300/70 rounded-full overflow-hidden mt-3">
-                    <div
-                        className="h-full rounded-full bg-linear-to-r from-primary via-secondary to-accent transition-all duration-300"
-                        style={{ width: `${progressPercent}%` }}
-                    />
-                </div>
-            </div>
-
-            {/* CONTENT */}
-            <div className="text-center min-h-[300px]">
-                {renderContent()}
-            </div>
-
-            {/* CONTINUE BUTTON */}
-            <div className="w-full flex justify-center">
-                <button
-                    onClick={handleNext}
-                    className="btn btn-primary btn-lg shadow-lg hover:scale-105 transition my-10"
-                >
-                    Continue
-                </button>
             </div>
         </div>
     );
