@@ -13,7 +13,6 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempGuest, setTempGuest] = useState(lifestyle.guestFrequency);
 
-  // Update local state when dbUser changes (e.g., after page refresh)
   useEffect(() => {
     if (dbUser?.lifestyle) {
       const newLifestyle = {
@@ -98,7 +97,7 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <ToggleCard
           title="Pet Friendly"
-          desc="Comfortable living with pets?"
+          desc="Do you have pets?"
           field="petFriendly"
           checked={lifestyle.petFriendly}
           icon={<PawPrint className="w-6 h-6" />}
@@ -106,7 +105,7 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
 
         <ToggleCard
           title="Smoking"
-          desc="Do you smoke or accept smoking?"
+          desc="Do you smoke at all?"
           field="smoking"
           checked={lifestyle.smoking}
           icon={<Cigarette className="w-6 h-6" />}

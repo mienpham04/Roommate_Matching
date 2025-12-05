@@ -32,24 +32,13 @@ function UserPage() {
     }, [id]);
 
     const tabs = ["Profile", "Lifestyle", "Preferences", "More details"];
-    
+
     const stepIcons = {
         "Profile": <User className="w-4 h-4" />,
         "Lifestyle": <Coffee className="w-4 h-4" />,
         "Preferences": <Heart className="w-4 h-4" />,
         "More details": <FileText className="w-4 h-4" />
     };
-
-    const [rmData, setRmData] = useState({
-        petFriendly: false,
-        smoking: false,
-        guestFrequency: "",
-        isNightOwl: true,
-    });
-
-    const [moreDetailsData, setMoreDetailsData] = useState({
-        moreDetails: "",
-    });
 
     const currentIndex = tabs.indexOf(active);
 
@@ -108,16 +97,16 @@ function UserPage() {
             <Navbar />
 
             <div className="grow flex flex-col items-center p-4 py-10">
-                
+
                 <div className="w-full max-w-6xl">
                     <div className="tabs tabs-lift">
                         {tabs.map((tab) => (
-                            <a 
+                            <a
                                 key={tab}
                                 onClick={() => changeStep(tab, 0)}
                                 className={`tab tab-lg transition-all duration-200 gap-2
-                                    ${active === tab 
-                                        ? "tab-active [--tab-bg:var(--color-base-100)] [--tab-border-color:transparent] font-bold text-primary" 
+                                    ${active === tab
+                                        ? "tab-active [--tab-bg:var(--color-base-100)] [--tab-border-color:transparent] font-bold text-primary"
                                         : "text-base-content/60 hover:text-base-content"}
                                 `}
                             >

@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Pencil, X, User, Mail, Phone, Calendar } from "lucide-react";
+import { Pencil, X, User, Mail, Phone, Calendar, VenusAndMars } from "lucide-react";
 import EditableField from "../EditableField";
 
 function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
@@ -110,9 +110,10 @@ function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
         <EditableField
           label="Gender"
           field="gender"
-          value={dbUser?.gender || "No preference"}
+          value={dbUser?.gender || ""}
+          icon={VenusAndMars}
           type="select"
-          options={["Male", "Female", "Non-binary", "Other", "No preference"]}
+          options={["Male", "Female", "Non-binary", "Other"]}
           onSave={handleFieldUpdate}
           isEditMode={isEditMode}
         />

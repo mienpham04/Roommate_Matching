@@ -117,7 +117,7 @@ function Preference2({ dbUser, userId, setDbUser, isEditMode = true }) {
 
         <ToggleCard
           title="Smoking"
-          desc="Do you smoke or accept smoking?"
+          desc="Comfortable with smoking in the household?"
           field="smoking"
           checked={pref.smoking}
           icon={<Cigarette className="w-6 h-6" />}
