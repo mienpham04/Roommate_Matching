@@ -37,7 +37,7 @@ public class PreferenceModel {
         this.guestFrequency = guestFrequency;
     }
 
-    public Boolean isNightOwl() {
+    public Boolean getNightOwl() {
         return nightOwl;
     }
     public void setNightOwl(Boolean nightOwl) {

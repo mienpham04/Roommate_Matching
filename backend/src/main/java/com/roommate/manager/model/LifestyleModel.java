@@ -9,14 +9,14 @@ public class LifestyleModel {
 
     // getters and setters
 
-    public boolean isPetFriendly() {
+    public boolean getPetFriendly() {
         return petFriendly;
     }
     public void setPetFriendly(boolean petFriendly) {
         this.petFriendly = petFriendly;
     }
 
-    public boolean isSmoking() {
+    public boolean getSmoking() {
         return smoking;
     }
     public void setSmoking(boolean smoking) {
@@ -30,7 +30,7 @@ public class LifestyleModel {
         this.guestFrequency = guestFrequency;
     }
 
-    public boolean isNightOwl() {
+    public boolean getNightOwl() {
         return nightOwl;
     }
     public void setNightOwl(boolean nightOwl) {

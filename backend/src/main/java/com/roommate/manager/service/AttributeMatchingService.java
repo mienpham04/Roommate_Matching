@@ -146,7 +146,7 @@ public class AttributeMatchingService {
         Boolean prefersNonSmoking = userA.getPreferences().getSmoking();
         if (prefersNonSmoking != null && !prefersNonSmoking) {
             // User A prefers non-smoking
-            Boolean bSmoking = userB.getLifestyle().isSmoking();
+            Boolean bSmoking = userB.getLifestyle().getSmoking();
             if (bSmoking != null && bSmoking) {
                 return false; // B smokes, but A doesn't want smoking
             }
@@ -156,7 +156,7 @@ public class AttributeMatchingService {
         Boolean prefersPets = userA.getPreferences().getPetFriendly();
         if (prefersPets != null && !prefersPets) {
             // User A prefers no pets
-            Boolean bPets = userB.getLifestyle().isPetFriendly();
+            Boolean bPets = userB.getLifestyle().getPetFriendly();
             if (bPets != null && bPets) {
                 return false; // B has pets, but A doesn't want pets
             }
@@ -175,7 +175,7 @@ public class AttributeMatchingService {
 
         // Smoking match
         Boolean prefSmoking = userA.getPreferences().getSmoking();
-        Boolean actualSmoking = userB.getLifestyle().isSmoking();
+        Boolean actualSmoking = userB.getLifestyle().getSmoking();
         if (prefSmoking != null && actualSmoking != null) {
             score += prefSmoking.equals(actualSmoking) ? 1.0 : 0.0;
             factors++;
@@ -183,15 +183,15 @@ public class AttributeMatchingService {
 
         // Pet match
         Boolean prefPets = userA.getPreferences().getPetFriendly();
-        Boolean actualPets = userB.getLifestyle().isPetFriendly();
+        Boolean actualPets = userB.getLifestyle().getPetFriendly();
         if (prefPets != null && actualPets != null) {
             score += prefPets.equals(actualPets) ? 1.0 : 0.0;
             factors++;
         }
 
         // Night owl match
-        Boolean prefNightOwl = userA.getPreferences().getIsNightOwl();
-        Boolean actualNightOwl = userB.getLifestyle().isNightOwl();
+        Boolean prefNightOwl = userA.getPreferences().getNightOwl();
+        Boolean actualNightOwl = userB.getLifestyle().getNightOwl();
         if (prefNightOwl != null && actualNightOwl != null) {
             score += prefNightOwl.equals(actualNightOwl) ? 1.0 : 0.0;
             factors++;

@@ -43,19 +43,19 @@ public class EmbeddingService {
         if (user.getLifestyle() != null) {
             description.append("My lifestyle: ");
 
-            if (user.getLifestyle().isPetFriendly()) {
+            if (user.getLifestyle().getPetFriendly()) {
                 description.append("Pet-friendly, ");
             } else {
                 description.append("No pets, ");
             }
 
-            if (user.getLifestyle().isSmoking()) {
+            if (user.getLifestyle().getSmoking()) {
                 description.append("Smoker, ");
             } else {
                 description.append("Non-smoker, ");
             }
 
-            if (user.getLifestyle().isNightOwl()) {
+            if (user.getLifestyle().getNightOwl()) {
                 description.append("Night owl, ");
             } else {
                 description.append("Early bird, ");
@@ -123,8 +123,8 @@ public class EmbeddingService {
             }
         }
 
-        if (user.getPreferences().getIsNightOwl() != null) {
-            if (user.getPreferences().getIsNightOwl()) {
+        if (user.getPreferences().getNightOwl() != null) {
+            if (user.getPreferences().getNightOwl()) {
                 description.append("Night owl, ");
             } else {
                 description.append("Early bird, ");
