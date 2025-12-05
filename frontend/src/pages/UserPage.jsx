@@ -14,7 +14,6 @@ function UserPage() {
     const [active, setActive] = useState("Profile");
     const [preferenceSubTab, setPreferenceSubTab] = useState(0);
     const [dbUser, setDbUser] = useState(null);
-    const [animating, setAnimating] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
 
     useEffect(() => {
@@ -34,28 +33,23 @@ function UserPage() {
     const tabs = ["Profile", "Lifestyle", "Preferences", "More details"];
 
     const stepIcons = {
-        "Profile": <User className="w-4 h-4" />,
-        "Lifestyle": <Coffee className="w-4 h-4" />,
-        "Preferences": <Heart className="w-4 h-4" />,
-        "More details": <FileText className="w-4 h-4" />
+        "Profile": <User className="w-5 h-5" />,
+        "Lifestyle": <Coffee className="w-5 h-5" />,
+        "Preferences": <Heart className="w-5 h-5" />,
+        "More details": <FileText className="w-5 h-5" />
     };
 
     const currentIndex = tabs.indexOf(active);
 
     const changeStep = (newActive) => {
         if (active === newActive) return;
-        setAnimating(true);
-        setTimeout(() => {
-            setActive(newActive);
-            if (newActive === "Preferences") {
-                setPreferenceSubTab(0);
-            }
-            setAnimating(false);
-        }, 200);
+        setActive(newActive);
+        if (newActive === "Preferences") {
+            setPreferenceSubTab(0);
+        }
     };
 
     const handleNext = () => {
-        // Handle Preferences sub-tabs in edit mode
         if (isEditMode && active === "Preferences" && preferenceSubTab < 1) {
             setPreferenceSubTab(preferenceSubTab + 1);
             return;
@@ -64,13 +58,11 @@ function UserPage() {
         if (currentIndex < tabs.length - 1) {
             changeStep(tabs[currentIndex + 1]);
         } else {
-            // Last tab - "Save & Finish" clicked
             setIsEditMode(false);
         }
     };
 
     const handleBack = () => {
-        // Handle Preferences sub-tabs in edit mode
         if (isEditMode && active === "Preferences" && preferenceSubTab > 0) {
             setPreferenceSubTab(preferenceSubTab - 1);
             return;
@@ -84,44 +76,47 @@ function UserPage() {
     const renderPreferences = () => {
         return (
             <div className="w-full">
-                {/* Sub-tabs for Preferences */}
+                {/* Sub-tabs container */}
                 <div className="flex justify-center mb-8">
-                    <div className="inline-flex bg-base-200/50 p-1.5 rounded-xl shadow-inner border border-base-300/50 backdrop-blur-sm">
+                    <div className="inline-flex bg-base-200 p-1.5 rounded-xl shadow-inner border border-base-300">
                         <button
-                            className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 ease-out min-w-[120px]
+                            // REVERTED: Using 'bg-secondary' for the pastel look
+                            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all duration-200 min-w-[120px]
                                 ${preferenceSubTab === 0
-                                    ? 'bg-primary text-primary-content shadow-lg scale-105'
-                                    : 'text-base-content/70 hover:text-base-content hover:bg-base-100/50'
+                                    ? 'bg-secondary text-secondary-content shadow-lg scale-105' 
+                                    : 'text-base-content/60 hover:text-base-content hover:bg-base-100/50'
                                 }`}
                             onClick={() => setPreferenceSubTab(0)}
                         >
                             <div className="flex items-center justify-center gap-2">
-                                <Heart className={`w-4 h-4 ${preferenceSubTab === 0 ? 'animate-pulse' : ''}`} />
+                                <Heart className={`w-4 h-4 ${preferenceSubTab === 0 ? 'fill-current' : ''}`} />
                                 <span>Basic</span>
                             </div>
                         </button>
                         <button
-                            className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 ease-out min-w-[120px]
+                            // REVERTED: Using 'bg-secondary' for the pastel look
+                            className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all duration-200 min-w-[120px]
                                 ${preferenceSubTab === 1
-                                    ? 'bg-primary text-primary-content shadow-lg scale-105'
-                                    : 'text-base-content/70 hover:text-base-content hover:bg-base-100/50'
+                                    ? 'bg-secondary text-secondary-content shadow-lg scale-105'
+                                    : 'text-base-content/60 hover:text-base-content hover:bg-base-100/50'
                                 }`}
                             onClick={() => setPreferenceSubTab(1)}
                         >
                             <div className="flex items-center justify-center gap-2">
-                                <Coffee className={`w-4 h-4 ${preferenceSubTab === 1 ? 'animate-pulse' : ''}`} />
+                                <Coffee className={`w-4 h-4 ${preferenceSubTab === 1 ? 'fill-current' : ''}`} />
                                 <span>Lifestyle</span>
                             </div>
                         </button>
                     </div>
                 </div>
-
-                {/* Render the appropriate preference component */}
-                {preferenceSubTab === 0 ? (
-                    <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
-                ) : (
-                    <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
-                )}
+                
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    {preferenceSubTab === 0 ? (
+                        <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
+                    ) : (
+                        <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
+                    )}
+                </div>
             </div>
         );
     };
@@ -139,96 +134,124 @@ function UserPage() {
     if (!dbUser) return <Loading />;
 
     return (
-        <div className="h-screen w-full bg-base-200 flex flex-col font-sans overflow-hidden">
+        <div className="h-screen w-full bg-base-200 flex flex-col font-sans overflow-hidden text-base-content">
             <Navbar />
 
-            <div className="flex-1 flex overflow-hidden p-2 md:p-4 gap-2 md:gap-4">
+            <div className="flex-1 overflow-hidden">
+                <div className="max-w-7xl mx-auto h-full flex gap-0 p-2 md:p-6 items-stretch">
 
-                {/* Left Sidebar - Vertical Tabs */}
-                <div className="w-48 md:w-56 flex-shrink-0 bg-base-100 rounded-xl shadow-xl border border-base-200 p-3 md:p-4 flex flex-col">
-                    <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3 px-2">
-                        Your Profile
-                    </h3>
-                    <ul className="menu menu-sm md:menu-md gap-1">
-                        {tabs.map((tab) => (
-                            <li key={tab}>
-                                <a
-                                    onClick={() => changeStep(tab)}
-                                    className={`flex items-center gap-3 rounded-lg transition-all duration-200
-                                        ${active === tab
-                                            ? "bg-primary text-primary-content font-bold"
-                                            : "text-base-content/70 hover:bg-base-200"}
-                                    `}
-                                >
-                                    <span className="flex items-center justify-center w-6 h-6">
-                                        {stepIcons[tab]}
-                                    </span>
-                                    <span className="flex-1">{tab}</span>
-                                </a>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+                    {/* Left Sidebar */}
+                    <div className="w-52 md:w-64 flex-shrink-0 flex flex-col gap-2 relative z-20 pt-8">
+                        <h3 className="text-xs font-bold text-base-content/50 uppercase tracking-widest mb-4 px-6">
+                            Settings & Profile
+                        </h3>
+                        {tabs.map((tab) => {
+                            const isActive = active === tab;
+                            return (
+                                <div key={tab} className="relative group">
+                                    <button
+                                        onClick={() => changeStep(tab)}
+                                        // VIVID SIDEBAR TEXT:
+                                        // Keeping 'text-pink-600' and 'border-pink-600' for readability/vividness
+                                        className={`w-full flex items-center gap-3 px-6 py-4 transition-all duration-200 relative
+                                            ${isActive
+                                                ? "bg-base-100 text-pink-600 font-extrabold rounded-l-2xl border-l-[6px] border-pink-600 border-t border-b border-base-300 -mr-[1px]" 
+                                                : "text-base-content/60 hover:bg-base-100/50 hover:text-pink-600 hover:font-bold rounded-xl"
+                                            }
+                                        `}
+                                        style={isActive ? { borderRight: 'none', width: 'calc(100% + 1px)' } : {}}
+                                    >
+                                        <span className={`flex items-center justify-center transition-all duration-300
+                                            ${isActive ? 'scale-110 text-pink-600' : 'text-base-content/40 group-hover:text-pink-600'}
+                                        `}>
+                                            {/* Vivid Icon fill */}
+                                            {isActive ? 
+                                                <div className="fill-pink-600 stroke-pink-600">{stepIcons[tab]}</div> : 
+                                                stepIcons[tab]
+                                            }
+                                        </span>
+                                        <span className="flex-1 text-left">{tab}</span>
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
 
-                {/* Main Content Area */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="bg-base-100 flex-1 shadow-xl border border-base-200 rounded-xl flex flex-col overflow-hidden">
+                    {/* Main Content Area */}
+                    <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+                        <div className="bg-base-100 flex-1 shadow-sm border border-base-300 rounded-2xl rounded-tl-2xl flex flex-col overflow-hidden h-full">
 
-                        <div className="p-3 md:p-4 border-b border-base-200 shrink-0 flex justify-between items-center">
-                            <div>
-                                <h2 className="text-lg md:text-xl font-bold text-base-content flex items-center gap-2">
-                                    {stepIcons[active]} {active}
-                                </h2>
-                                <p className="text-xs text-base-content/60">
-                                    {isEditMode ? `Step ${currentIndex + 1} of ${tabs.length}` : 'View Mode'}
-                                </p>
-                            </div>
-
-                            <button
-                                onClick={() => setIsEditMode(!isEditMode)}
-                                className={`btn btn-sm md:btn-md gap-1 md:gap-2 ${isEditMode ? 'btn-ghost' : 'btn-primary'}`}
-                            >
-                                {isEditMode ? (
-                                    <>
-                                        <Eye size={16} className="md:w-[18px] md:h-[18px]" />
-                                        <span className="hidden sm:inline">View Mode</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Edit size={16} className="md:w-[18px] md:h-[18px]" />
-                                        <span className="hidden sm:inline">Edit Profile</span>
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-3 md:p-6 bg-base-100">
-                            <div className={`max-w-4xl mx-auto transition-opacity duration-300 ${animating ? 'opacity-0' : 'opacity-100'}`}>
-                                {renderContent()}
-                            </div>
-                        </div>
-
-                        {isEditMode && (
-                            <div className="p-3 md:p-4 border-t border-base-200 bg-base-100 shrink-0 flex justify-between items-center">
-                                <button
-                                    onClick={handleBack}
-                                    disabled={currentIndex === 0}
-                                    className={`btn btn-sm md:btn-md btn-ghost gap-2 transition-opacity duration-200
-                                        ${currentIndex === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-                                    `}
-                                >
-                                    <ChevronLeft size={16} className="md:w-[18px] md:h-[18px]" />
-                                    <span className="hidden sm:inline">Back</span>
-                                </button>
+                            {/* Header */}
+                            <div className="px-8 py-5 border-b border-base-200 shrink-0 flex justify-between items-center bg-base-100">
+                                <div>
+                                    <h2 className="text-xl md:text-2xl font-bold text-base-content flex items-center gap-3">
+                                        {active}
+                                    </h2>
+                                    <p className="text-sm text-base-content/60 mt-1">
+                                        {isEditMode ? 'Make changes to your public profile below.' : 'This is how others see your profile.'}
+                                    </p>
+                                </div>
 
                                 <button
-                                    onClick={handleNext}
-                                    className="btn btn-sm md:btn-md btn-primary shadow-lg hover:scale-105 transition-transform"
+                                    onClick={() => setIsEditMode(!isEditMode)}
+                                    // REVERTED: Back to standard pastel Secondary button
+                                    className={`
+                                        btn btn-sm md:btn-md gap-2
+                                        ${isEditMode 
+                                            ? 'btn-ghost text-base-content/70' 
+                                            : 'btn-outline btn-secondary border-2 hover:bg-secondary hover:text-secondary-content'
+                                        }
+                                    `}
                                 >
-                                    {(currentIndex === tabs.length - 1) ? 'Save & Finish' : 'Save & Next'}
-                                    <ChevronRight size={16} className="md:w-[18px] md:h-[18px]" />
+                                    {isEditMode ? (
+                                        <>
+                                            <Eye size={18} />
+                                            <span>Preview</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Edit size={18} />
+                                            <span>Edit Profile</span>
+                                        </>
+                                    )}
                                 </button>
                             </div>
-                        )}
+
+                            {/* Scrollable Body */}
+                            <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-base-100">
+                                <div key={active} className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
+                                    {renderContent()}
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            {isEditMode && (
+                                <div className="p-4 md:p-6 border-t border-base-200 bg-base-200/50 shrink-0 flex justify-between items-center">
+                                    <button
+                                        onClick={handleBack}
+                                        disabled={currentIndex === 0}
+                                        className={`btn btn-ghost gap-2 hover:bg-base-200
+                                            ${currentIndex === 0 
+                                                ? 'opacity-0 pointer-events-none' 
+                                                : ''
+                                            }
+                                        `}
+                                    >
+                                        <ChevronLeft size={16} />
+                                        <span>Back</span>
+                                    </button>
+
+                                    <button
+                                        onClick={handleNext}
+                                        // REVERTED: Back to standard pastel Secondary button
+                                        className="btn btn-secondary gap-2 shadow-lg font-bold"
+                                    >
+                                        {(currentIndex === tabs.length - 1) ? 'Save & Finish' : 'Save & Continue'}
+                                        <ChevronRight size={16} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
