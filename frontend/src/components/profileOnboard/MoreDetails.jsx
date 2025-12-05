@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { FileText, Sparkles, Quote, Plus, Check, X } from "lucide-react";
 
-function MoreDetails({ dbUser, userId, setDbUser }) {
+function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
 
   const [data, setData] = useState({
     moreAboutMe: dbUser?.moreAboutMe ?? ""
@@ -97,10 +97,13 @@ function MoreDetails({ dbUser, userId, setDbUser }) {
                   placeholder="Tell us a bit more about yourself..."
                   value={tempValue}
                   onChange={(e) => {
-                    setTempValue(e.target.value);
-                    setIsEditing(true);
+                    if (isEditMode) {
+                      setTempValue(e.target.value);
+                      setIsEditing(true);
+                    }
                   }}
                   maxLength={500}
+                  disabled={!isEditMode}
                 ></textarea>
 
                 <div className="absolute bottom-4 right-4 text-xs text-base-content/40 bg-base-100 px-2 py-1 rounded-md border border-base-200">
@@ -154,6 +157,7 @@ function MoreDetails({ dbUser, userId, setDbUser }) {
                     key={index}
                     onClick={() => addTopic(topic)}
                     className="btn btn-sm btn-ghost justify-start font-normal text-left h-auto py-2 border border-base-200 hover:border-primary/50 hover:bg-base-200"
+                    disabled={!isEditMode}
                   >
                     <Plus size={14} className="opacity-50 shrink-0 mr-1" />
                     <span className="truncate">{topic}</span>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Users, User, ArrowRight, Mars, Venus, CircleDashed } from "lucide-react";
 
-function Preference1({ dbUser, userId, setDbUser }) {
+function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
   const [data, setData] = useState({
     minAge: dbUser?.preferences?.minAge ?? "15",
     maxAge: dbUser?.preferences?.maxAge ?? "99",
@@ -84,14 +84,18 @@ function Preference1({ dbUser, userId, setDbUser }) {
     return (
       <button
         onClick={() => {
-          setData(updated);
-          saveToDB(updated);
+          if (isEditMode) {
+            setData(updated);
+            saveToDB(updated);
+          }
         }}
+        disabled={!isEditMode}
         className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-200 h-32 w-full
-          ${isSelected 
-            ? "border-primary bg-primary/5 text-primary" 
+          ${isSelected
+            ? "border-primary bg-primary/5 text-primary"
             : "border-base-200 bg-base-100 hover:border-primary/50 hover:bg-base-200/50"
           }
+          ${!isEditMode ? 'opacity-60 cursor-not-allowed' : ''}
         `}
       >
         <div className={`mb-3 ${isSelected ? "text-primary" : "text-base-content/50"}`}>
@@ -131,25 +135,26 @@ function Preference1({ dbUser, userId, setDbUser }) {
 
               <label className="cursor-pointer flex items-center gap-3 p-2 rounded-lg hover:bg-base-200/50 transition-colors">
                 <span className="label-text font-medium">It does not matter</span>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   className="checkbox checkbox-primary"
                   checked={isAnyAge}
                   onChange={(e) => handleAnyAgeToggle(e.target.checked)}
+                  disabled={!isEditMode}
                 />
               </label>
             </div>
-            <div className={`flex flex-col md:flex-row items-center gap-4 bg-base-200/30 p-6 rounded-xl border border-base-200/50 transition-opacity duration-300 
-              ${isAnyAge ? "opacity-50 pointer-events-none grayscale" : "opacity-100"}
+            <div className={`flex flex-col md:flex-row items-center gap-4 bg-base-200/30 p-6 rounded-xl border border-base-200/50 transition-opacity duration-300
+              ${isAnyAge || !isEditMode ? "opacity-50 pointer-events-none grayscale" : "opacity-100"}
             `}>
-              
+
               <div className="form-control w-full">
                 <label className="label">
                   <span className="label-text text-xs uppercase font-bold text-base-content/50">Min Age</span>
                 </label>
                 <input
                   type="number"
-                  disabled={isAnyAge}
+                  disabled={isAnyAge || !isEditMode}
                   min="18"
                   className="input input-lg input-bordered w-full font-bold text-center text-xl focus:input-primary"
                   value={data.minAge}
@@ -166,7 +171,7 @@ function Preference1({ dbUser, userId, setDbUser }) {
                 </label>
                 <input
                   type="number"
-                  disabled={isAnyAge}
+                  disabled={isAnyAge || !isEditMode}
                   min={data.minAge || 18}
                   className="input input-lg input-bordered w-full font-bold text-center text-xl focus:input-primary"
                   value={data.maxAge}

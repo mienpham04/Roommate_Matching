@@ -1,7 +1,7 @@
 import { Moon, PawPrint, Cigarette, Users, Pencil, X, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 
-function Preference2({ dbUser, userId, setDbUser }) {
+function Preference2({ dbUser, userId, setDbUser, isEditMode = true }) {
   const [pref, setPref] = useState({
     petFriendly: dbUser?.preferences?.petFriendly ?? false,
     smoking: dbUser?.preferences?.smoking ?? false,
@@ -86,6 +86,7 @@ function Preference2({ dbUser, userId, setDbUser }) {
             className="toggle toggle-primary toggle-sm"
             checked={checked}
             onChange={(e) => handleToggle(field, e.target.checked)}
+            disabled={!isEditMode}
           />
         </div>
 
@@ -157,12 +158,14 @@ function Preference2({ dbUser, userId, setDbUser }) {
                     )}
                   </span>
 
-                  <button
-                    className="btn btn-ghost btn-circle btn-xs text-base-content/40 hover:text-primary"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Pencil size={14} />
-                  </button>
+                  {isEditMode && (
+                    <button
+                      className="btn btn-ghost btn-circle btn-xs text-base-content/40 hover:text-primary"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  )}
                 </div>
 
                 <div className="label">

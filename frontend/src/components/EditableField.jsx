@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pencil, X, Check } from "lucide-react";
 
-function EditableField({ label, field, value, icon: Icon, type = "text", options = [], onSave }) {
+function EditableField({ label, field, value, icon: Icon, type = "text", options = [], onSave, isEditMode = true }) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
   const [tempValue, setTempValue] = useState(value);
@@ -74,13 +74,15 @@ function EditableField({ label, field, value, icon: Icon, type = "text", options
             <span className="grow text-sm text-base-content font-medium truncate">
               {currentValue || <span className="text-base-content/30 italic">Not set</span>}
             </span>
-            
-            <button 
-              onClick={() => setIsEditing(true)} 
-              className="btn btn-ghost btn-circle btn-xs text-base-content/40 hover:text-primary"
-            >
-              <Pencil size={14} />
-            </button>
+
+            {isEditMode && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="btn btn-ghost btn-circle btn-xs text-base-content/40 hover:text-primary"
+              >
+                <Pencil size={14} />
+              </button>
+            )}
           </>
         )}
       </div>

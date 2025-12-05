@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, User, Coffee, Heart, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, User, Coffee, Heart, FileText, Edit, Eye } from "lucide-react";
 import Navbar from "../components/Navbar";
 import PersonalInfo from "../components/profileOnboard/PersonalInfo";
 import LifeStyle from "../components/profileOnboard/LifeStyle";
@@ -15,6 +15,7 @@ function UserPage() {
     const [subStep, setSubStep] = useState(0);
     const [dbUser, setDbUser] = useState(null);
     const [animating, setAnimating] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -70,6 +71,9 @@ function UserPage() {
 
         if (currentIndex < tabs.length - 1) {
             changeStep(tabs[currentIndex + 1], 0);
+        } else {
+            // Last tab - "Save & Finish" clicked
+            setIsEditMode(false);
         }
     };
 
@@ -83,16 +87,16 @@ function UserPage() {
     };
 
     const renderPreferences = () => {
-        if (subStep === 0) return <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUser} />;
-        if (subStep === 1) return <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUser} />;
+        if (subStep === 0) return <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
+        if (subStep === 1) return <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
     };
 
     const renderContent = () => {
         switch (active) {
-            case "Profile": return <PersonalInfo dbUser={dbUser} userId={id} setDbUser={setDbUser}/>;
-            case "Lifestyle": return <LifeStyle dbUser={dbUser} userId={id} setDbUser={setDbUser} />;
+            case "Profile": return <PersonalInfo dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
+            case "Lifestyle": return <LifeStyle dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
             case "Preferences": return renderPreferences();
-            case "More details": return <MoreDetails dbUser={dbUser} userId={id} setDbUser={setDbUser} />;
+            case "More details": return <MoreDetails dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
             default: return null;
         }
     };
@@ -125,16 +129,33 @@ function UserPage() {
                 </div>
 
                 <div className="bg-base-100 w-full max-w-6xl min-h-[500px] shadow-xl border border-base-200 rounded-b-2xl rounded-tr-2xl rounded-tl-2xl relative z-10 flex flex-col">
-                    
+
                     <div className="p-6 border-b border-base-200 shrink-0 flex justify-between items-center">
                         <div>
                             <h2 className="text-2xl font-bold text-base-content flex items-center gap-2">
                                 {stepIcons[active]} {active}
                             </h2>
                             <p className="text-sm text-base-content/60">
-                                Step {currentIndex + 1} of {tabs.length}
+                                {isEditMode ? `Step ${currentIndex + 1} of ${tabs.length}` : 'View Mode'}
                             </p>
                         </div>
+
+                        <button
+                            onClick={() => setIsEditMode(!isEditMode)}
+                            className={`btn gap-2 ${isEditMode ? 'btn-ghost' : 'btn-primary'}`}
+                        >
+                            {isEditMode ? (
+                                <>
+                                    <Eye size={18} />
+                                    View Mode
+                                </>
+                            ) : (
+                                <>
+                                    <Edit size={18} />
+                                    Edit Profile
+                                </>
+                            )}
+                        </button>
                     </div>
                     <div className="grow p-4 md:p-8 bg-base-100 relative">
                         <div className={`max-w-4xl mx-auto transition-opacity duration-300 ${animating ? 'opacity-0' : 'opacity-100'}`}>
@@ -142,26 +163,28 @@ function UserPage() {
                         </div>
                     </div>
 
-                    <div className="p-4 md:px-8 md:py-5 border-t border-base-200 bg-base-100 shrink-0 flex justify-between items-center rounded-b-2xl">
-                        <button
-                            onClick={handleBack}
-                            disabled={currentIndex === 0 && subStep === 0}
-                            className={`btn btn-ghost gap-2 transition-opacity duration-200
-                                ${(currentIndex === 0 && subStep === 0) ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-                            `}
-                        >
-                            <ChevronLeft size={18} />
-                            Back
-                        </button>
+                    {isEditMode && (
+                        <div className="p-4 md:px-8 md:py-5 border-t border-base-200 bg-base-100 shrink-0 flex justify-between items-center rounded-b-2xl">
+                            <button
+                                onClick={handleBack}
+                                disabled={currentIndex === 0 && subStep === 0}
+                                className={`btn btn-ghost gap-2 transition-opacity duration-200
+                                    ${(currentIndex === 0 && subStep === 0) ? 'opacity-0 pointer-events-none' : 'opacity-100'}
+                                `}
+                            >
+                                <ChevronLeft size={18} />
+                                Back
+                            </button>
 
-                        <button
-                            onClick={handleNext}
-                            className="btn btn-primary px-8 shadow-lg hover:scale-105 transition-transform"
-                        >
-                            {(currentIndex === tabs.length - 1) ? 'Finish Profile' : 'Next'}
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
+                            <button
+                                onClick={handleNext}
+                                className="btn btn-primary px-8 shadow-lg hover:scale-105 transition-transform"
+                            >
+                                {(currentIndex === tabs.length - 1) ? 'Save & Finish' : 'Save & Next'}
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
+                    )}
 
                 </div>
             </div>

@@ -1,7 +1,7 @@
 import { Moon, PawPrint, Cigarette, Users, Pencil, X, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 
-function LifeStyle({ dbUser, userId, setDbUser }) {
+function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
 
   const [lifestyle, setLifestyle] = useState({
     petFriendly: dbUser?.lifestyle?.petFriendly ?? false,
@@ -75,6 +75,7 @@ function LifeStyle({ dbUser, userId, setDbUser }) {
             className="toggle toggle-primary toggle-sm"
             checked={checked}
             onChange={(e) => handleToggle(field, e.target.checked)}
+            disabled={!isEditMode}
           />
         </div>
 
@@ -146,12 +147,14 @@ function LifeStyle({ dbUser, userId, setDbUser }) {
                     )}
                   </span>
 
-                  <button
-                    className="btn btn-ghost btn-circle btn-xs text-base-content/40 hover:text-primary"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Pencil size={14} />
-                  </button>
+                  {isEditMode && (
+                    <button
+                      className="btn btn-ghost btn-circle btn-xs text-base-content/40 hover:text-primary"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                  )}
                 </div>
 
                 <div className="label">

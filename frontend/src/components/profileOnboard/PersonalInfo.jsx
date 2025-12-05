@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { Pencil, X, User, Mail, Phone, Calendar } from "lucide-react";
 import EditableField from "../EditableField";
 
-function PersonalInfo({ dbUser, userId, setDbUser }) {
+function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
   const fileInputRef = useRef(null);
   const [customPhoto, setCustomPhoto] = useState(null);
   const [profileImg, setProfileImg] = useState(
@@ -41,18 +41,20 @@ function PersonalInfo({ dbUser, userId, setDbUser }) {
     <div className="w-full mx-auto">
       <div className="flex flex-col items-center justify-center mb-4">
         <div
-          className="relative group cursor-pointer"
-          onClick={() => fileInputRef.current.click()}
+          className={`relative group ${isEditMode ? 'cursor-pointer' : 'cursor-default'}`}
+          onClick={() => isEditMode && fileInputRef.current.click()}
         >
           <div className="avatar">
-            <div className="w-28 h-28 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden shadow-lg hover:scale-105 transition-transform duration-300">
+            <div className={`w-28 h-28 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden shadow-lg ${isEditMode ? 'hover:scale-105' : ''} transition-transform duration-300`}>
               <img src={profileImg} alt="Profile" className="object-cover" />
             </div>
           </div>
-          <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white backdrop-blur-[1px]">
-            <Pencil className="w-6 h-6" />
-          </div>
-          {customPhoto && (
+          {isEditMode && (
+            <div className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white backdrop-blur-[1px]">
+              <Pencil className="w-6 h-6" />
+            </div>
+          )}
+          {customPhoto && isEditMode && (
             <button
               className="absolute top-0 right-0 btn btn-circle btn-xs btn-error shadow-md z-10 scale-90"
               onClick={handleRemove}
@@ -61,7 +63,7 @@ function PersonalInfo({ dbUser, userId, setDbUser }) {
             </button>
           )}
         </div>
-        <p className="mt-2 text-xs text-base-content/50">Tap image to change</p>
+        {isEditMode && <p className="mt-2 text-xs text-base-content/50">Tap image to change</p>}
         <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
       </div>
 
@@ -73,6 +75,7 @@ function PersonalInfo({ dbUser, userId, setDbUser }) {
           value={dbUser?.firstName || ""}
           icon={User}
           onSave={handleFieldUpdate}
+          isEditMode={isEditMode}
         />
 
         <EditableField
@@ -81,6 +84,7 @@ function PersonalInfo({ dbUser, userId, setDbUser }) {
           value={dbUser?.lastName || ""}
           icon={User}
           onSave={handleFieldUpdate}
+          isEditMode={isEditMode}
         />
 
         <EditableField
@@ -90,6 +94,7 @@ function PersonalInfo({ dbUser, userId, setDbUser }) {
           icon={Mail}
           type="email"
           onSave={handleFieldUpdate}
+          isEditMode={isEditMode}
         />
 
         <EditableField
@@ -99,6 +104,7 @@ function PersonalInfo({ dbUser, userId, setDbUser }) {
           icon={Phone}
           type="tel"
           onSave={handleFieldUpdate}
+          isEditMode={isEditMode}
         />
 
         <EditableField
@@ -108,6 +114,7 @@ function PersonalInfo({ dbUser, userId, setDbUser }) {
           type="select"
           options={["Male", "Female", "Non-binary", "Other", "No preference"]}
           onSave={handleFieldUpdate}
+          isEditMode={isEditMode}
         />
 
         <EditableField
@@ -117,6 +124,7 @@ function PersonalInfo({ dbUser, userId, setDbUser }) {
           icon={Calendar}
           type="date"
           onSave={handleFieldUpdate}
+          isEditMode={isEditMode}
         />
 
       </div>
