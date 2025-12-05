@@ -1,0 +1,96 @@
+{
+  "_id": {
+    "$oid": "692b479f9e69066c5569b61e"
+  },
+  "personalInfo": {
+    "firstName": "Alex",
+    "lastName": "Chen",
+    "email": "alex.chen@example.com",
+    "dateOfBirth": {
+      "$date": { "$numberLong": "1042956000000" }
+    },
+    "gender": "male",
+    "profileImageUrl": "https://i.pravatar.cc/150?img=12"
+  },
+  "location": {
+    "zipCode": "02139",
+    "budget": {
+      "min": { "$numberInt": "800" },
+      "max": { "$numberInt": "1400" }
+    }
+  },
+  "lifestyle": {
+    "dailyRoutine": {
+      "wakeUpTime": "before 6AM",
+      "bedtime": "after 12PM"
+    },
+    "cleanliness": {
+      "cleanlinessLevel": "60%",
+      "clutterTolerance": "30%"
+    },
+    "kitchen&food": {
+      "freq": "Twice a week",
+      "comfortSmelling": true
+    },
+    "environemnt": {
+      "tolerance": "30%",
+      "vibe": "quiet"
+    },
+    "wfh": {
+      "freq": "78%"
+    },
+    "guest": {
+      "freq": "frequent"
+    },
+    "pets": {
+      "ownPet": true,
+      "confortLivingWithPet": true
+    },
+    "sexualOrientation": "female",
+    "smokingAndDrinking": {
+      "okAlcoholInHome": true,
+      "okSmokingOutside": true
+    }
+  },
+  "preferences": {
+    "dailyRoutine": {
+      "wakeUpTime": "before 6AM",
+      "bedtime": "after 12PM"
+    },
+    "cleanliness": {
+      "cleanlinessLevel": "60%",
+      "clutterTolerance": "30%"
+    },
+    "kitchen&food": {
+      "freq": "Never",
+      "comfortSmelling": true
+    },
+    "environemnt": {
+      "tolerance": ">50%",
+      "vibe": "quiet"
+    },
+    "wfh": {
+      "freq": "78%"
+    },
+    "age": {
+        "min": 20,
+        "max": 30
+    },
+    "guest": {
+      "freq": "frequent"
+    },
+    "pets": {
+      "ownPet": true,
+      "confortLivingWithPet": true
+    },
+    "sexualOrientation": "female",
+    "smokingAndDrinking": {
+      "okAlcoholInHome": true,
+      "okSmokingOutside": true
+    }
+  },
+  "createdAt": {
+    "$date": { "$numberLong": "1764444063560" }
+  },
+  "_class": "com.roommate.manager.model.UserModel"
+}

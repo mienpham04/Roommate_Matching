@@ -5,18 +5,18 @@ public class LifestyleModel {
     private boolean petFriendly;
     private boolean smoking;
     private String guestFrequency; // "rarely", "often", etc.
-    private boolean isNightOwl;
+    private boolean nightOwl;
 
     // getters and setters
 
-    public boolean isPetFriendly() {
+    public boolean getPetFriendly() {
         return petFriendly;
     }
     public void setPetFriendly(boolean petFriendly) {
         this.petFriendly = petFriendly;
     }
 
-    public boolean isSmoking() {
+    public boolean getSmoking() {
         return smoking;
     }
     public void setSmoking(boolean smoking) {
@@ -30,10 +30,10 @@ public class LifestyleModel {
         this.guestFrequency = guestFrequency;
     }
 
-    public boolean isNightOwl() {
-        return isNightOwl;
+    public boolean getNightOwl() {
+        return nightOwl;
     }
     public void setNightOwl(boolean nightOwl) {
-        isNightOwl = nightOwl;
+        this.nightOwl = nightOwl;
     }
 }
