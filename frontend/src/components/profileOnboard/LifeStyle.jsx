@@ -62,39 +62,39 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
       className={`card bg-base-100 shadow-sm border transition-all duration-200 ${checked ? "border-primary ring-1 ring-primary" : "border-base-200"
         }`}
     >
-      <div className="card-body p-5">
-        <div className="flex items-start justify-between mb-2">
-          <div className={`p-2 rounded-lg ${checked ? "bg-primary/10 text-primary" : "bg-base-200 text-base-content/70"
+      <div className="card-body p-3 md:p-4">
+        <div className="flex items-start justify-between mb-1 md:mb-2">
+          <div className={`p-1.5 md:p-2 rounded-lg ${checked ? "bg-primary/10 text-primary" : "bg-base-200 text-base-content/70"
             }`}>
             {icon}
           </div>
 
           <input
             type="checkbox"
-            className="toggle toggle-primary toggle-sm"
+            className="toggle toggle-primary toggle-xs md:toggle-sm"
             checked={checked}
             onChange={(e) => handleToggle(field, e.target.checked)}
             disabled={!isEditMode}
           />
         </div>
 
-        <h3 className="font-bold text-lg">{title}</h3>
-        <p className="text-sm text-base-content/60 leading-relaxed">{desc}</p>
+        <h3 className="font-bold text-sm md:text-base">{title}</h3>
+        <p className="text-xs md:text-sm text-base-content/60 leading-relaxed">{desc}</p>
       </div>
     </div>
   );
 
   return (
-    <div className="max-w-4xl mx-auto w-full px-4">
+    <div className="w-full">
 
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-2">Lifestyle Habits</h2>
-        <p className="text-base-content/60 max-w-lg mx-auto">
+      <div className="text-center mb-4 md:mb-6">
+        <h2 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">Lifestyle Habits</h2>
+        <p className="text-sm text-base-content/60 max-w-lg mx-auto">
           Tell us about your general lifestyle so our AI can find the perfect match for you.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
         <ToggleCard
           title="Pet Friendly"
           desc="Do you have pets?"

@@ -71,9 +71,9 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
     <div className="max-w-4xl mx-auto w-full px-4">
 
       <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-2">Almost Done!</h2>
+        <h2 className="text-3xl font-bold mb-2">Tell Us More</h2>
         <p className="text-base-content/60 max-w-lg mx-auto">
-          Share anything that might help us find your perfect match.
+          Share anything you haven't mentioned yet that could help us find your perfect roommate match.
         </p>
       </div>
 

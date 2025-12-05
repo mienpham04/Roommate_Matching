@@ -12,7 +12,7 @@ import Loading from "../components/Loading";
 function UserPage() {
     const { id } = useParams();
     const [active, setActive] = useState("Profile");
-    const [subStep, setSubStep] = useState(0);
+    const [preferenceSubTab, setPreferenceSubTab] = useState(0);
     const [dbUser, setDbUser] = useState(null);
     const [animating, setAnimating] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
@@ -42,24 +42,27 @@ function UserPage() {
 
     const currentIndex = tabs.indexOf(active);
 
-    const changeStep = (newActive, newSubStep) => {
+    const changeStep = (newActive) => {
         if (active === newActive) return;
         setAnimating(true);
         setTimeout(() => {
             setActive(newActive);
-            setSubStep(newSubStep);
+            if (newActive === "Preferences") {
+                setPreferenceSubTab(0);
+            }
             setAnimating(false);
         }, 200);
     };
 
     const handleNext = () => {
-        if (active === "Preferences") {
-            if (subStep < 1) return setSubStep(subStep + 1);
-            return changeStep("More details", 0);
+        // Handle Preferences sub-tabs in edit mode
+        if (isEditMode && active === "Preferences" && preferenceSubTab < 1) {
+            setPreferenceSubTab(preferenceSubTab + 1);
+            return;
         }
 
         if (currentIndex < tabs.length - 1) {
-            changeStep(tabs[currentIndex + 1], 0);
+            changeStep(tabs[currentIndex + 1]);
         } else {
             // Last tab - "Save & Finish" clicked
             setIsEditMode(false);
@@ -67,17 +70,60 @@ function UserPage() {
     };
 
     const handleBack = () => {
-        if (active === "Preferences" && subStep > 0) {
-            return setSubStep(subStep - 1);
+        // Handle Preferences sub-tabs in edit mode
+        if (isEditMode && active === "Preferences" && preferenceSubTab > 0) {
+            setPreferenceSubTab(preferenceSubTab - 1);
+            return;
         }
+
         if (currentIndex > 0) {
-            changeStep(tabs[currentIndex - 1], 0);
+            changeStep(tabs[currentIndex - 1]);
         }
     };
 
     const renderPreferences = () => {
-        if (subStep === 0) return <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
-        if (subStep === 1) return <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
+        return (
+            <div className="w-full">
+                {/* Sub-tabs for Preferences */}
+                <div className="flex justify-center mb-8">
+                    <div className="inline-flex bg-base-200/50 p-1.5 rounded-xl shadow-inner border border-base-300/50 backdrop-blur-sm">
+                        <button
+                            className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 ease-out min-w-[120px]
+                                ${preferenceSubTab === 0
+                                    ? 'bg-primary text-primary-content shadow-lg scale-105'
+                                    : 'text-base-content/70 hover:text-base-content hover:bg-base-100/50'
+                                }`}
+                            onClick={() => setPreferenceSubTab(0)}
+                        >
+                            <div className="flex items-center justify-center gap-2">
+                                <Heart className={`w-4 h-4 ${preferenceSubTab === 0 ? 'animate-pulse' : ''}`} />
+                                <span>Basic</span>
+                            </div>
+                        </button>
+                        <button
+                            className={`px-6 py-2.5 rounded-lg font-semibold text-sm transition-all duration-300 ease-out min-w-[120px]
+                                ${preferenceSubTab === 1
+                                    ? 'bg-primary text-primary-content shadow-lg scale-105'
+                                    : 'text-base-content/70 hover:text-base-content hover:bg-base-100/50'
+                                }`}
+                            onClick={() => setPreferenceSubTab(1)}
+                        >
+                            <div className="flex items-center justify-center gap-2">
+                                <Coffee className={`w-4 h-4 ${preferenceSubTab === 1 ? 'animate-pulse' : ''}`} />
+                                <span>Lifestyle</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Render the appropriate preference component */}
+                {preferenceSubTab === 0 ? (
+                    <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
+                ) : (
+                    <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
+                )}
+            </div>
+        );
     };
 
     const renderContent = () => {
@@ -93,88 +139,97 @@ function UserPage() {
     if (!dbUser) return <Loading />;
 
     return (
-        <div className="min-h-screen w-full bg-base-200 flex flex-col font-sans">
+        <div className="h-screen w-full bg-base-200 flex flex-col font-sans overflow-hidden">
             <Navbar />
 
-            <div className="grow flex flex-col items-center p-4 py-10">
+            <div className="flex-1 flex overflow-hidden p-2 md:p-4 gap-2 md:gap-4">
 
-                <div className="w-full max-w-6xl">
-                    <div className="tabs tabs-lift">
+                {/* Left Sidebar - Vertical Tabs */}
+                <div className="w-48 md:w-56 flex-shrink-0 bg-base-100 rounded-xl shadow-xl border border-base-200 p-3 md:p-4 flex flex-col">
+                    <h3 className="text-sm font-bold text-base-content/50 uppercase tracking-wider mb-3 px-2">
+                        Your Profile
+                    </h3>
+                    <ul className="menu menu-sm md:menu-md gap-1">
                         {tabs.map((tab) => (
-                            <a
-                                key={tab}
-                                onClick={() => changeStep(tab, 0)}
-                                className={`tab tab-lg transition-all duration-200 gap-2
-                                    ${active === tab
-                                        ? "tab-active [--tab-bg:var(--color-base-100)] [--tab-border-color:transparent] font-bold text-primary"
-                                        : "text-base-content/60 hover:text-base-content"}
-                                `}
-                            >
-                                {stepIcons[tab]}
-                                <span className="hidden sm:inline">{tab}</span>
-                            </a>
+                            <li key={tab}>
+                                <a
+                                    onClick={() => changeStep(tab)}
+                                    className={`flex items-center gap-3 rounded-lg transition-all duration-200
+                                        ${active === tab
+                                            ? "bg-primary text-primary-content font-bold"
+                                            : "text-base-content/70 hover:bg-base-200"}
+                                    `}
+                                >
+                                    <span className="flex items-center justify-center w-6 h-6">
+                                        {stepIcons[tab]}
+                                    </span>
+                                    <span className="flex-1">{tab}</span>
+                                </a>
+                            </li>
                         ))}
-                    </div>
+                    </ul>
                 </div>
 
-                <div className="bg-base-100 w-full max-w-6xl min-h-[500px] shadow-xl border border-base-200 rounded-b-2xl rounded-tr-2xl rounded-tl-2xl relative z-10 flex flex-col">
+                {/* Main Content Area */}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="bg-base-100 flex-1 shadow-xl border border-base-200 rounded-xl flex flex-col overflow-hidden">
 
-                    <div className="p-6 border-b border-base-200 shrink-0 flex justify-between items-center">
-                        <div>
-                            <h2 className="text-2xl font-bold text-base-content flex items-center gap-2">
-                                {stepIcons[active]} {active}
-                            </h2>
-                            <p className="text-sm text-base-content/60">
-                                {isEditMode ? `Step ${currentIndex + 1} of ${tabs.length}` : 'View Mode'}
-                            </p>
-                        </div>
-
-                        <button
-                            onClick={() => setIsEditMode(!isEditMode)}
-                            className={`btn gap-2 ${isEditMode ? 'btn-ghost' : 'btn-primary'}`}
-                        >
-                            {isEditMode ? (
-                                <>
-                                    <Eye size={18} />
-                                    View Mode
-                                </>
-                            ) : (
-                                <>
-                                    <Edit size={18} />
-                                    Edit Profile
-                                </>
-                            )}
-                        </button>
-                    </div>
-                    <div className="grow p-4 md:p-8 bg-base-100 relative">
-                        <div className={`max-w-4xl mx-auto transition-opacity duration-300 ${animating ? 'opacity-0' : 'opacity-100'}`}>
-                            {renderContent()}
-                        </div>
-                    </div>
-
-                    {isEditMode && (
-                        <div className="p-4 md:px-8 md:py-5 border-t border-base-200 bg-base-100 shrink-0 flex justify-between items-center rounded-b-2xl">
-                            <button
-                                onClick={handleBack}
-                                disabled={currentIndex === 0 && subStep === 0}
-                                className={`btn btn-ghost gap-2 transition-opacity duration-200
-                                    ${(currentIndex === 0 && subStep === 0) ? 'opacity-0 pointer-events-none' : 'opacity-100'}
-                                `}
-                            >
-                                <ChevronLeft size={18} />
-                                Back
-                            </button>
+                        <div className="p-3 md:p-4 border-b border-base-200 shrink-0 flex justify-between items-center">
+                            <div>
+                                <h2 className="text-lg md:text-xl font-bold text-base-content flex items-center gap-2">
+                                    {stepIcons[active]} {active}
+                                </h2>
+                                <p className="text-xs text-base-content/60">
+                                    {isEditMode ? `Step ${currentIndex + 1} of ${tabs.length}` : 'View Mode'}
+                                </p>
+                            </div>
 
                             <button
-                                onClick={handleNext}
-                                className="btn btn-primary px-8 shadow-lg hover:scale-105 transition-transform"
+                                onClick={() => setIsEditMode(!isEditMode)}
+                                className={`btn btn-sm md:btn-md gap-1 md:gap-2 ${isEditMode ? 'btn-ghost' : 'btn-primary'}`}
                             >
-                                {(currentIndex === tabs.length - 1) ? 'Save & Finish' : 'Save & Next'}
-                                <ChevronRight size={18} />
+                                {isEditMode ? (
+                                    <>
+                                        <Eye size={16} className="md:w-[18px] md:h-[18px]" />
+                                        <span className="hidden sm:inline">View Mode</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Edit size={16} className="md:w-[18px] md:h-[18px]" />
+                                        <span className="hidden sm:inline">Edit Profile</span>
+                                    </>
+                                )}
                             </button>
                         </div>
-                    )}
+                        <div className="flex-1 overflow-y-auto p-3 md:p-6 bg-base-100">
+                            <div className={`max-w-4xl mx-auto transition-opacity duration-300 ${animating ? 'opacity-0' : 'opacity-100'}`}>
+                                {renderContent()}
+                            </div>
+                        </div>
 
+                        {isEditMode && (
+                            <div className="p-3 md:p-4 border-t border-base-200 bg-base-100 shrink-0 flex justify-between items-center">
+                                <button
+                                    onClick={handleBack}
+                                    disabled={currentIndex === 0}
+                                    className={`btn btn-sm md:btn-md btn-ghost gap-2 transition-opacity duration-200
+                                        ${currentIndex === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100'}
+                                    `}
+                                >
+                                    <ChevronLeft size={16} className="md:w-[18px] md:h-[18px]" />
+                                    <span className="hidden sm:inline">Back</span>
+                                </button>
+
+                                <button
+                                    onClick={handleNext}
+                                    className="btn btn-sm md:btn-md btn-primary shadow-lg hover:scale-105 transition-transform"
+                                >
+                                    {(currentIndex === tabs.length - 1) ? 'Save & Finish' : 'Save & Next'}
+                                    <ChevronRight size={16} className="md:w-[18px] md:h-[18px]" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

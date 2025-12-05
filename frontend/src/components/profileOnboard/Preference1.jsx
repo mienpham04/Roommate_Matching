@@ -116,79 +116,78 @@ function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
         </p>
       </div>
 
-
-      <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1 gap-4 mb-6">
         <div className="card bg-base-100 shadow-sm border border-base-200 overflow-visible">
-          <div className="card-body p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="card-body p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-base-200 rounded-lg text-base-content/70">
                   <User size={20} />
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">Age Range</h3>
-                  <p className="text-xs text-base-content/50">
+                  <p className="text-sm text-base-content/60">
                     Ideal age of your roommate
                   </p>
                 </div>
               </div>
 
-              <label className="cursor-pointer flex items-center gap-3 p-2 rounded-lg hover:bg-base-200/50 transition-colors">
-                <span className="label-text font-medium">It does not matter</span>
+              <label className="cursor-pointer flex items-center gap-2 p-2 rounded-lg hover:bg-base-200/50 transition-colors">
+                <span className="label-text text-sm font-medium">It does not matter</span>
                 <input
                   type="checkbox"
-                  className="checkbox checkbox-primary"
+                  className="checkbox checkbox-primary checkbox-sm"
                   checked={isAnyAge}
                   onChange={(e) => handleAnyAgeToggle(e.target.checked)}
                   disabled={!isEditMode}
                 />
               </label>
             </div>
-            <div className={`flex flex-col md:flex-row items-center gap-4 bg-base-200/30 p-6 rounded-xl border border-base-200/50 transition-opacity duration-300
+            <div className={`flex flex-col md:flex-row items-center gap-4 bg-base-200/30 p-4 rounded-xl border border-base-200/50 transition-opacity duration-300
               ${isAnyAge || !isEditMode ? "opacity-50 pointer-events-none grayscale" : "opacity-100"}
             `}>
 
               <div className="form-control w-full">
-                <label className="label">
+                <label className="label py-1">
                   <span className="label-text text-xs uppercase font-bold text-base-content/50">Min Age</span>
                 </label>
                 <input
                   type="number"
                   disabled={isAnyAge || !isEditMode}
                   min="18"
-                  className="input input-lg input-bordered w-full font-bold text-center text-xl focus:input-primary"
+                  className="input input-bordered w-full font-bold text-center text-xl focus:input-primary"
                   value={data.minAge}
                   onChange={(e) => handleChange("minAge", e.target.value)}
                 />
               </div>
 
-              <div className="hidden md:flex flex-col items-center justify-center pt-8 text-base-content/30">
-                <ArrowRight size={24} />
+              <div className="hidden md:flex flex-col items-center justify-center pt-6 text-base-content/30">
+                <ArrowRight size={20} />
               </div>
               <div className="form-control w-full">
-                <label className="label">
+                <label className="label py-1">
                   <span className="label-text text-xs uppercase font-bold text-base-content/50">Max Age</span>
                 </label>
                 <input
                   type="number"
                   disabled={isAnyAge || !isEditMode}
                   min={data.minAge || 18}
-                  className="input input-lg input-bordered w-full font-bold text-center text-xl focus:input-primary"
+                  className="input input-bordered w-full font-bold text-center text-xl focus:input-primary"
                   value={data.maxAge}
                   onChange={(e) => handleChange("maxAge", e.target.value)}
                 />
               </div>
             </div>
-            
+
             <p className="text-center text-xs text-base-content/40 mt-3">
-              {isAnyAge 
-                ? "You are open to roommates of any age." 
+              {isAnyAge
+                ? "You are open to roommates of any age."
                 : `Matches between ${data.minAge || "?"} and ${data.maxAge || "?"} years old.`
               }
             </p>
           </div>
         </div>
-        
+
         <div className="card bg-base-100 shadow-sm border border-base-200">
           <div className="card-body p-6">
 
@@ -200,25 +199,25 @@ function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <GenderOption 
-                label="No Preference" 
-                value="no preference" 
-                icon={<Users size={28} />} 
+              <GenderOption
+                label="No Preference"
+                value="no preference"
+                icon={<Users size={28} />}
               />
-              <GenderOption 
-                label="Female" 
-                value="female" 
-                icon={<Venus size={30} />} 
+              <GenderOption
+                label="Female"
+                value="female"
+                icon={<Venus size={30} />}
               />
-              <GenderOption 
-                label="Male" 
-                value="male" 
-                icon={<Mars size={30} />} 
+              <GenderOption
+                label="Male"
+                value="male"
+                icon={<Mars size={30} />}
               />
-              <GenderOption 
-                label="Non-binary" 
-                value="non-binary" 
-                icon={<CircleDashed size={30} />} 
+              <GenderOption
+                label="Non-binary"
+                value="non-binary"
+                icon={<CircleDashed size={30} />}
               />
             </div>
 
