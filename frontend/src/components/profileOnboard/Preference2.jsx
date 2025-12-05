@@ -1,21 +1,41 @@
 import { Moon, PawPrint, Cigarette, Users, Pencil, X, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function Preference2({ dbUser, userId, setDbUser }) {
   const [pref, setPref] = useState({
     petFriendly: dbUser?.preferences?.petFriendly ?? false,
     smoking: dbUser?.preferences?.smoking ?? false,
-    isNightOwl: dbUser?.preferences?.isNightOwl ?? false,
+    nightOwl: dbUser?.preferences?.nightOwl ?? false,
     guestFrequency: dbUser?.preferences?.guestFrequency ?? ""
   });
 
   const [isEditing, setIsEditing] = useState(false);
   const [tempGuest, setTempGuest] = useState(pref.guestFrequency);
 
+  // Update local state when dbUser changes (e.g., after page refresh)
+  useEffect(() => {
+    if (dbUser?.preferences) {
+      const newPref = {
+        petFriendly: dbUser.preferences.petFriendly ?? false,
+        smoking: dbUser.preferences.smoking ?? false,
+        nightOwl: dbUser.preferences.nightOwl ?? false,
+        guestFrequency: dbUser.preferences.guestFrequency ?? ""
+      };
+      setPref(newPref);
+      setTempGuest(newPref.guestFrequency);
+    }
+  }, [dbUser]);
+
   const saveToDB = async (updatedPreferences) => {
+    // Merge with existing preferences to avoid overwriting other preference fields
+    const mergedPreferences = {
+      ...dbUser?.preferences,
+      ...updatedPreferences,
+    };
+
     const updatedUser = {
       ...dbUser,
-      preferences: updatedPreferences,
+      preferences: mergedPreferences,
     };
 
     const res = await fetch(`http://localhost:8080/api/users/${userId}`, {
@@ -105,8 +125,8 @@ function Preference2({ dbUser, userId, setDbUser }) {
         <ToggleCard
           title="Night Owl"
           desc="Do you stay up late regularly?"
-          field="isNightOwl"
-          checked={pref.isNightOwl}
+          field="nightOwl"
+          checked={pref.nightOwl}
           icon={<Moon className="w-6 h-6" />}
         />
       </div>

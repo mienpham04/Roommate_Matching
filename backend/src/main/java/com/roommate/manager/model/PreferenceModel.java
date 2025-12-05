@@ -8,7 +8,7 @@ public class PreferenceModel {
     private Boolean petFriendly;
     private Boolean smoking;
     private String guestFrequency; // e.g., "I prefer roommates who rarely have guests"
-    private Boolean isNightOwl;
+    private Boolean nightOwl;
     private Integer minAge;
     private Integer maxAge;
     private String gender; // Preferred gender or "no preference"
@@ -37,11 +37,11 @@ public class PreferenceModel {
         this.guestFrequency = guestFrequency;
     }
 
-    public Boolean getIsNightOwl() {
-        return isNightOwl;
+    public Boolean isNightOwl() {
+        return nightOwl;
     }
-    public void setIsNightOwl(Boolean nightOwl) {
-        isNightOwl = nightOwl;
+    public void setNightOwl(Boolean nightOwl) {
+        this.nightOwl = nightOwl;
     }
 
     public Integer getMinAge() {

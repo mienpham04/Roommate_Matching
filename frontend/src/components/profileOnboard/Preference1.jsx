@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, User, ArrowRight, Mars, Venus, CircleDashed } from "lucide-react";
 
 function Preference1({ dbUser, userId, setDbUser }) {
@@ -8,10 +8,27 @@ function Preference1({ dbUser, userId, setDbUser }) {
     gender: dbUser?.preferences?.gender ?? "no preference",
   });
 
+  // Update local state when dbUser changes (e.g., after page refresh)
+  useEffect(() => {
+    if (dbUser?.preferences) {
+      setData({
+        minAge: dbUser.preferences.minAge ?? "15",
+        maxAge: dbUser.preferences.maxAge ?? "99",
+        gender: dbUser.preferences.gender ?? "no preference",
+      });
+    }
+  }, [dbUser]);
+
   const saveToDB = async (updatedPreferences) => {
+    // Merge with existing preferences to avoid overwriting other preference fields
+    const mergedPreferences = {
+      ...dbUser?.preferences,
+      ...updatedPreferences,
+    };
+
     const updatedUser = {
       ...dbUser,
-      preferences: updatedPreferences,
+      preferences: mergedPreferences,
     };
 
     try {

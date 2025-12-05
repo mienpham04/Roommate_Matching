@@ -1,14 +1,31 @@
 import { Moon, PawPrint, Cigarette, Users, Pencil, X, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function LifeStyle({ dbUser, userId, setDbUser }) {
 
-  const lifestyle = {
+  const [lifestyle, setLifestyle] = useState({
     petFriendly: dbUser?.lifestyle?.petFriendly ?? false,
     smoking: dbUser?.lifestyle?.smoking ?? false,
-    isNightOwl: dbUser?.lifestyle?.isNightOwl ?? false,
+    nightOwl: dbUser?.lifestyle?.nightOwl ?? false,
     guestFrequency: dbUser?.lifestyle?.guestFrequency ?? ""
-  };
+  });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempGuest, setTempGuest] = useState(lifestyle.guestFrequency);
+
+  // Update local state when dbUser changes (e.g., after page refresh)
+  useEffect(() => {
+    if (dbUser?.lifestyle) {
+      const newLifestyle = {
+        petFriendly: dbUser.lifestyle.petFriendly ?? false,
+        smoking: dbUser.lifestyle.smoking ?? false,
+        nightOwl: dbUser.lifestyle.nightOwl ?? false,
+        guestFrequency: dbUser.lifestyle.guestFrequency ?? ""
+      };
+      setLifestyle(newLifestyle);
+      setTempGuest(newLifestyle.guestFrequency);
+    }
+  }, [dbUser]);
 
   const saveToDB = async (updatedLifestyle) => {
     const updatedUser = {
@@ -27,11 +44,9 @@ function LifeStyle({ dbUser, userId, setDbUser }) {
 
   const handleToggle = (field, value) => {
     const updated = { ...lifestyle, [field]: value };
+    setLifestyle(updated);
     saveToDB(updated);
   };
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [tempGuest, setTempGuest] = useState(lifestyle.guestFrequency);
 
   const saveGuest = () => {
     saveToDB({ ...lifestyle, guestFrequency: tempGuest });
@@ -99,8 +114,8 @@ function LifeStyle({ dbUser, userId, setDbUser }) {
         <ToggleCard
           title="Night Owl"
           desc="Do you stay up late regularly?"
-          field="isNightOwl"
-          checked={lifestyle.isNightOwl}
+          field="nightOwl"
+          checked={lifestyle.nightOwl}
           icon={<Moon className="w-6 h-6" />}
         />
       </div>

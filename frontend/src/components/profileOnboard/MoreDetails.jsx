@@ -1,15 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileText, Sparkles, Quote, Plus, Check, X } from "lucide-react";
 
 function MoreDetails({ dbUser, userId, setDbUser }) {
-  
+
   const [data, setData] = useState({
-    moreDetails: dbUser?.moreAboutMe ?? ""
+    moreAboutMe: dbUser?.moreAboutMe ?? ""
   });
 
   const [isSaving, setIsSaving] = useState(false);
   const [tempValue, setTempValue] = useState(data.moreAboutMe);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Update local state when dbUser changes (e.g., after page refresh)
+  useEffect(() => {
+    if (dbUser) {
+      const newData = { moreAboutMe: dbUser.moreAboutMe ?? "" };
+      setData(newData);
+      setTempValue(newData.moreAboutMe);
+    }
+  }, [dbUser]);
 
   const saveToDB = async () => {
     setIsSaving(true);
