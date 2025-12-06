@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.roommate.manager.model.events.MatchScoreEvent;
 import com.roommate.manager.model.events.PreferenceUpdateEvent;
+import com.roommate.manager.model.events.ProfileUpdateEvent;
 
 @Service
 public class KafkaProducerService {
@@ -29,5 +30,9 @@ public class KafkaProducerService {
 
     public void sendMatchScoreUpdated(MatchScoreEvent event) {
         kafkaTemplate.send("match.score.updated", event.getUserId(), event);
+    }
+
+    public void sendProfileUpdated(ProfileUpdateEvent event) {
+        kafkaTemplate.send("profile.updated", event.getUserId(), event);
     }
 }

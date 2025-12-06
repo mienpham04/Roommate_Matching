@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import com.roommate.manager.kafka.KafkaProducerService;
 import com.roommate.manager.model.events.PreferenceUpdateEvent;
+import com.roommate.manager.model.events.ProfileUpdateEvent;
 
 @RestController
 @RequestMapping("/api/preferences")
@@ -25,6 +26,15 @@ public class PreferenceController {
         PreferenceUpdateEvent event = new PreferenceUpdateEvent(userId, prefs);
 
         producerService.sendPreferenceUpdated(event);
+
+        // Also publish a profile update event for real-time badge
+        try {
+            ProfileUpdateEvent profileEvent = new ProfileUpdateEvent(userId, "PREFERENCE");
+            producerService.sendProfileUpdated(profileEvent);
+            System.out.println("Published profile update event for preference change: " + userId);
+        } catch (Exception e) {
+            System.err.println("Warning: Failed to publish profile update event: " + e.getMessage());
+        }
 
         return ResponseEntity.ok("Preferences updated + event published");
     }

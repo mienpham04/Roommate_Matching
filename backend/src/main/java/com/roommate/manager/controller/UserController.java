@@ -3,6 +3,8 @@ package com.roommate.manager.controller;
 import com.roommate.manager.model.UserModel;
 import com.roommate.manager.repository.UserRepository;
 import com.roommate.manager.service.IndexManagementService;
+import com.roommate.manager.kafka.KafkaProducerService;
+import com.roommate.manager.model.events.ProfileUpdateEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +20,9 @@ public class UserController {
 
     @Autowired
     private IndexManagementService indexManagementService;
+
+    @Autowired
+    private KafkaProducerService kafkaProducerService;
 
     // CREATE
     @PostMapping("/new_user")
@@ -103,6 +108,15 @@ public class UserController {
             indexManagementService.uploadUserToIndex(savedUser);
         } catch (Exception e) {
             System.err.println("Warning: Failed to update user vector in index: " + e.getMessage());
+        }
+
+        // Publish Kafka event for profile update
+        try {
+            ProfileUpdateEvent event = new ProfileUpdateEvent(id, "PROFILE");
+            kafkaProducerService.sendProfileUpdated(event);
+            System.out.println("Published profile update event for user: " + id);
+        } catch (Exception e) {
+            System.err.println("Warning: Failed to publish profile update event: " + e.getMessage());
         }
 
         return savedUser;
