@@ -26,7 +26,7 @@ function ExplorePage() {
   const [steps, setSteps] = useState([
     { text: "Getting your profile ID…", done: false },
     { text: "Finding people with similar lifestyles…", done: false },
-    { text: "Checking who fits your roommate preferences…", done: false },
+    { text: "Checking who fits your preferences…", done: false },
     { text: "Analyzing compatibility and merging results…", done: false },
     { text: "Finalizing your matches…", done: false }
   ]);
@@ -38,6 +38,42 @@ function ExplorePage() {
       )
     );
   };
+
+  // Listen for unmatch events from other tabs/windows and current tab
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Handler for cross-tab storage events
+    const handleStorageChange = (e) => {
+      if (e.key === 'unmatch_event') {
+        const unmatchData = JSON.parse(e.newValue);
+        if (unmatchData && unmatchData.userId === user.id) {
+          // Refresh likes when current user unmatched someone
+          fetchLikedUsers();
+          fetchReceivedLikes();
+          fetchSentLikes();
+        }
+      }
+    };
+
+    // Handler for current tab custom events
+    const handleUnmatchEvent = (e) => {
+      if (e.detail && e.detail.userId === user.id) {
+        // Refresh likes when current user unmatched someone
+        fetchLikedUsers();
+        fetchReceivedLikes();
+        fetchSentLikes();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('unmatch', handleUnmatchEvent);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('unmatch', handleUnmatchEvent);
+    };
+  }, [user?.id]);
 
   // Only fetch likes when user changes, NOT matches
   useEffect(() => {
