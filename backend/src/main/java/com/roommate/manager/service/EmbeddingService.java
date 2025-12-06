@@ -137,9 +137,9 @@ public class EmbeddingService {
         }
 
         // Additional free-form text about roommate preferences
-        if (user.getPreferences().getMoreAboutRoommate() != null &&
-            !user.getPreferences().getMoreAboutRoommate().trim().isEmpty()) {
-            description.append(user.getPreferences().getMoreAboutRoommate());
+        if (user.getPreferences().getMoreAboutMe() != null &&
+            !user.getPreferences().getMoreAboutMe().trim().isEmpty()) {
+            description.append(user.getPreferences().getMoreAboutMe());
         }
 
         return description.toString().trim();

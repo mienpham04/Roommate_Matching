@@ -3,8 +3,9 @@ import { MessageSquare, Save, Sparkles, Plus, Quote, Eraser } from "lucide-react
 import toast from "react-hot-toast";
 
 function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
-  const [additionalPreferences, setAdditionalPreferences] = useState(
-    dbUser?.preferences?.additionalPreferences || ""
+  // Initialize state safely. (null || "") results in ""
+  const [moreAboutMe, setMoreAboutMe] = useState(
+    dbUser?.preferences?.moreAboutMe || ""
   );
   const [isSaving, setIsSaving] = useState(false);
 
@@ -26,18 +27,21 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
     "Love board games 🎲"
   ];
 
-  // Update local state when dbUser changes
+  // Sync local state if dbUser updates
   useEffect(() => {
-    if (dbUser?.preferences?.additionalPreferences !== undefined) {
-      setAdditionalPreferences(dbUser.preferences.additionalPreferences);
+    // FIX: Ensure we default to "" if the value is null or undefined
+    if (dbUser?.preferences) {
+      setMoreAboutMe(dbUser.preferences.moreAboutMe || "");
     }
   }, [dbUser]);
 
+  // --- SAVE FUNCTION ---
   const saveToDB = async () => {
     setIsSaving(true);
+
     const mergedPreferences = {
-      ...dbUser?.preferences,
-      additionalPreferences: additionalPreferences,
+      ...dbUser?.preferences, 
+      moreAboutMe: moreAboutMe, 
     };
 
     const updatedUser = {
@@ -53,10 +57,11 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
       });
 
       if (res.ok) {
-        setDbUser(updatedUser);
+        setDbUser(updatedUser); 
         toast.success("Preferences saved successfully!");
       } else {
-        console.error("Failed saving preferences:", await res.text());
+        const errorText = await res.text();
+        console.error("Failed saving preferences:", errorText);
         toast.error("Failed to save changes.");
       }
     } catch (err) {
@@ -67,6 +72,7 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
     }
   };
 
+  // Auto-save when user leaves the text area
   const handleBlur = () => {
     if (isEditMode) {
       saveToDB();
@@ -76,12 +82,12 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
   const appendSuggestion = (text) => {
     if (!isEditMode) return;
     
-    setAdditionalPreferences((prev) => {
-      // Don't add if already exists
-      if (prev.includes(text)) return prev;
-      // Add comma/space if needed
-      const prefix = prev.length > 0 && !prev.endsWith("\n") && !prev.endsWith(" ") ? ", " : "";
-      return prev + prefix + text;
+    setMoreAboutMe((prev) => {
+      // FIX: Ensure prev is a string before checking includes
+      const currentText = prev || ""; 
+      if (currentText.includes(text)) return currentText;
+      const prefix = currentText.length > 0 && !currentText.endsWith("\n") && !currentText.endsWith(" ") ? ", " : "";
+      return currentText + prefix + text;
     });
   };
 
@@ -123,14 +129,15 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
                 <textarea
                   className="textarea w-full h-64 text-lg leading-relaxed bg-base-100 border-2 border-base-200 focus:border-primary/50 focus:outline-none rounded-3xl p-6 shadow-sm resize-none transition-all placeholder:text-base-content/20"
                   placeholder="Tell us about your ideal living situation. E.g., 'I value a quiet home during the week, but love hosting dinner parties on weekends...'"
-                  value={additionalPreferences}
-                  onChange={(e) => setAdditionalPreferences(e.target.value)}
-                  onBlur={handleBlur}
+                  // FIX: Use || "" to prevent uncontrolled input warning if state is momentarily null
+                  value={moreAboutMe || ""}
+                  onChange={(e) => setMoreAboutMe(e.target.value)}
+                  onBlur={handleBlur} 
                 />
                 <div className="absolute bottom-4 right-4 flex items-center gap-2">
-                  {additionalPreferences.length > 0 && (
+                  {(moreAboutMe || "").length > 0 && (
                      <button 
-                       onClick={() => setAdditionalPreferences("")}
+                       onClick={() => setMoreAboutMe("")}
                        className="btn btn-ghost btn-xs text-base-content/40 hover:text-error"
                        title="Clear all"
                      >
@@ -138,7 +145,8 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
                      </button>
                   )}
                   <span className="badge badge-ghost text-xs font-mono">
-                    {additionalPreferences.length} chars
+                    {/* FIX: Safe access to length */}
+                    {(moreAboutMe || "").length} chars
                   </span>
                 </div>
              </div>
@@ -173,7 +181,7 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
                  ))}
                </div>
                <p className="text-xs text-base-content/40 mt-4 text-center">
-                 Click a tag to add it to your bio
+                 Click a tag to add it to your text
                </p>
             </div>
           </div>
@@ -181,12 +189,12 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
       ) : (
         /* --- VIEW MODE --- */
         <div className="max-w-3xl mx-auto">
-          {additionalPreferences ? (
+          {moreAboutMe ? (
             <div className="relative">
               <Quote className="absolute -top-4 -left-4 w-10 h-10 text-primary/10 rotate-180" />
               <div className="bg-gradient-to-br from-base-100 to-base-200 p-8 rounded-3xl border border-base-200 shadow-sm relative z-10">
                 <p className="text-lg text-base-content leading-loose whitespace-pre-wrap font-medium">
-                  {additionalPreferences}
+                  {moreAboutMe}
                 </p>
               </div>
               <Quote className="absolute -bottom-4 -right-4 w-10 h-10 text-primary/10" />
