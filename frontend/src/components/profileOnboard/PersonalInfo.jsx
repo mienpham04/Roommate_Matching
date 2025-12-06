@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { Pencil, X, User, Mail, Phone, Calendar, VenusAndMars } from "lucide-react";
 import EditableField from "../EditableField";
+import BudgetField from "../BudgetField";
 
 function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
   const fileInputRef = useRef(null);
@@ -124,6 +125,13 @@ function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
           value={dbUser?.dateOfBirth || ""}
           icon={Calendar}
           type="date"
+          onSave={handleFieldUpdate}
+          isEditMode={isEditMode}
+        />
+
+        <BudgetField
+          label="Budget Range"
+          value={dbUser?.budget}
           onSave={handleFieldUpdate}
           isEditMode={isEditMode}
         />
