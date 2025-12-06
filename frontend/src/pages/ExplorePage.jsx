@@ -1,6 +1,6 @@
 import Navbar from "../components/Navbar";
 import { useEffect, useState } from "react";
-import { X, Home, Users, Heart, ArrowDown, ArrowUp, Sparkles } from "lucide-react";
+import { X, Home, Users, Heart, ArrowDown, ArrowUp, Sparkles, RefreshCw } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 
@@ -54,6 +54,58 @@ function ExplorePage() {
     } else {
       setLoading(false);
     }
+  }, [user]);
+
+  // Real-time profile updates via Server-Sent Events (SSE)
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('🔌 Connecting to SSE stream:', `${API_URL}/profile-updates/stream`);
+    const eventSource = new EventSource(`${API_URL}/profile-updates/stream`);
+
+    eventSource.onopen = () => {
+      console.log('✅ SSE connection established');
+    };
+
+    eventSource.addEventListener('profile-update', (event) => {
+      const update = JSON.parse(event.data);
+      console.log('📢 Received profile update:', update);
+
+      // Update the lastUpdatedAt for this user in allMatches
+      setAllMatches(prevMatches =>
+        prevMatches.map(match => {
+          if (match.userId === update.userId) {
+            console.log('🔄 Updating match for:', update.userId);
+            return {
+              ...match,
+              user: {
+                ...match.user,
+                lastUpdatedAt: new Date().toISOString()
+              }
+            };
+          }
+          return match;
+        })
+      );
+
+      // Show a subtle toast notification
+      toast.success(`${update.userId.substring(0, 8)}... just updated their profile!`, {
+        duration: 3000,
+        icon: '✨'
+      });
+    });
+
+    eventSource.onerror = (error) => {
+      console.error('❌ SSE connection error:', error);
+      console.error('EventSource readyState:', eventSource.readyState);
+      // Don't close immediately - browser will retry
+    };
+
+    // Cleanup on unmount
+    return () => {
+      console.log('🔌 Closing SSE connection');
+      eventSource.close();
+    };
   }, [user]);
 
   // Fetch users that current user has liked
@@ -427,6 +479,30 @@ function ExplorePage() {
 
           {activeTab === "explore" ? (
             <>
+              {/* LEGEND */}
+              <div className="flex justify-center gap-4 mb-6">
+                <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg">
+                  <Home className="size-5 text-green-600" />
+                  <span className="text-sm">Roommate Potential (Both interested)</span>
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-base-200 rounded-lg">
+                  <Users className="size-5 text-blue-600" />
+                  <span className="text-sm">Similar Lifestyle</span>
+                </div>
+              </div>
+
+              {/* REFRESH BUTTON */}
+              <div className="flex justify-center mb-8">
+                <button
+                  onClick={fetchMatches}
+                  disabled={loading}
+                  className="btn btn-sm btn-outline btn-primary gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh Matches
+                </button>
+              </div>
+
               {allMatches.length === 0 ? (
                 <div className="text-center py-20">
                   <p className="text-base-content/60 text-lg">No matches found yet. Try updating your profile!</p>

@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
+import com.roommate.manager.controller.ProfileUpdateStreamController;
 import com.roommate.manager.model.events.ProfileUpdateEvent;
 import com.roommate.manager.model.UserModel;
 import com.roommate.manager.repository.UserRepository;
@@ -21,6 +22,9 @@ public class ProfileUpdateConsumer {
 
     @Autowired
     private IndexManagementService indexManagementService;
+
+    @Autowired
+    private ProfileUpdateStreamController streamController;
 
     @KafkaListener(topics = "profile.updated", groupId = "profile-update-handler")
     public void handleProfileUpdate(ProfileUpdateEvent event) {
@@ -41,8 +45,12 @@ public class ProfileUpdateConsumer {
             // This will recalculate matching scores in real-time
             indexManagementService.uploadUserToIndex(user);
 
+            // Broadcast to all connected clients via SSE
+            streamController.broadcastProfileUpdate(userId, event.getUpdateType());
+
             System.out.println("Successfully updated vector index for user: " + userId +
-                             " (update type: " + event.getUpdateType() + ")");
+                             " (update type: " + event.getUpdateType() + ")" +
+                             " - Broadcasted to " + streamController.getActiveConnections() + " clients");
 
         } catch (Exception e) {
             System.err.println("Error processing profile update event: " + e.getMessage());
