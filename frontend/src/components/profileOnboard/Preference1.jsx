@@ -108,14 +108,6 @@ function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
 
   return (
     <div className="max-w-4xl mx-auto w-full px-4">
-
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-2">Roommate Preferences</h2>
-        <p className="text-base-content/60 max-w-lg mx-auto">
-          Set your boundaries. We'll only show you matches that fit within these criteria.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 gap-4 mb-6">
         <div className="card bg-base-100 shadow-sm border border-base-200 overflow-visible">
           <div className="card-body p-5">

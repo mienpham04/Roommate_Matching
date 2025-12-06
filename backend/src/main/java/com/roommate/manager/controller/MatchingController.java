@@ -172,4 +172,53 @@ public class MatchingController {
             return ResponseEntity.status(500).body(errorResponse);
         }
     }
+
+    /**
+     * Check if two users still meet match requirements
+     * POST /api/matching/validate
+     * Body: { "userId1": "user123", "userId2": "user456" }
+     */
+    @PostMapping("/validate")
+    public ResponseEntity<Map<String, Object>> validateMatch(@RequestBody Map<String, String> request) {
+        try {
+            String userId1 = request.get("userId1");
+            String userId2 = request.get("userId2");
+
+            if (userId1 == null || userId2 == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "userId1 and userId2 are required"));
+            }
+
+            List<Map<String, Object>> matches = vectorSearchService.findMutualMatches(userId1, 1000);
+
+            // Find the match and get its score
+            Map<String, Object> matchData = matches.stream()
+                .filter(match -> userId2.equals(match.get("userId")))
+                .findFirst()
+                .orElse(null);
+
+            Map<String, Object> response = new HashMap<>();
+
+            if (matchData != null) {
+                Double mutualScore = (Double) matchData.get("mutualScore");
+                response.put("stillMatches", true);
+                response.put("mutualScore", mutualScore);
+                response.put("isLowMatch", mutualScore != null && mutualScore <= 0.5);
+            } else {
+                response.put("stillMatches", false);
+                response.put("mutualScore", 0.0);
+                response.put("isLowMatch", true);
+            }
+
+            response.put("userId1", userId1);
+            response.put("userId2", userId2);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Match validation failed");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
 }

@@ -1,31 +1,23 @@
 import { useState, useEffect } from "react";
-import { FileText, Sparkles, Quote, Plus, Check, X } from "lucide-react";
+import { FileText, Sparkles, Quote, Plus, Eraser, Save } from "lucide-react";
+import toast from "react-hot-toast";
 
 function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
-
-  const [data, setData] = useState({
-    moreAboutMe: dbUser?.moreAboutMe ?? ""
-  });
-
+  const [bio, setBio] = useState(dbUser?.moreAboutMe || "");
   const [isSaving, setIsSaving] = useState(false);
-  const [tempValue, setTempValue] = useState(data.moreAboutMe);
-  const [isEditing, setIsEditing] = useState(false);
 
-  // Update local state when dbUser changes (e.g., after page refresh)
+  // Sync with DB prop changes
   useEffect(() => {
     if (dbUser) {
-      const newData = { moreAboutMe: dbUser.moreAboutMe ?? "" };
-      setData(newData);
-      setTempValue(newData.moreAboutMe);
+      setBio(dbUser.moreAboutMe || "");
     }
   }, [dbUser]);
 
   const saveToDB = async () => {
     setIsSaving(true);
-
     const updatedUser = {
       ...dbUser,
-      moreAboutMe: tempValue,
+      moreAboutMe: bio,
     };
 
     try {
@@ -37,148 +29,153 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
 
       if (res.ok) {
         setDbUser(updatedUser);
-        setData({ moreAboutMe: tempValue });
+        toast.success("Bio updated successfully!");
+      } else {
+        toast.error("Failed to update bio.");
       }
+    } catch (error) {
+      console.error(error);
+      toast.error("Network error.");
     } finally {
       setIsSaving(false);
-      setIsEditing(false);
     }
   };
 
-  const cancelEdit = () => {
-    setTempValue(data.moreAboutMe);
-    setIsEditing(false);
-  };
-
   const addTopic = (topic) => {
-    const current = tempValue || "";
-    const separator = current.length > 0 && !current.endsWith(" ") ? " " : "";
-    const newText = current + separator + topic;
-    setTempValue(newText);
-    setIsEditing(true);
+    if (!isEditMode) return;
+    
+    setBio((prev) => {
+      // Avoid duplicates immediately next to each other
+      if (prev.endsWith(topic)) return prev;
+      
+      const separator = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n") ? " " : "";
+      return prev + separator + topic;
+    });
   };
 
   const topics = [
-    "I'm a heavy sleeper.",
-    "I love cooking.",
-    "I work from home.",
-    "I'm allergic to cats.",
-    "I enjoy quiet weekends.",
-    "I'm neat and organized."
+    "I'm a heavy sleeper 😴",
+    "I love cooking 🍳",
+    "Work from home 💻",
+    "Allergic to cats 🐱",
+    "Enjoy quiet weekends 📖",
+    "Neat and organized ✨",
+    "Social drinker 🍷",
+    "Gym rat 🏋️‍♂️",
+    "Love board games 🎲"
   ];
 
   return (
-    <div className="max-w-4xl mx-auto w-full px-4">
+    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+      
+      {/* Header removed as requested */}
 
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-2">Tell Us More</h2>
-        <p className="text-base-content/60 max-w-lg mx-auto">
-          Share anything you haven't mentioned yet that could help us find your perfect roommate match.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-        <div className="md:col-span-2">
-          <div className="card bg-base-100 shadow-sm border border-base-200 h-full">
-            <div className="card-body p-6">
-              
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                  <Quote size={20} />
-                </div>
-                <h3 className="font-bold text-lg">About Me</h3>
-              </div>
-
-              <div className="relative h-full min-h-[200px]">
-
+      {isEditMode ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Main Input Area */}
+          <div className="lg:col-span-2 space-y-4">
+             <div className="relative group">
                 <textarea
-                  className="textarea textarea-bordered w-full h-full text-base leading-relaxed p-4 rounded-xl focus:textarea-primary resize-none"
-                  placeholder="Tell us a bit more about yourself..."
-                  value={tempValue}
-                  onChange={(e) => {
-                    if (isEditMode) {
-                      setTempValue(e.target.value);
-                      setIsEditing(true);
-                    }
-                  }}
+                  className="textarea w-full h-72 text-lg leading-relaxed bg-base-100 border-2 border-base-200 focus:border-primary/50 focus:outline-none rounded-3xl p-6 shadow-sm resize-none transition-all placeholder:text-base-content/20"
+                  placeholder="E.g. I moved here for work and I'm looking for a chill place. I'm usually out on weekends hiking or visiting friends..."
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
                   maxLength={500}
-                  disabled={!isEditMode}
-                ></textarea>
+                />
+                
+                {/* Character Count & Clear */}
+                <div className="absolute bottom-4 right-4 flex items-center gap-3">
+                   {bio.length > 0 && (
+                     <button 
+                       onClick={() => setBio("")}
+                       className="btn btn-ghost btn-xs text-base-content/40 hover:text-error"
+                       title="Clear all"
+                     >
+                       <Eraser className="w-3 h-3" /> Clear
+                     </button>
+                   )}
+                   <div className="badge badge-sm badge-ghost font-mono opacity-60">
+                     {bio.length} / 500
+                   </div>
+                </div>
+             </div>
 
-                <div className="absolute bottom-4 right-4 text-xs text-base-content/40 bg-base-100 px-2 py-1 rounded-md border border-base-200">
-                  {tempValue?.length} / 500
+             <div className="flex justify-between items-center">
+                {/* Saving Indicator */}
+                <div className={`text-xs font-bold text-primary transition-opacity duration-300 ${isSaving ? 'opacity-100' : 'opacity-0'}`}>
+                    Saving...
                 </div>
 
-                {isEditing && (
-                  <div className="absolute top-4 right-4 flex gap-2">
+                <button
+                  onClick={saveToDB}
+                  disabled={isSaving}
+                  className="btn btn-primary rounded-xl px-8 shadow-lg shadow-primary/20 gap-2"
+                >
+                  {isSaving ? <span className="loading loading-spinner loading-xs"></span> : <Save className="w-4 h-4" />}
+                  Save Bio
+                </button>
+             </div>
+          </div>
 
-                    <button
-                      className="btn btn-circle btn-sm btn-success text-white shadow"
-                      onClick={saveToDB}
-                      disabled={isSaving}
-                    >
-                      <Check size={16} />
-                    </button>
+          {/* Quick Topics Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-base-200/50 rounded-3xl p-6 border border-base-200 h-full">
+               <h4 className="font-bold text-sm uppercase tracking-wider text-base-content/50 mb-4 flex items-center gap-2">
+                 <Sparkles className="w-4 h-4 text-secondary" /> Inspiration
+               </h4>
+               
+               <p className="text-sm text-base-content/60 mb-4">
+                 Tap to add these phrases:
+               </p>
 
-                    <button
-                      className="btn btn-circle btn-sm btn-ghost shadow text-base-content/60"
-                      onClick={cancelEdit}
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                )}
+               <div className="flex flex-wrap gap-2">
+                 {topics.map((topic, idx) => (
+                   <button
+                     key={idx}
+                     onClick={() => addTopic(topic)}
+                     className="btn btn-sm btn-outline bg-base-100 border-base-300 hover:border-accent hover:bg-accent hover:text-accent-content rounded-xl transition-all duration-200 normal-case font-medium text-xs h-auto py-2"
+                   >
+                     <Plus className="w-3 h-3 mr-1 opacity-50" />
+                     {topic}
+                   </button>
+                 ))}
+               </div>
 
-              </div>
-
+               <div className="mt-8 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                 <p className="text-xs text-primary/80 font-medium leading-relaxed">
+                   💡 <span className="font-bold">Tip:</span> Users with detailed bios are 2x more likely to find a match in the first week.
+                 </p>
+               </div>
             </div>
           </div>
         </div>
-
-        <div className="md:col-span-1">
-          <div className="card bg-base-100 shadow-sm border border-base-200 h-full">
-            <div className="card-body p-6">
-              
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles size={18} className="text-yellow-500" />
-                <h3 className="font-bold text-sm uppercase tracking-wide text-base-content/70">
-                  Quick Topics
-                </h3>
+      ) : (
+        /* --- VIEW MODE --- */
+        <div className="max-w-3xl mx-auto pt-4">
+          {bio ? (
+            <div className="relative">
+              <Quote className="absolute -top-4 -left-6 w-12 h-12 text-primary/10 rotate-180" />
+              <div className="bg-gradient-to-br from-base-100 to-base-200 p-10 rounded-[2rem] border border-base-200 shadow-sm relative z-10">
+                <p className="text-xl text-base-content leading-loose font-medium whitespace-pre-wrap">
+                  {bio}
+                </p>
               </div>
-              
-              <p className="text-xs text-base-content/50 mb-4">
-                Click to add these common phrases to your bio:
+              <Quote className="absolute -bottom-4 -right-6 w-12 h-12 text-primary/10" />
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-base-300 rounded-3xl bg-base-100/50">
+              <div className="w-16 h-16 bg-base-200 rounded-full flex items-center justify-center mb-4">
+                <FileText className="w-8 h-8 text-base-content/20" />
+              </div>
+              <h3 className="font-bold text-lg text-base-content/60">No bio written yet</h3>
+              <p className="text-sm text-base-content/40 max-w-xs mt-1">
+                Tell people a little about yourself to get more matches.
               </p>
-
-              <div className="flex flex-col gap-2">
-                {topics.map((topic, index) => (
-                  <button
-                    key={index}
-                    onClick={() => addTopic(topic)}
-                    className="btn btn-sm btn-ghost justify-start font-normal text-left h-auto py-2 border border-base-200 hover:border-primary/50 hover:bg-base-200"
-                    disabled={!isEditMode}
-                  >
-                    <Plus size={14} className="opacity-50 shrink-0 mr-1" />
-                    <span className="truncate">{topic}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="mt-auto pt-6">
-                <div className="alert alert-info bg-base-200 border-none text-xs text-base-content/70 p-3 rounded-lg flex items-start gap-2">
-                  <FileText size={16} className="shrink-0 mt-0.5" />
-                  <span>
-                    Detailed bios get <strong>2x more matches</strong> on average.
-                  </span>
-                </div>
-              </div>
-
             </div>
-          </div>
+          )}
         </div>
-
-      </div>
+      )}
     </div>
   );
 }

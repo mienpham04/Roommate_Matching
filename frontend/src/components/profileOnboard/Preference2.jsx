@@ -97,13 +97,6 @@ function Preference2({ dbUser, userId, setDbUser, isEditMode = true }) {
   return (
     <div className="max-w-4xl mx-auto w-full px-4">
 
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-2">Roommate Preferences</h2>
-        <p className="text-base-content/60 max-w-lg mx-auto">
-          Tell us about your preferences to get matched with the best roommate.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <ToggleCard
           title="Pet Friendly"

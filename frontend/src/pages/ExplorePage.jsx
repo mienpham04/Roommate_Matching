@@ -104,27 +104,102 @@ function ExplorePage() {
     if (!user?.id) return;
     const eventSource = new EventSource(`${API_URL}/profile-updates/stream`);
 
-    eventSource.addEventListener('profile-update', (event) => {
+    eventSource.addEventListener('profile-update', async (event) => {
       const update = JSON.parse(event.data);
-      setAllMatches(prevMatches =>
-        prevMatches.map(match => {
-          if (match.userId === update.userId) {
-            return {
-              ...match,
-              user: {
-                ...match.user,
-                lastUpdatedAt: new Date().toISOString()
-              }
-            };
+
+      // Check if the updated user is in our matches
+      const isInMatches = allMatches.some(m => m.userId === update.userId);
+
+      if (isInMatches) {
+        // Recompute match scores for this user
+        try {
+          const [similarResponse, mutualResponse] = await Promise.all([
+            fetch(`${API_URL}/matching/similar/${user.id}?topK=1000`),
+            fetch(`${API_URL}/matching/mutual/${user.id}?topK=1000`)
+          ]);
+
+          if (similarResponse.ok && mutualResponse.ok) {
+            const similarData = await similarResponse.json();
+            const mutualData = await mutualResponse.json();
+
+            const similarMatches = similarData.matches || [];
+            const mutualMatches = mutualData.matches || [];
+
+            // Find the updated user's new scores
+            const updatedSimilar = similarMatches.find(m => m.userId === update.userId);
+            const updatedMutual = mutualMatches.find(m => m.userId === update.userId);
+
+            if (updatedSimilar || updatedMutual) {
+              // Update the match with new scores
+              setAllMatches(prevMatches => {
+                const updated = prevMatches.map(match => {
+                  if (match.userId === update.userId) {
+                    return {
+                      ...match,
+                      mutualScore: updatedMutual?.mutualScore || match.mutualScore,
+                      similarityScore: updatedSimilar?.similarityScore || match.similarityScore,
+                      user: {
+                        ...match.user,
+                        lastUpdatedAt: new Date().toISOString()
+                      }
+                    };
+                  }
+                  return match;
+                });
+
+                // Update localStorage with new scores
+                localStorage.setItem(`matches_${user.id}`, JSON.stringify(updated));
+                return updated;
+              });
+
+              toast.success(`${update.firstName} updated their profile - scores refreshed!`, { icon: '✨' });
+            } else {
+              // User no longer meets criteria - just update timestamp
+              setAllMatches(prevMatches =>
+                prevMatches.map(match => {
+                  if (match.userId === update.userId) {
+                    return {
+                      ...match,
+                      user: {
+                        ...match.user,
+                        lastUpdatedAt: new Date().toISOString()
+                      }
+                    };
+                  }
+                  return match;
+                })
+              );
+              toast(`${update.firstName} updated their profile`, { icon: '⚠️' });
+            }
           }
-          return match;
-        })
-      );
-      toast.success(`${update.firstName} just updated their profile!`, { icon: '✨' });
+        } catch (error) {
+          console.error('Failed to recompute match scores:', error);
+          // Fallback to just updating timestamp
+          setAllMatches(prevMatches =>
+            prevMatches.map(match => {
+              if (match.userId === update.userId) {
+                return {
+                  ...match,
+                  user: {
+                    ...match.user,
+                    lastUpdatedAt: new Date().toISOString()
+                  }
+                };
+              }
+              return match;
+            })
+          );
+          toast.success(`${update.firstName} just updated their profile!`, { icon: '✨' });
+        }
+      }
     });
 
+    eventSource.onerror = (error) => {
+      console.log('SSE connection error (will auto-reconnect):', error);
+    };
+
     return () => eventSource.close();
-  }, [user]);
+  }, [user, allMatches]);
 
   // --- LOGIC: Fetch Functions ---
   const fetchLikedUsers = async () => {

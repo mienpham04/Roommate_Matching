@@ -21,12 +21,16 @@ import Navbar from "../components/Navbar";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 // --- Sub-Component: Modern Match Card ---
-const MatchCard = ({ match, scores, isUpdated, onUnmatch }) => {
+const MatchCard = ({ match, scores, isUpdated, onUnmatch, validationData }) => {
   const mutualScore = scores?.mutualScore ? Math.round(scores.mutualScore * 100) : 0;
   const similarityScore = scores?.similarityScore ? Math.round(scores.similarityScore * 100) : 0;
-  
+
+  // Determine if this is a low match (score <= 50%)
+  // Only use validationData if it exists, otherwise default to false (not low match)
+  const isLowMatch = validationData?.isLowMatch === true;
+
   const [isUnmatching, setIsUnmatching] = useState(false);
-  
+
   // Ref for the modal
   const unmatchModalRef = useRef(null);
 
@@ -47,10 +51,45 @@ const MatchCard = ({ match, scores, isUpdated, onUnmatch }) => {
 
   return (
     <>
-      <div className="group relative bg-base-100 rounded-3xl border border-base-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full">
+      <div className={`group relative rounded-3xl border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col h-full ${
+        isLowMatch
+          ? 'bg-base-200/50 border-base-300 opacity-75 grayscale'
+          : 'bg-base-100 border-base-200'
+      }`}>
 
         {/* Top Banner / Status */}
-        <div className="absolute top-0 w-full h-24 bg-gradient-to-r from-primary/10 to-secondary/10 z-0"></div>
+        <div className={`absolute top-0 w-full h-24 bg-gradient-to-r z-0 ${
+          isLowMatch
+            ? 'from-base-300/20 to-base-300/20'
+            : 'from-primary/10 to-secondary/10'
+        }`}></div>
+
+        {/* Low Match Badge */}
+        {isLowMatch && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 group/badge">
+            <div className="bg-warning/90 text-warning-content px-4 py-1.5 rounded-full shadow-md flex items-center gap-2 cursor-help">
+              <AlertCircle className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">Low Match</span>
+            </div>
+
+            {/* Tooltip on hover */}
+            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 opacity-0 invisible group-hover/badge:opacity-100 group-hover/badge:visible transition-all duration-200 pointer-events-none">
+              <div className="bg-base-100 text-base-content p-3 rounded-lg shadow-xl border border-base-300">
+                <p className="text-xs leading-relaxed">
+                  <span className="font-bold text-warning">⚠️ Low Compatibility</span>
+                  <br />
+                  {validationData?.mutualScore ? (
+                    <>This user recently updated their profile, resulting in a lower match score of {Math.round(validationData.mutualScore * 100)}%.</>
+                  ) : (
+                    <>This user's profile changes have resulted in a compatibility score of {mutualScore}% or below. You should remove this user from your matches.</>
+                  )}
+                </p>
+              </div>
+              {/* Arrow pointing up */}
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-base-100 border-l border-t border-base-300 rotate-45"></div>
+            </div>
+          </div>
+        )}
 
         {/* Unmatch Button (Triggers Modal) */}
         <button
@@ -223,23 +262,92 @@ function MatchesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cachedScores, setCachedScores] = useState({});
+  const [matchValidation, setMatchValidation] = useState({}); // userId -> stillMatches boolean
+
+  // Validate if a match still meets requirements
+  const validateMatch = async (targetUserId) => {
+    try {
+      const response = await fetch(`${API_URL}/matching/validate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId1: user.id,
+          userId2: targetUserId
+        })
+      });
+
+      const data = await response.json();
+      return {
+        stillMatches: data.stillMatches,
+        isLowMatch: data.isLowMatch,
+        mutualScore: data.mutualScore
+      };
+    } catch (error) {
+      console.error("Failed to validate match:", error);
+      return { stillMatches: true, isLowMatch: false, mutualScore: 1.0 }; // Default to good match on error
+    }
+  };
 
   useEffect(() => {
     if (!user?.id) return;
     const eventSource = new EventSource(`${API_URL}/profile-updates/stream`);
-    
-    eventSource.addEventListener('profile-update', (event) => {
+
+    eventSource.addEventListener('profile-update', async (event) => {
       const update = JSON.parse(event.data);
-      setMatches(prevMatches => 
-        prevMatches.map(match => 
+
+      // Update lastUpdatedAt
+      setMatches(prevMatches =>
+        prevMatches.map(match =>
           match.userId === update.userId ? { ...match, lastUpdatedAt: new Date().toISOString() } : match
         )
       );
-      toast.success(`${update.firstName} updated their profile!`, { icon: '✨' });
+
+      // Check if this updated user is one of our matches
+      const isMatch = matches.some(m => m.userId === update.userId);
+      if (isMatch) {
+        // Validate if we still match
+        const validation = await validateMatch(update.userId);
+        setMatchValidation(prev => ({
+          ...prev,
+          [update.userId]: validation
+        }));
+
+        // Also update scores from localStorage (which ExplorePage updates)
+        const cached = localStorage.getItem(`matches_${user.id}`);
+        if (cached) {
+          const cachedMatches = JSON.parse(cached);
+          const updatedMatch = cachedMatches.find(m => m.userId === update.userId);
+          if (updatedMatch) {
+            setCachedScores(prev => ({
+              ...prev,
+              [update.userId]: {
+                mutualScore: updatedMatch.mutualScore,
+                similarityScore: updatedMatch.similarityScore
+              }
+            }));
+          }
+        }
+
+        if (!validation.isLowMatch) {
+          toast.success(`${update.firstName} updated their profile - scores refreshed!`, { icon: '✨' });
+        } else {
+          toast(`${update.firstName} updated their profile - match score is now low (${Math.round(validation.mutualScore * 100)}%)`, {
+            icon: '⚠️',
+            duration: 5000
+          });
+        }
+      }
     });
 
-    return () => eventSource.close();
-  }, [user?.id]);
+    eventSource.onerror = (error) => {
+      console.log('SSE connection error (will auto-reconnect):', error);
+      // EventSource will automatically reconnect
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [user?.id, matches]);
 
   useEffect(() => {
     if (user?.id) {
@@ -411,6 +519,7 @@ function MatchesPage() {
                       scores={cachedScores[match.userId]}
                       isUpdated={isRecentlyUpdated(match.lastUpdatedAt)}
                       onUnmatch={handleUnmatch}
+                      validationData={matchValidation[match.userId]}
                     />
                   ))}
                 </div>

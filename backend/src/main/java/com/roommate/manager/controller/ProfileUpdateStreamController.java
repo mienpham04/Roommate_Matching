@@ -56,22 +56,38 @@ public class ProfileUpdateStreamController {
 
         System.out.println("📢 Broadcasting profile update to " + emitters.size() + " clients: " + update);
 
+        int successCount = 0;
         int removedCount = 0;
+        CopyOnWriteArrayList<SseEmitter> deadEmitters = new CopyOnWriteArrayList<>();
+
         for (SseEmitter emitter : emitters) {
             try {
                 emitter.send(SseEmitter.event()
                     .name("profile-update")
                     .data(update));
-                System.out.println("✉️ Sent update to client");
-            } catch (IOException e) {
-                emitters.remove(emitter);
+                successCount++;
+            } catch (IllegalStateException | IOException e) {
+                // Connection is broken - mark for removal
+                deadEmitters.add(emitter);
                 removedCount++;
-                System.out.println("❌ Failed to send to client, removing: " + e.getMessage());
+                // Only log if it's not a common disconnect error
+                if (!e.getMessage().contains("Broken pipe") && !e.getMessage().contains("Connection reset")) {
+                    System.out.println("⚠️ Failed to send to client: " + e.getMessage());
+                }
+            } catch (Exception e) {
+                // Unexpected error
+                deadEmitters.add(emitter);
+                removedCount++;
+                System.out.println("❌ Unexpected error sending to client: " + e.getMessage());
             }
         }
 
-        if (removedCount > 0) {
-            System.out.println("🧹 Removed " + removedCount + " dead connections. Active clients: " + emitters.size());
+        // Remove dead emitters
+        if (!deadEmitters.isEmpty()) {
+            emitters.removeAll(deadEmitters);
+            System.out.println("🧹 Removed " + removedCount + " dead connections. Successfully sent to " + successCount + " clients. Active: " + emitters.size());
+        } else if (successCount > 0) {
+            System.out.println("✉️ Successfully sent update to " + successCount + " clients");
         }
     }
 

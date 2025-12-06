@@ -87,13 +87,6 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
   return (
     <div className="w-full">
 
-      <div className="text-center mb-4 md:mb-6">
-        <h2 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">Lifestyle Habits</h2>
-        <p className="text-sm text-base-content/60 max-w-lg mx-auto">
-          Tell us about your general lifestyle so our AI can find the perfect match for you.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4 mb-4 md:mb-6">
         <ToggleCard
           title="Pet Friendly"

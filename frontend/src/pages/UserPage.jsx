@@ -5,13 +5,14 @@ import PersonalInfo from "../components/profileOnboard/PersonalInfo";
 import LifeStyle from "../components/profileOnboard/LifeStyle";
 import Preference1 from "../components/profileOnboard/Preference1";
 import Preference2 from "../components/profileOnboard/Preference2";
+import Preference3 from "../components/profileOnboard/Preference3";
 import MoreDetails from "../components/profileOnboard/MoreDetails";
 import { useParams, useLocation } from "react-router";
 import Loading from "../components/Loading";
 
 function UserPage() {
     const { id } = useParams();
-    const location = useLocation(); // Fixed missing hook usage
+    const location = useLocation(); 
     const [active, setActive] = useState("Profile");
     const [preferenceSubTab, setPreferenceSubTab] = useState(0);
     const [dbUser, setDbUser] = useState(null);
@@ -38,16 +39,26 @@ function UserPage() {
         }
     }, [location.state]);
 
-    const tabs = ["Profile", "Lifestyle", "Preferences", "More details"];
+    const tabs = ["Profile", "Lifestyle", "Preferences", "About Me"];
 
     const stepIcons = {
         "Profile": <User className="w-5 h-5" />,
         "Lifestyle": <Coffee className="w-5 h-5" />,
         "Preferences": <Heart className="w-5 h-5" />,
-        "More details": <FileText className="w-5 h-5" />
+        "About Me": <FileText className="w-5 h-5" />
     };
 
     const currentIndex = tabs.indexOf(active);
+
+    const getTabDescription = (tabName) => {
+        const descriptions = {
+            "Profile": "Your basic information, contact details, and budget",
+            "Lifestyle": "Your daily habits, routines, and living preferences",
+            "Preferences": "What you're looking for in a roommate",
+            "About Me": "People want to know more about you!"
+        };
+        return descriptions[tabName] || "Manage and view your profile settings";
+    };
 
     const changeStep = (newActive) => {
         if (active === newActive) return;
@@ -58,7 +69,7 @@ function UserPage() {
     };
 
     const handleNext = async () => {
-        if (isEditMode && active === "Preferences" && preferenceSubTab < 1) {
+        if (isEditMode && active === "Preferences" && preferenceSubTab < 2) {
             setPreferenceSubTab(preferenceSubTab + 1);
             return;
         }
@@ -136,41 +147,52 @@ function UserPage() {
 
     const renderPreferences = () => {
         return (
-            <div className="w-full">
-                {/* Modern Pill Segmented Control */}
-                <div className="flex justify-center mb-10">
-                    <div className="inline-flex bg-base-200/60 p-1.5 rounded-full shadow-inner border border-base-300 backdrop-blur-sm relative">
-                        {/* Animated Background Pill (Optional complexity, kept simple for React/Tailwind) */}
-                        <button
-                            className={`px-8 py-2.5 rounded-full font-bold text-sm transition-all duration-300 min-w-[140px] flex items-center justify-center gap-2
-                                ${preferenceSubTab === 0
-                                    ? 'bg-white text-primary shadow-md transform scale-105' 
-                                    : 'text-base-content/60 hover:text-base-content hover:bg-base-200/50'
-                                }`}
-                            onClick={() => setPreferenceSubTab(0)}
-                        >
-                            <Heart className={`w-4 h-4 ${preferenceSubTab === 0 ? 'fill-primary' : ''}`} />
-                            <span>Basic</span>
-                        </button>
-                        <button
-                            className={`px-8 py-2.5 rounded-full font-bold text-sm transition-all duration-300 min-w-[140px] flex items-center justify-center gap-2
-                                ${preferenceSubTab === 1
-                                    ? 'bg-white text-secondary shadow-md transform scale-105'
-                                    : 'text-base-content/60 hover:text-base-content hover:bg-base-200/50'
-                                }`}
-                            onClick={() => setPreferenceSubTab(1)}
-                        >
-                            <Coffee className={`w-4 h-4 ${preferenceSubTab === 1 ? 'fill-secondary' : ''}`} />
-                            <span>Lifestyle</span>
-                        </button>
-                    </div>
+            // Added negative margin top (-mt-2 md:-mt-6) to pull tabs closer to the title
+            <div className="w-full -mt-2 md:-mt-6">
+                {/* Lightweight Tab Navigation - Top Left */}
+                <div className="flex gap-1 mb-8 border-b border-base-200">
+                    <button
+                        className={`px-4 py-2.5 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2
+                            ${preferenceSubTab === 0
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-base-content/50 hover:text-base-content hover:border-base-300'
+                            }`}
+                        onClick={() => setPreferenceSubTab(0)}
+                    >
+                        <Heart className={`w-4 h-4 ${preferenceSubTab === 0 ? 'fill-primary' : ''}`} />
+                        Basic
+                    </button>
+                    <button
+                        className={`px-4 py-2.5 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2
+                            ${preferenceSubTab === 1
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-base-content/50 hover:text-base-content hover:border-base-300'
+                            }`}
+                        onClick={() => setPreferenceSubTab(1)}
+                    >
+                        <Coffee className={`w-4 h-4 ${preferenceSubTab === 1 ? 'fill-primary' : ''}`} />
+                        Lifestyle
+                    </button>
+                    <button
+                        className={`px-4 py-2.5 text-sm font-semibold transition-all duration-200 border-b-2 flex items-center gap-2
+                            ${preferenceSubTab === 2
+                                ? 'border-primary text-primary'
+                                : 'border-transparent text-base-content/50 hover:text-base-content hover:border-base-300'
+                            }`}
+                        onClick={() => setPreferenceSubTab(2)}
+                    >
+                        <Sparkles className={`w-4 h-4 ${preferenceSubTab === 2 ? 'fill-primary' : ''}`} />
+                        More
+                    </button>
                 </div>
-                
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+
+                <div className="animate-in fade-in slide-in-from-right-2 duration-200">
                     {preferenceSubTab === 0 ? (
                         <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
-                    ) : (
+                    ) : preferenceSubTab === 1 ? (
                         <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
+                    ) : (
+                        <Preference3 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
                     )}
                 </div>
             </div>
@@ -182,7 +204,7 @@ function UserPage() {
             case "Profile": return <PersonalInfo dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
             case "Lifestyle": return <LifeStyle dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
             case "Preferences": return renderPreferences();
-            case "More details": return <MoreDetails dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
+            case "About Me": return <MoreDetails dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
             default: return null;
         }
     };
@@ -190,14 +212,13 @@ function UserPage() {
     if (!dbUser) return <Loading />;
 
     return (
-        // Added a subtle gradient background to the main page wrapper
         <div className="h-screen w-full bg-gradient-to-br from-base-200 to-base-300 flex flex-col font-sans overflow-hidden text-base-content">
             <Navbar />
 
             <div className="flex-1 overflow-hidden">
                 <div className="max-w-7xl mx-auto h-full flex gap-4 md:gap-8 p-4 md:p-8 items-stretch">
 
-                    {/* Left Sidebar - Refined */}
+                    {/* Left Sidebar */}
                     <div className="w-20 md:w-64 flex-shrink-0 flex flex-col gap-2 relative z-20 pt-4">
                         <div className="px-4 mb-6 hidden md:block">
                             <h3 className="text-xs font-extrabold text-base-content/40 uppercase tracking-widest flex items-center gap-2">
@@ -211,7 +232,6 @@ function UserPage() {
                                 <button
                                     key={tab}
                                     onClick={() => changeStep(tab)}
-                                    // New styling: Floating Pill style instead of Border-Left
                                     className={`
                                         w-full flex items-center gap-3 px-4 md:px-6 py-3.5 transition-all duration-300 rounded-xl group
                                         ${isActive
@@ -239,11 +259,10 @@ function UserPage() {
                         })}
                     </div>
 
-                    {/* Main Content Area - Card Design */}
+                    {/* Main Content Area */}
                     <div className="flex-1 flex flex-col overflow-hidden relative z-10 h-full">
                         <div className="bg-base-100 flex-1 shadow-xl shadow-base-300/50 border border-base-100 rounded-3xl flex flex-col overflow-hidden h-full relative">
                             
-                            {/* Decorative background blob inside the card (optional) */}
                             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
                             {/* Header */}
@@ -254,14 +273,13 @@ function UserPage() {
                                         {isEditMode && <span className="badge badge-warning badge-sm animate-pulse">Editing</span>}
                                     </h2>
                                     <p className="text-sm font-medium text-base-content/50 mt-1">
-                                        {isEditMode ? 'Update your information below.' : 'Manage and view your profile settings.'}
+                                        {isEditMode ? 'Update your information below.' : getTabDescription(active)}
                                     </p>
                                 </div>
 
                                 <button
                                     onClick={async () => {
                                         if (isEditMode) {
-                                            // Save when exiting edit mode
                                             await handleFinish();
                                         } else {
                                             setIsEditMode(true);
@@ -302,7 +320,7 @@ function UserPage() {
                                 </div>
                             </div>
 
-                            {/* Footer - Only visible in Edit Mode */}
+                            {/* Footer */}
                             {isEditMode && (
                                 <div className="p-4 md:p-6 border-t border-base-200 bg-base-100/90 backdrop-blur-md shrink-0 flex justify-between items-center z-10">
                                     <button
