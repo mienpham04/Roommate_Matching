@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 public class ProfileUpdateEvent {
 
     private String userId;
+    private String firstName;
+    private String lastName;
     private String updateType; // "PROFILE" or "PREFERENCE"
 
     @JsonSerialize(using = LocalDateTimeSerializer.class)
@@ -22,8 +24,10 @@ public class ProfileUpdateEvent {
         this.timestamp = LocalDateTime.now();
     }
 
-    public ProfileUpdateEvent(String userId, String updateType) {
+    public ProfileUpdateEvent(String userId, String firstName, String lastName, String updateType) {
         this.userId = userId;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.updateType = updateType;
         this.timestamp = LocalDateTime.now();
     }
@@ -41,9 +45,25 @@ public class ProfileUpdateEvent {
         return timestamp;
     }
 
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
     // Setters
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+    
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public void setUpdateType(String updateType) {
@@ -53,6 +73,7 @@ public class ProfileUpdateEvent {
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
     }
+
 
     @Override
     public String toString() {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, User, Coffee, Heart, FileText, Edit, Eye } from "lucide-react";
+import { ChevronLeft, ChevronRight, User, Coffee, Heart, FileText, Edit, Eye,  Check } from "lucide-react";
 import Navbar from "../components/Navbar";
 import PersonalInfo from "../components/profileOnboard/PersonalInfo";
 import LifeStyle from "../components/profileOnboard/LifeStyle";
@@ -211,8 +211,8 @@ function UserPage() {
                                 >
                                     {isEditMode ? (
                                         <>
-                                            <Eye size={18} />
-                                            <span>Preview</span>
+                                            <Check size={18} />
+                                            <span>Done</span>
                                         </>
                                     ) : (
                                         <>

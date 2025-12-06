@@ -45,9 +45,11 @@ public class ProfileUpdateStreamController {
      * Broadcast profile update to all connected clients
      * Call this method when a user updates their profile
      */
-    public void broadcastProfileUpdate(String userId, String updateType) {
+    public void broadcastProfileUpdate(String userId, String firstName, String lastName, String updateType) {
         Map<String, String> update = Map.of(
             "userId", userId,
+            "firstName", firstName,
+            "lastName", lastName,
             "updateType", updateType,
             "timestamp", String.valueOf(System.currentTimeMillis())
         );

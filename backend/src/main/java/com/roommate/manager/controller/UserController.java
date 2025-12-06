@@ -112,7 +112,7 @@ public class UserController {
 
         // Publish Kafka event for profile update
         try {
-            ProfileUpdateEvent event = new ProfileUpdateEvent(id, "PROFILE");
+            ProfileUpdateEvent event = new ProfileUpdateEvent(id, savedUser.getFirstName(), savedUser.getLastName(), "PROFILE");
             kafkaProducerService.sendProfileUpdated(event);
             System.out.println("Published profile update event for user: " + id);
         } catch (Exception e) {

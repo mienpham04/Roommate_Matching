@@ -32,6 +32,8 @@ public class ProfileUpdateConsumer {
 
         try {
             String userId = event.getUserId();
+            String firstName = event.getFirstName();
+            String lastName = event.getLastName();
 
             // Fetch the updated user from database
             UserModel user = userRepository.findById(userId).orElse(null);
@@ -46,7 +48,7 @@ public class ProfileUpdateConsumer {
             indexManagementService.uploadUserToIndex(user);
 
             // Broadcast to all connected clients via SSE
-            streamController.broadcastProfileUpdate(userId, event.getUpdateType());
+            streamController.broadcastProfileUpdate(userId, firstName, lastName, event.getUpdateType());
 
             System.out.println("Successfully updated vector index for user: " + userId +
                              " (update type: " + event.getUpdateType() + ")" +

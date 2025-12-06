@@ -89,9 +89,8 @@ function ExplorePage() {
       );
 
       // Show a subtle toast notification
-      toast.success(`${update.userId.substring(0, 8)}... just updated their profile!`, {
-        duration: 3000,
-        icon: '✨'
+      toast.success(`${update.firstName} ${update.lastName} just updated their profile!`, {
+        icon: '✨',
       });
     });
 
