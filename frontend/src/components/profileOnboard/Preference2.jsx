@@ -12,7 +12,6 @@ function Preference2({ dbUser, userId, setDbUser, isEditMode = true }) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempGuest, setTempGuest] = useState(pref.guestFrequency);
 
-  // Update local state when dbUser changes (e.g., after page refresh)
   useEffect(() => {
     if (dbUser?.preferences) {
       const newPref = {
@@ -27,7 +26,6 @@ function Preference2({ dbUser, userId, setDbUser, isEditMode = true }) {
   }, [dbUser]);
 
   const saveToDB = async (updatedPreferences) => {
-    // Merge with existing preferences to avoid overwriting other preference fields
     const mergedPreferences = {
       ...dbUser?.preferences,
       ...updatedPreferences,
