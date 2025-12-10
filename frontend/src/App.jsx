@@ -14,7 +14,7 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />}/>
       <Route path="/profile/view/:id" element={<ProfilePage />}/>
-      <Route path="/process" element={<ProcessPage />} />
+      <Route path="/process/:id" element={<ProcessPage />} />
       <Route path="/explore" element={<ExplorePage />}/>
       <Route path="/user/:id" element={<UserPage />} />
       <Route path="/matches" element={<MatchesPage />} />

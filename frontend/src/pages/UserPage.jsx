@@ -6,7 +6,7 @@ import LifeStyle from "../components/profileOnboard/LifeStyle";
 import Preference1 from "../components/profileOnboard/Preference1";
 import Preference2 from "../components/profileOnboard/Preference2";
 import MoreDetails from "../components/profileOnboard/MoreDetails";
-import { useParams, useLocation } from "react-router";
+import { useParams } from "react-router";
 import Loading from "../components/Loading";
 
 function UserPage() {
@@ -89,7 +89,7 @@ function UserPage() {
                             // REVERTED: Using 'bg-secondary' for the pastel look
                             className={`px-6 py-2.5 rounded-lg font-bold text-sm transition-all duration-200 min-w-[120px]
                                 ${preferenceSubTab === 0
-                                    ? 'bg-secondary text-secondary-content shadow-lg scale-105' 
+                                    ? 'bg-secondary text-secondary-content shadow-lg scale-105'
                                     : 'text-base-content/60 hover:text-base-content hover:bg-base-100/50'
                                 }`}
                             onClick={() => setPreferenceSubTab(0)}
@@ -115,7 +115,7 @@ function UserPage() {
                         </button>
                     </div>
                 </div>
-                
+
                 <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                     {preferenceSubTab === 0 ? (
                         <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
@@ -147,7 +147,7 @@ function UserPage() {
                 <div className="max-w-7xl mx-auto h-full flex gap-0 p-2 md:p-6 items-stretch">
 
                     {/* Left Sidebar */}
-                    <div className="w-52 md:w-64 flex-shrink-0 flex flex-col gap-2 relative z-20 pt-8">
+                    <div className="w-52 md:w-64 shrink-0 flex flex-col gap-2 relative z-20 pt-8">
                         <h3 className="text-xs font-bold text-base-content/50 uppercase tracking-widest mb-4 px-6">
                             Settings & Profile
                         </h3>
@@ -161,18 +161,18 @@ function UserPage() {
                                         // Keeping 'text-pink-600' and 'border-pink-600' for readability/vividness
                                         className={`w-full flex items-center gap-3 px-6 py-4 transition-all duration-200 relative
                                             ${isActive
-                                                ? "bg-base-100 text-pink-600 font-extrabold rounded-l-2xl border-l-[6px] border-pink-600 border-t border-b border-base-300 -mr-[1px]" 
+                                                ? "bg-base-100 text-pink-400 font-extrabold rounded-l-2xl border-l-[6px] border-pink-400 border-t border-b -mr-px"
                                                 : "text-base-content/60 hover:bg-base-100/50 hover:text-pink-600 hover:font-bold rounded-xl"
                                             }
                                         `}
                                         style={isActive ? { borderRight: 'none', width: 'calc(100% + 1px)' } : {}}
                                     >
                                         <span className={`flex items-center justify-center transition-all duration-300
-                                            ${isActive ? 'scale-110 text-pink-600' : 'text-base-content/40 group-hover:text-pink-600'}
+                                            ${isActive ? 'scale-110 text-pink-400' : 'text-base-content/40 group-hover:text-pink-400'}
                                         `}>
                                             {/* Vivid Icon fill */}
-                                            {isActive ? 
-                                                <div className="fill-pink-600 stroke-pink-600">{stepIcons[tab]}</div> : 
+                                            {isActive ?
+                                                <div className="fill-pink-600 stroke-pink-600">{stepIcons[tab]}</div> :
                                                 stepIcons[tab]
                                             }
                                         </span>
@@ -203,8 +203,8 @@ function UserPage() {
                                     // REVERTED: Back to standard pastel Secondary button
                                     className={`
                                         btn btn-sm md:btn-md gap-2
-                                        ${isEditMode 
-                                            ? 'btn-ghost text-base-content/70' 
+                                        ${isEditMode
+                                            ? 'btn-ghost text-base-content/70'
                                             : 'btn-outline btn-secondary border-2 hover:bg-secondary hover:text-secondary-content'
                                         }
                                     `}
@@ -237,8 +237,8 @@ function UserPage() {
                                         onClick={handleBack}
                                         disabled={currentIndex === 0}
                                         className={`btn btn-ghost gap-2 hover:bg-base-200
-                                            ${currentIndex === 0 
-                                                ? 'opacity-0 pointer-events-none' 
+                                            ${currentIndex === 0
+                                                ? 'opacity-0 pointer-events-none'
                                                 : ''
                                             }
                                         `}
