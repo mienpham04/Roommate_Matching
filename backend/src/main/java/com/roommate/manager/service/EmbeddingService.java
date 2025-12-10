@@ -1,5 +1,6 @@
 package com.roommate.manager.service;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.aiplatform.v1.*;
 import com.google.protobuf.Value;
 import com.roommate.manager.config.VectorSearchConfig;
@@ -16,6 +17,9 @@ public class EmbeddingService {
 
     @Autowired
     private VectorSearchConfig config;
+
+    @Autowired
+    private GoogleCredentials credentials;
 
     private static final String EMBEDDING_MODEL = "text-embedding-004";
 
@@ -178,7 +182,12 @@ public class EmbeddingService {
             EMBEDDING_MODEL
         );
 
-        try (PredictionServiceClient client = PredictionServiceClient.create()) {
+        // Create client settings with configured credentials
+        PredictionServiceSettings settings = PredictionServiceSettings.newBuilder()
+            .setCredentialsProvider(() -> credentials)
+            .build();
+
+        try (PredictionServiceClient client = PredictionServiceClient.create(settings)) {
             // Create the instance for text embedding
             Value.Builder instanceBuilder = Value.newBuilder();
             instanceBuilder.getStructValueBuilder()

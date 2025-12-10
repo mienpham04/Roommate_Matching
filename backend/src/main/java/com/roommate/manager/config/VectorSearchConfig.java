@@ -1,9 +1,15 @@
 package com.roommate.manager.config;
 
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.vertexai.VertexAI;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
 
 @Configuration
 public class VectorSearchConfig {
@@ -17,6 +23,9 @@ public class VectorSearchConfig {
     @Value("${gcp.location}")
     private String location;
 
+    @Value("${gcp.credentials.json:}")
+    private String credentialsJson;
+
     @Value("${vertex.ai.index.id:#{null}}")
     private String indexId;
 
@@ -28,6 +37,34 @@ public class VectorSearchConfig {
 
     @Value("${vertex.ai.public.endpoint.domain:#{null}}")
     private String publicEndpointDomain;
+
+    /**
+     * Get GoogleCredentials from the configured source
+     * Tries in order:
+     * 1. GCP_CREDENTIALS_JSON environment variable (file path or JSON content)
+     * 2. GOOGLE_APPLICATION_CREDENTIALS environment variable
+     * 3. Application Default Credentials
+     */
+    @Bean
+    public GoogleCredentials googleCredentials() throws IOException {
+        if (credentialsJson != null && !credentialsJson.trim().isEmpty()) {
+            // Check if it's a file path or JSON content
+            if (credentialsJson.trim().startsWith("{")) {
+                // It's JSON content
+                return GoogleCredentials.fromStream(
+                    new ByteArrayInputStream(credentialsJson.getBytes())
+                );
+            } else {
+                // It's a file path
+                return GoogleCredentials.fromStream(
+                    new FileInputStream(credentialsJson)
+                );
+            }
+        }
+
+        // Fall back to Application Default Credentials
+        return GoogleCredentials.getApplicationDefault();
+    }
 
     @Bean
     public VertexAI vertexAI() {

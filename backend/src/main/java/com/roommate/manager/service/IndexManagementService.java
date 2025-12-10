@@ -1,5 +1,6 @@
 package com.roommate.manager.service;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.aiplatform.v1.*;
 import com.roommate.manager.config.VectorSearchConfig;
 import com.roommate.manager.model.UserModel;
@@ -22,7 +23,10 @@ public class IndexManagementService {
     @Autowired
     private EmbeddingService embeddingService;
 
-    //CLAUD CODE START
+    @Autowired
+    private GoogleCredentials credentials;
+
+    
     /**
      * Upload a user's embedding vectors to the Vector Search index
      * Uploads TWO vectors per user:
@@ -69,10 +73,11 @@ public class IndexManagementService {
             .build();
 
         // Upload BOTH vectors to index
-        // Configure client with explicit endpoint for the region
+        // Configure client with explicit endpoint for the region and credentials
         String endpoint = String.format("%s-aiplatform.googleapis.com:443", config.getLocation());
         IndexServiceSettings settings = IndexServiceSettings.newBuilder()
             .setEndpoint(endpoint)
+            .setCredentialsProvider(() -> credentials)
             .build();
 
         try (IndexServiceClient indexServiceClient = IndexServiceClient.create(settings)) {
@@ -89,7 +94,6 @@ public class IndexManagementService {
             throw new IOException("Failed to upload user vectors to index: " + e.getMessage(), e);
         }
     }
-    //CLAUD CODE END
 
     /**
      * Batch upload multiple users to the index
@@ -124,10 +128,11 @@ public class IndexManagementService {
             throw new IOException("Index endpoint or deployed index ID not configured");
         }
 
-        // Configure MatchServiceClient to use public VDB endpoint
+        // Configure MatchServiceClient to use public VDB endpoint and credentials
         String vdbEndpoint = String.format("%s:443", config.getPublicEndpointDomain());
         MatchServiceSettings matchSettings = MatchServiceSettings.newBuilder()
             .setEndpoint(vdbEndpoint)
+            .setCredentialsProvider(() -> credentials)
             .build();
 
         try (MatchServiceClient matchServiceClient = MatchServiceClient.create(matchSettings)) {
@@ -169,10 +174,11 @@ public class IndexManagementService {
             return;
         }
 
-        // Configure client with explicit endpoint for the region
+        // Configure client with explicit endpoint for the region and credentials
         String endpoint = String.format("%s-aiplatform.googleapis.com:443", config.getLocation());
         IndexServiceSettings settings = IndexServiceSettings.newBuilder()
             .setEndpoint(endpoint)
+            .setCredentialsProvider(() -> credentials)
             .build();
 
         try (IndexServiceClient indexServiceClient = IndexServiceClient.create(settings)) {

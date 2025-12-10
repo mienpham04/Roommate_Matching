@@ -1,5 +1,6 @@
 package com.roommate.manager.service;
 
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.aiplatform.v1.*;
 import com.roommate.manager.config.VectorSearchConfig;
 import com.roommate.manager.model.UserModel;
@@ -27,6 +28,9 @@ public class VectorSearchService {
 
     @Autowired
     private AttributeMatchingService attributeMatchingService;
+
+    @Autowired
+    private GoogleCredentials credentials;
 
     /**
      * Find similar roommates with the same LIFESTYLE as this user
@@ -386,10 +390,11 @@ public class VectorSearchService {
             throw new IllegalStateException("Deployed index ID not configured. Please set VERTEX_AI_DEPLOYED_INDEX_ID in your .env file");
         }
 
-        // Configure MatchServiceClient to use public VDB endpoint
+        // Configure MatchServiceClient to use public VDB endpoint and configured credentials
         String vdbEndpoint = String.format("%s:443", config.getPublicEndpointDomain());
         MatchServiceSettings matchSettings = MatchServiceSettings.newBuilder()
             .setEndpoint(vdbEndpoint)
+            .setCredentialsProvider(() -> credentials)
             .build();
 
         try (MatchServiceClient matchServiceClient = MatchServiceClient.create(matchSettings)) {
