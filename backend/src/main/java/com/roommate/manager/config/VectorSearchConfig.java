@@ -47,23 +47,30 @@ public class VectorSearchConfig {
      */
     @Bean
     public GoogleCredentials googleCredentials() throws IOException {
+        GoogleCredentials credentials;
+
         if (credentialsJson != null && !credentialsJson.trim().isEmpty()) {
             // Check if it's a file path or JSON content
             if (credentialsJson.trim().startsWith("{")) {
                 // It's JSON content
-                return GoogleCredentials.fromStream(
+                credentials = GoogleCredentials.fromStream(
                     new ByteArrayInputStream(credentialsJson.getBytes())
                 );
             } else {
                 // It's a file path
-                return GoogleCredentials.fromStream(
+                credentials = GoogleCredentials.fromStream(
                     new FileInputStream(credentialsJson)
                 );
             }
+        } else {
+            // Fall back to Application Default Credentials
+            credentials = GoogleCredentials.getApplicationDefault();
         }
 
-        // Fall back to Application Default Credentials
-        return GoogleCredentials.getApplicationDefault();
+        // Create scoped credentials for Vertex AI and refresh them
+        return credentials.createScoped(
+            "https://www.googleapis.com/auth/cloud-platform"
+        );
     }
 
     @Bean
