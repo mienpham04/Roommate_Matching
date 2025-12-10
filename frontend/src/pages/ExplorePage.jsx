@@ -32,6 +32,7 @@ function ExplorePage() {
   const [error, setError] = useState(null);
   const [currentLimit, setCurrentLimit] = useState(5);
   const [likedUsers, setLikedUsers] = useState(new Set());
+  const [mutualMatchIds, setMutualMatchIds] = useState(new Set());
   const [activeTab, setActiveTab] = useState("explore");
   const [receivedLikes, setReceivedLikes] = useState([]);
   const [sentLikes, setSentLikes] = useState([]);
@@ -62,6 +63,7 @@ function ExplorePage() {
           fetchLikedUsers();
           fetchReceivedLikes();
           fetchSentLikes();
+          fetchMutualMatches();
         }
       }
     };
@@ -71,6 +73,7 @@ function ExplorePage() {
         fetchLikedUsers();
         fetchReceivedLikes();
         fetchSentLikes();
+        fetchMutualMatches();
       }
     };
 
@@ -94,6 +97,7 @@ function ExplorePage() {
       fetchLikedUsers();
       fetchReceivedLikes();
       fetchSentLikes();
+      fetchMutualMatches();
     } else {
       setLoading(false);
     }
@@ -215,6 +219,23 @@ function ExplorePage() {
   }, [user]);
 
   // --- LOGIC: Fetch Functions ---
+  const fetchMutualMatches = async () => {
+    try {
+      const response = await fetch(`${API_URL}/likes/mutual/${user.id}`);
+      if (response.status === 404) {
+        setMutualMatchIds(new Set());
+        return;
+      }
+      const data = await response.json();
+      if (data.success) {
+        const ids = (data.mutualMatches || []).map(match => match.id);
+        setMutualMatchIds(new Set(ids));
+      }
+    } catch (err) {
+      console.error("Failed to fetch mutual matches:", err);
+    }
+  };
+
   const fetchLikedUsers = async () => {
     try {
       const response = await fetch(`${API_URL}/likes/sent/${user.id}`);
@@ -363,8 +384,10 @@ function ExplorePage() {
   };
 
   useEffect(() => {
-    setDisplayedMatches(allMatches.slice(0, currentLimit));
-  }, [allMatches, currentLimit]);
+    // Filter out users who are already mutual matches
+    const filteredMatches = allMatches.filter(match => !mutualMatchIds.has(match.userId));
+    setDisplayedMatches(filteredMatches.slice(0, currentLimit));
+  }, [allMatches, currentLimit, mutualMatchIds]);
 
   const loadMore = () => {
     setCurrentLimit(prev => prev + 5);
@@ -406,6 +429,7 @@ function ExplorePage() {
           toast.success("Like removed");
           fetchSentLikes();
           fetchReceivedLikes();
+          fetchMutualMatches();
         }
       } else {
         const response = await fetch(`${API_URL}/likes`, {
@@ -418,6 +442,8 @@ function ExplorePage() {
           setLikedUsers(prev => new Set([...prev, targetUserId]));
           if (data.isMutual) {
             toast.success("🎉 It's a match!", { duration: 5000 });
+            // Refetch mutual matches to update the filtered list
+            fetchMutualMatches();
           } else {
             toast.success("Like sent!");
           }
@@ -710,7 +736,7 @@ function ExplorePage() {
                  </div>
               </div>
 
-              {allMatches.length === 0 ? (
+              {displayedMatches.length === 0 && allMatches.filter(m => !mutualMatchIds.has(m.userId)).length === 0 ? (
                 <div className="text-center py-20 bg-base-100 rounded-3xl border border-dashed border-base-300">
                   <div className="bg-base-200 inline-flex p-4 rounded-full mb-4">
                      <Users className="size-8 text-base-content/40" />
@@ -726,7 +752,7 @@ function ExplorePage() {
                     ))}
                   </div>
 
-                  {displayedMatches.length < allMatches.length && (
+                  {displayedMatches.length < allMatches.filter(m => !mutualMatchIds.has(m.userId)).length && (
                     <div className="flex justify-center mt-12">
                       <button className="btn btn-outline btn-primary btn-wide rounded-full" onClick={loadMore}>
                         Load More Matches
