@@ -114,9 +114,10 @@ public class VectorSearchService {
             double mutualEmbeddingScore = (forwardEmbeddingScore + reverseEmbeddingScore) / 2.0;
 
             // STEP 4: Combine scores with weighting
-            // 70% attribute-based (hard compatibility) + 30% embedding-based (personality/vibe)
-            double hybridForwardScore = (forwardAttributeScore * 0.7) + (forwardEmbeddingScore * 0.3);
-            double hybridReverseScore = (reverseAttributeScore * 0.7) + (reverseEmbeddingScore * 0.3);
+            // 50% attribute-based (lifestyle compatibility) + 50% embedding-based (personality/vibe)
+            // Balanced approach: personality and lifestyle are equally important
+            double hybridForwardScore = (forwardAttributeScore * 0.5) + (forwardEmbeddingScore * 0.5);
+            double hybridReverseScore = (reverseAttributeScore * 0.5) + (reverseEmbeddingScore * 0.5);
             double hybridMutualScore = (hybridForwardScore + hybridReverseScore) / 2.0;
 
             System.out.println("  " + candidateUser.getFirstName() + ": " +
@@ -215,9 +216,10 @@ public class VectorSearchService {
         // Calculate similarity score (profile vs profile - lifestyle similarity)
         double similarityScore = calculateCosineSimilarity(user1ProfileEmb, user2ProfileEmb);
 
-        // Combine scores with weighting (70% attribute + 30% embedding)
-        double hybridForwardScore = (forwardAttributeScore * 0.7) + (forwardEmbeddingScore * 0.3);
-        double hybridReverseScore = (reverseAttributeScore * 0.7) + (reverseEmbeddingScore * 0.3);
+        // Combine scores with weighting (50% attribute + 50% embedding)
+        // Balanced approach: personality and lifestyle are equally important
+        double hybridForwardScore = (forwardAttributeScore * 0.5) + (forwardEmbeddingScore * 0.5);
+        double hybridReverseScore = (reverseAttributeScore * 0.5) + (reverseEmbeddingScore * 0.5);
         double hybridMutualScore = (hybridForwardScore + hybridReverseScore) / 2.0;
 
         // Build result
