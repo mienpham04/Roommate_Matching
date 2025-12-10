@@ -4,7 +4,6 @@ import toast from "react-hot-toast";
 
 function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
   const [bio, setBio] = useState(dbUser?.moreAboutMe || "");
-  const [isSaving, setIsSaving] = useState(false);
 
   // Sync with DB prop changes
   useEffect(() => {
@@ -13,33 +12,15 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
     }
   }, [dbUser]);
 
-  const saveToDB = async () => {
-    setIsSaving(true);
-    const updatedUser = {
-      ...dbUser,
-      moreAboutMe: bio,
-    };
-
-    try {
-      const res = await fetch(`http://localhost:8080/api/users/${userId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedUser),
+  // Update parent state when bio changes (no immediate save to DB)
+  useEffect(() => {
+    if (isEditMode && dbUser) {
+      setDbUser({
+        ...dbUser,
+        moreAboutMe: bio,
       });
-
-      if (res.ok) {
-        setDbUser(updatedUser);
-        toast.success("Bio updated successfully!");
-      } else {
-        toast.error("Failed to update bio.");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Network error.");
-    } finally {
-      setIsSaving(false);
     }
-  };
+  }, [bio, isEditMode]);
 
   const addTopic = (topic) => {
     if (!isEditMode) return;
@@ -99,22 +80,6 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
                      {bio.length} / 500
                    </div>
                 </div>
-             </div>
-
-             <div className="flex justify-between items-center">
-                {/* Saving Indicator */}
-                <div className={`text-xs font-bold text-primary transition-opacity duration-300 ${isSaving ? 'opacity-100' : 'opacity-0'}`}>
-                    Saving...
-                </div>
-
-                <button
-                  onClick={saveToDB}
-                  disabled={isSaving}
-                  className="btn btn-primary rounded-xl px-8 shadow-lg shadow-primary/20 gap-2"
-                >
-                  {isSaving ? <span className="loading loading-spinner loading-xs"></span> : <Save className="w-4 h-4" />}
-                  Save Bio
-                </button>
              </div>
           </div>
 

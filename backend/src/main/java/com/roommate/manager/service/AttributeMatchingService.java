@@ -41,9 +41,32 @@ public class AttributeMatchingService {
      * Check if two users meet hard requirements (must pass all filters)
      */
     public boolean meetsHardRequirements(UserModel userA, UserModel userB) {
-        return passesAgeRequirement(userA, userB) &&
-               passesGenderRequirement(userA, userB) &&
-               passesLifestyleRequirements(userA, userB);
+        boolean passesAge = passesAgeRequirement(userA, userB);
+        boolean passesGender = passesGenderRequirement(userA, userB);
+        boolean passesLifestyle = passesLifestyleRequirements(userA, userB);
+
+        System.out.println("    Checking " + userA.getFirstName() + "'s requirements for " + userB.getFirstName() + ":");
+        System.out.println("      Age: " + (passesAge ? "✓" : "✗"));
+        System.out.println("      Gender: " + (passesGender ? "✓" : "✗"));
+        System.out.println("      Lifestyle: " + (passesLifestyle ? "✓" : "✗"));
+
+        if (!passesAge) {
+            System.out.println("      ❌ Failed Age: " + userA.getFirstName() + " wants " +
+                (userA.getPreferences() != null ? userA.getPreferences().getMinAge() + "-" + userA.getPreferences().getMaxAge() : "any") +
+                ", " + userB.getFirstName() + " is " + calculateAge(userB.getDateOfBirth()));
+        }
+
+        if (!passesGender) {
+            System.out.println("      ❌ Failed Gender: " + userA.getFirstName() + " wants " +
+                (userA.getPreferences() != null && userA.getPreferences().getGender() != null ? userA.getPreferences().getGender() : "any") +
+                ", " + userB.getFirstName() + " is " + (userB.getGender() != null ? userB.getGender() : "unknown"));
+        }
+
+        if (!passesLifestyle) {
+            System.out.println("      ❌ Failed Lifestyle requirements");
+        }
+
+        return passesAge && passesGender && passesLifestyle;
     }
 
     /**

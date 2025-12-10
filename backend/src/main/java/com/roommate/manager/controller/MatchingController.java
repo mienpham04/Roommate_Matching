@@ -174,9 +174,11 @@ public class MatchingController {
     }
 
     /**
-     * Check if two users still meet match requirements
+     * Calculate scores between two specific users (EFFICIENT - no full scan)
      * POST /api/matching/validate
      * Body: { "userId1": "user123", "userId2": "user456" }
+     *
+     * This is much more efficient than fetching all matches - only compares these 2 users
      */
     @PostMapping("/validate")
     public ResponseEntity<Map<String, Object>> validateMatch(@RequestBody Map<String, String> request) {
@@ -188,29 +190,19 @@ public class MatchingController {
                 return ResponseEntity.badRequest().body(Map.of("error", "userId1 and userId2 are required"));
             }
 
-            List<Map<String, Object>> matches = vectorSearchService.findMutualMatches(userId1, 1000);
+            // Use efficient pairwise calculation - only compares these 2 users
+            Map<String, Object> scores = vectorSearchService.calculatePairwiseScores(userId1, userId2);
 
-            // Find the match and get its score
-            Map<String, Object> matchData = matches.stream()
-                .filter(match -> userId2.equals(match.get("userId")))
-                .findFirst()
-                .orElse(null);
-
+            // Return the scores with validation status
             Map<String, Object> response = new HashMap<>();
-
-            if (matchData != null) {
-                Double mutualScore = (Double) matchData.get("mutualScore");
-                response.put("stillMatches", true);
-                response.put("mutualScore", mutualScore);
-                response.put("isLowMatch", mutualScore != null && mutualScore <= 0.5);
-            } else {
-                response.put("stillMatches", false);
-                response.put("mutualScore", 0.0);
-                response.put("isLowMatch", true);
-            }
-
             response.put("userId1", userId1);
             response.put("userId2", userId2);
+            response.put("mutualScore", scores.get("mutualScore"));
+            response.put("similarityScore", scores.get("similarityScore"));
+            response.put("isLowMatch", scores.get("isLowMatch"));
+            response.put("stillMatches", scores.get("meetsRequirements"));
+            response.put("attributeScore", scores.get("attributeScore"));
+            response.put("embeddingScore", scores.get("embeddingScore"));
 
             return ResponseEntity.ok(response);
 

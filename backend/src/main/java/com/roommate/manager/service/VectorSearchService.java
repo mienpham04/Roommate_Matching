@@ -153,6 +153,95 @@ public class VectorSearchService {
     }
 
     /**
+     * Calculate compatibility scores between exactly TWO users (efficient for real-time updates)
+     * This avoids the expensive operation of comparing against all users
+     *
+     * @param userId1 First user ID
+     * @param userId2 Second user ID
+     * @return Map containing mutualScore, similarityScore, and detailed breakdown
+     */
+    public Map<String, Object> calculatePairwiseScores(String userId1, String userId2) throws IOException {
+        // Get both users
+        Optional<UserModel> user1Optional = userRepository.findById(userId1);
+        Optional<UserModel> user2Optional = userRepository.findById(userId2);
+
+        if (user1Optional.isEmpty() || user2Optional.isEmpty()) {
+            throw new IllegalArgumentException("One or both users not found");
+        }
+
+        UserModel user1 = user1Optional.get();
+        UserModel user2 = user2Optional.get();
+
+        System.out.println("====== PAIRWISE MATCHING ======");
+        System.out.println("User 1: " + user1.getFirstName() + " " + user1.getLastName());
+        System.out.println("User 2: " + user2.getFirstName() + " " + user2.getLastName());
+
+        Map<String, Object> result = new HashMap<>();
+
+        // Check hard requirements first (bidirectional)
+        boolean user1WantsUser2 = attributeMatchingService.meetsHardRequirements(user1, user2);
+        boolean user2WantsUser1 = attributeMatchingService.meetsHardRequirements(user2, user1);
+
+        System.out.println("Hard Requirements Check:");
+        System.out.println("  " + user1.getFirstName() + " wants " + user2.getFirstName() + ": " + user1WantsUser2);
+        System.out.println("  " + user2.getFirstName() + " wants " + user1.getFirstName() + ": " + user2WantsUser1);
+
+        if (!user1WantsUser2 || !user2WantsUser1) {
+            // Hard requirements not met - return 0 scores
+            System.out.println("❌ FAILED HARD REQUIREMENTS - Returning 0% score");
+            System.out.println("===============================\n");
+            result.put("mutualScore", 0.0);
+            result.put("similarityScore", 0.0);
+            result.put("meetsRequirements", false);
+            return result;
+        }
+
+        // Generate embeddings for both users
+        List<Float> user1PreferenceEmb = embeddingService.generatePreferenceEmbedding(user1);
+        List<Float> user1ProfileEmb = embeddingService.generateProfileEmbedding(user1);
+        List<Float> user2PreferenceEmb = embeddingService.generatePreferenceEmbedding(user2);
+        List<Float> user2ProfileEmb = embeddingService.generateProfileEmbedding(user2);
+
+        // Calculate attribute-based compatibility scores
+        double forwardAttributeScore = attributeMatchingService.calculateCompatibilityScore(user1, user2);
+        double reverseAttributeScore = attributeMatchingService.calculateCompatibilityScore(user2, user1);
+        double mutualAttributeScore = (forwardAttributeScore + reverseAttributeScore) / 2.0;
+
+        // Calculate embedding-based similarity (preference vs profile matching)
+        double forwardEmbeddingScore = calculateCosineSimilarity(user1PreferenceEmb, user2ProfileEmb);
+        double reverseEmbeddingScore = calculateCosineSimilarity(user2PreferenceEmb, user1ProfileEmb);
+        double mutualEmbeddingScore = (forwardEmbeddingScore + reverseEmbeddingScore) / 2.0;
+
+        // Calculate similarity score (profile vs profile - lifestyle similarity)
+        double similarityScore = calculateCosineSimilarity(user1ProfileEmb, user2ProfileEmb);
+
+        // Combine scores with weighting (70% attribute + 30% embedding)
+        double hybridForwardScore = (forwardAttributeScore * 0.7) + (forwardEmbeddingScore * 0.3);
+        double hybridReverseScore = (reverseAttributeScore * 0.7) + (reverseEmbeddingScore * 0.3);
+        double hybridMutualScore = (hybridForwardScore + hybridReverseScore) / 2.0;
+
+        // Build result
+        result.put("userId1", userId1);
+        result.put("userId2", userId2);
+        result.put("mutualScore", hybridMutualScore);
+        result.put("similarityScore", similarityScore);
+        result.put("meetsRequirements", true);
+        result.put("isLowMatch", hybridMutualScore <= 0.5);
+
+        // Detailed breakdown
+        result.put("attributeScore", mutualAttributeScore);
+        result.put("embeddingScore", mutualEmbeddingScore);
+        result.put("forwardScore", hybridForwardScore);
+        result.put("reverseScore", hybridReverseScore);
+
+        System.out.println("PAIRWISE SCORE: " + user1.getFirstName() + " <-> " + user2.getFirstName() +
+            " | Mutual=" + String.format("%.2f", hybridMutualScore) +
+            " | Similarity=" + String.format("%.2f", similarityScore));
+
+        return result;
+    }
+
+    /**
      * Calculate cosine similarity between two embedding vectors
      */
     private double calculateCosineSimilarity(List<Float> vec1, List<Float> vec2) {

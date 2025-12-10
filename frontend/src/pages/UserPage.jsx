@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, User, Coffee, Heart, FileText, Edit, Eye, Check, Settings, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, User, Coffee, Heart, FileText, Edit, Eye, Check, Settings, Sparkles, X } from "lucide-react";
 import Navbar from "../components/Navbar";
 import PersonalInfo from "../components/profileOnboard/PersonalInfo";
 import LifeStyle from "../components/profileOnboard/LifeStyle";
@@ -16,6 +16,7 @@ function UserPage() {
     const [active, setActive] = useState("Profile");
     const [preferenceSubTab, setPreferenceSubTab] = useState(0);
     const [dbUser, setDbUser] = useState(null);
+    const [originalDbUser, setOriginalDbUser] = useState(null); // Store original data for cancel
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -76,10 +77,9 @@ function UserPage() {
 
         if (currentIndex < tabs.length - 1) {
             changeStep(tabs[currentIndex + 1]);
-        } else {
-            // Final step - save all data to database
-            await handleFinish();
         }
+        // Note: On last tab, "Next" button is now hidden/removed
+        // Data is only saved when user clicks "Save Changes" button in header
     };
 
     const handleFinish = async () => {
@@ -143,6 +143,30 @@ function UserPage() {
         if (currentIndex > 0) {
             changeStep(tabs[currentIndex - 1]);
         }
+    };
+
+    const handleCancel = () => {
+        // Restore original data
+        if (originalDbUser) {
+            setDbUser(originalDbUser);
+        }
+        // Exit edit mode
+        setIsEditMode(false);
+        setOriginalDbUser(null);
+
+        // Show cancel toast
+        const toastDiv = document.createElement('div');
+        toastDiv.className = 'toast toast-top toast-center z-50';
+        toastDiv.innerHTML = `
+            <div class="alert alert-info shadow-lg">
+                <div class="flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span>Changes discarded</span>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toastDiv);
+        setTimeout(() => toastDiv.remove(), 2000);
     };
 
     const renderPreferences = () => {
@@ -277,40 +301,52 @@ function UserPage() {
                                     </p>
                                 </div>
 
-                                <button
-                                    onClick={async () => {
-                                        if (isEditMode) {
-                                            await handleFinish();
-                                        } else {
-                                            setIsEditMode(true);
-                                        }
-                                    }}
-                                    disabled={isSaving}
-                                    className={`
-                                        btn btn-sm md:btn-md rounded-full px-6 transition-all duration-300
-                                        ${isEditMode
-                                            ? 'btn-success text-white shadow-success/30 shadow-lg'
-                                            : 'btn-ghost bg-base-200/50 hover:bg-base-200 text-base-content/70'
-                                        }
-                                    `}
-                                >
-                                    {isSaving ? (
+                                <div className="flex gap-2">
+                                    {isEditMode ? (
                                         <>
-                                            <span className="loading loading-spinner loading-sm"></span>
-                                            <span>Saving...</span>
-                                        </>
-                                    ) : isEditMode ? (
-                                        <>
-                                            <Check className="w-4 h-4" />
-                                            <span>Done Editing</span>
+                                            {/* Cancel Button */}
+                                            <button
+                                                onClick={handleCancel}
+                                                disabled={isSaving}
+                                                className="btn btn-sm md:btn-md btn-ghost rounded-full px-6 transition-all duration-300 hover:bg-base-200 text-base-content/70"
+                                            >
+                                                <X className="w-4 h-4" />
+                                                <span>Cancel</span>
+                                            </button>
+
+                                            {/* Save Button */}
+                                            <button
+                                                onClick={handleFinish}
+                                                disabled={isSaving}
+                                                className="btn btn-sm md:btn-md btn-success text-white rounded-full px-6 shadow-success/30 shadow-lg transition-all duration-300"
+                                            >
+                                                {isSaving ? (
+                                                    <>
+                                                        <span className="loading loading-spinner loading-sm"></span>
+                                                        <span>Saving...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Check className="w-4 h-4" />
+                                                        <span>Save Changes</span>
+                                                    </>
+                                                )}
+                                            </button>
                                         </>
                                     ) : (
-                                        <>
+                                        <button
+                                            onClick={() => {
+                                                // Save original data before entering edit mode
+                                                setOriginalDbUser(JSON.parse(JSON.stringify(dbUser)));
+                                                setIsEditMode(true);
+                                            }}
+                                            className="btn btn-sm md:btn-md btn-ghost bg-base-200/50 hover:bg-base-200 text-base-content/70 rounded-full px-6 transition-all duration-300"
+                                        >
                                             <Edit className="w-4 h-4" />
                                             <span>Edit</span>
-                                        </>
+                                        </button>
                                     )}
-                                </button>
+                                </div>
                             </div>
 
                             {/* Scrollable Body */}
@@ -341,23 +377,16 @@ function UserPage() {
                                         <span className="text-xs font-bold text-base-content/30 hidden md:inline-block">
                                             Step {currentIndex + 1} of {tabs.length}
                                         </span>
-                                        <button
-                                            onClick={handleNext}
-                                            disabled={isSaving}
-                                            className="btn btn-primary rounded-full px-8 shadow-lg shadow-primary/20 gap-2"
-                                        >
-                                            {isSaving ? (
-                                                <>
-                                                    <span className="loading loading-spinner loading-sm"></span>
-                                                    Saving...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    {(currentIndex === tabs.length - 1) ? 'Finish' : 'Next Step'}
-                                                    <ChevronRight size={18} />
-                                                </>
-                                            )}
-                                        </button>
+                                        {currentIndex < tabs.length - 1 && (
+                                            <button
+                                                onClick={handleNext}
+                                                disabled={isSaving}
+                                                className="btn btn-primary rounded-full px-8 shadow-lg shadow-primary/20 gap-2"
+                                            >
+                                                <span>Next Step</span>
+                                                <ChevronRight size={18} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             )}

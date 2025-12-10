@@ -26,29 +26,25 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
     }
   }, [dbUser]);
 
-  const saveToDB = async (updatedLifestyle) => {
+  // Update parent state without saving to DB
+  const updateParentState = (updatedLifestyle) => {
     const updatedUser = {
       ...dbUser,
       lifestyle: updatedLifestyle,
     };
-
-    const res = await fetch(`http://localhost:8080/api/users/${userId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedUser),
-    });
-
-    if (res.ok) setDbUser(updatedUser);
+    setDbUser(updatedUser);
   };
 
   const handleToggle = (field, value) => {
     const updated = { ...lifestyle, [field]: value };
     setLifestyle(updated);
-    saveToDB(updated);
+    updateParentState(updated);
   };
 
   const saveGuest = () => {
-    saveToDB({ ...lifestyle, guestFrequency: tempGuest });
+    const updated = { ...lifestyle, guestFrequency: tempGuest };
+    setLifestyle(updated);
+    updateParentState(updated);
     setIsEditing(false);
   };
 

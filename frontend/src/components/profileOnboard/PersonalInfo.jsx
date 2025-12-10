@@ -27,16 +27,11 @@ function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
     setProfileImg(dbUser?.profileImageUrl || "https://i.pravatar.cc/200");
   };
 
-  const handleFieldUpdate = async (field, newValue) => {
+  const handleFieldUpdate = (field, newValue) => {
+    // Update parent state only (no API call)
     const updateUser = { ...dbUser, [field]: newValue };
-
-    await fetch(`http://localhost:8080/api/users/${userId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updateUser),
-    });
     setDbUser(updateUser);
-  }
+  };
 
   return (
     <div className="w-full mx-auto">

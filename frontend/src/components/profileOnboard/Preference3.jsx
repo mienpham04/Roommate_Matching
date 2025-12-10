@@ -7,7 +7,6 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
   const [moreAboutMe, setMoreAboutMe] = useState(
     dbUser?.preferences?.moreAboutMe || ""
   );
-  const [isSaving, setIsSaving] = useState(false);
 
   // Suggestions Data
   const suggestions = [
@@ -35,49 +34,19 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
     }
   }, [dbUser]);
 
-  // --- SAVE FUNCTION ---
-  const saveToDB = async () => {
-    setIsSaving(true);
-
-    const mergedPreferences = {
-      ...dbUser?.preferences, 
-      moreAboutMe: moreAboutMe, 
-    };
-
-    const updatedUser = {
-      ...dbUser,
-      preferences: mergedPreferences,
-    };
-
-    try {
-      const res = await fetch(`http://localhost:8080/api/users/${userId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedUser),
+  // Update parent state when moreAboutMe changes (no immediate save to DB)
+  useEffect(() => {
+    if (isEditMode && dbUser) {
+      const mergedPreferences = {
+        ...dbUser.preferences,
+        moreAboutMe: moreAboutMe,
+      };
+      setDbUser({
+        ...dbUser,
+        preferences: mergedPreferences,
       });
-
-      if (res.ok) {
-        setDbUser(updatedUser); 
-        toast.success("Preferences saved successfully!");
-      } else {
-        const errorText = await res.text();
-        console.error("Failed saving preferences:", errorText);
-        toast.error("Failed to save changes.");
-      }
-    } catch (err) {
-      console.error("Error saving preferences:", err);
-      toast.error("Network error.");
-    } finally {
-      setIsSaving(false);
     }
-  };
-
-  // Auto-save when user leaves the text area
-  const handleBlur = () => {
-    if (isEditMode) {
-      saveToDB();
-    }
-  };
+  }, [moreAboutMe, isEditMode]);
 
   const appendSuggestion = (text) => {
     if (!isEditMode) return;
@@ -109,14 +78,6 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
             </p>
           </div>
         </div>
-        
-        {/* Save Status Indicator */}
-        {isEditMode && (
-          <div className={`flex items-center gap-2 text-sm font-bold transition-opacity duration-300 ${isSaving ? 'opacity-100' : 'opacity-0'}`}>
-            <span className="loading loading-spinner loading-xs text-primary"></span>
-            <span className="text-primary">Saving changes...</span>
-          </div>
-        )}
       </div>
 
       {/* --- EDIT MODE --- */}
@@ -132,7 +93,6 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
                   // FIX: Use || "" to prevent uncontrolled input warning if state is momentarily null
                   value={moreAboutMe || ""}
                   onChange={(e) => setMoreAboutMe(e.target.value)}
-                  onBlur={handleBlur} 
                 />
                 <div className="absolute bottom-4 right-4 flex items-center gap-2">
                   {(moreAboutMe || "").length > 0 && (
@@ -149,16 +109,6 @@ function Preference3({ dbUser, userId, setDbUser, isEditMode = true }) {
                     {(moreAboutMe || "").length} chars
                   </span>
                 </div>
-             </div>
-             
-             <div className="flex justify-end">
-                <button
-                  onClick={saveToDB}
-                  disabled={isSaving}
-                  className="btn btn-primary rounded-xl px-8 shadow-lg shadow-primary/20"
-                >
-                  <Save className="w-4 h-4" /> Save Preferences
-                </button>
              </div>
           </div>
 

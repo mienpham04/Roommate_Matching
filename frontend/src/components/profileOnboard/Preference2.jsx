@@ -12,6 +12,7 @@ function Preference2({ dbUser, userId, setDbUser, isEditMode = true }) {
   const [isEditing, setIsEditing] = useState(false);
   const [tempGuest, setTempGuest] = useState(pref.guestFrequency);
 
+  // Update local state when dbUser changes (e.g., after page refresh)
   useEffect(() => {
     if (dbUser?.preferences) {
       const newPref = {
@@ -25,7 +26,8 @@ function Preference2({ dbUser, userId, setDbUser, isEditMode = true }) {
     }
   }, [dbUser]);
 
-  const saveToDB = async (updatedPreferences) => {
+  // Update parent state without saving to DB
+  const updateParentState = (updatedPreferences) => {
     const mergedPreferences = {
       ...dbUser?.preferences,
       ...updatedPreferences,
@@ -36,25 +38,19 @@ function Preference2({ dbUser, userId, setDbUser, isEditMode = true }) {
       preferences: mergedPreferences,
     };
 
-    const res = await fetch(`http://localhost:8080/api/users/${userId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedUser),
-    });
-
-    if (res.ok) setDbUser(updatedUser);
+    setDbUser(updatedUser);
   };
 
   const handleToggle = (field, value) => {
     const updated = { ...pref, [field]: value };
-    setPref(updated);      
-    saveToDB(updated);    
+    setPref(updated);
+    updateParentState(updated);
   };
 
   const saveGuest = () => {
     const updated = { ...pref, guestFrequency: tempGuest };
     setPref(updated);
-    saveToDB(updated);
+    updateParentState(updated);
     setIsEditing(false);
   };
 
