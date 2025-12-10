@@ -444,13 +444,14 @@ function MatchesPage() {
       const cached = localStorage.getItem(`matches_${user.id}`);
       const validations = {};
       const scoresMap = {};
+      const missingScores = []; // Track users with missing scores
 
       if (cached) {
         const cachedMatches = JSON.parse(cached);
 
         mutualMatches.forEach(match => {
           const cachedMatch = cachedMatches.find(m => m.userId === match.userId);
-          if (cachedMatch) {
+          if (cachedMatch && cachedMatch.mutualScore !== undefined) {
             const mutualScore = cachedMatch.mutualScore || 0;
 
             // Store validation data for styling
@@ -466,29 +467,32 @@ function MatchesPage() {
               similarityScore: cachedMatch.similarityScore
             };
           } else {
-            // Match not in cache - mark as 0% low match
-            validations[match.userId] = {
-              stillMatches: false,
-              isLowMatch: true,
-              mutualScore: 0
-            };
+            // Match not in cache - need to fetch fresh scores
+            missingScores.push(match.userId);
+            // Temporarily mark as loading
             scoresMap[match.userId] = {
               mutualScore: 0,
               similarityScore: 0
             };
+            validations[match.userId] = {
+              stillMatches: true,
+              isLowMatch: false,
+              mutualScore: 0
+            };
           }
         });
       } else {
-        // No cache at all - mark all as 0% low matches
+        // No cache at all - need to fetch all scores
         mutualMatches.forEach(match => {
-          validations[match.userId] = {
-            stillMatches: false,
-            isLowMatch: true,
-            mutualScore: 0
-          };
+          missingScores.push(match.userId);
           scoresMap[match.userId] = {
             mutualScore: 0,
             similarityScore: 0
+          };
+          validations[match.userId] = {
+            stillMatches: true,
+            isLowMatch: false,
+            mutualScore: 0
           };
         });
       }
@@ -496,6 +500,88 @@ function MatchesPage() {
       setMatchValidation(validations);
       setCachedScores(scoresMap);
       setMatches(mutualMatches);
+
+      // Fetch fresh scores for any missing matches
+      if (missingScores.length > 0) {
+        console.log('📊 Fetching fresh scores for', missingScores.length, 'matches');
+
+        Promise.all(
+          missingScores.map(async (matchUserId) => {
+            try {
+              const response = await fetch(`${API_URL}/matching/validate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  userId1: user.id,
+                  userId2: matchUserId
+                })
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                return { matchUserId, data };
+              }
+              return null;
+            } catch (error) {
+              console.error(`Failed to fetch scores for ${matchUserId}:`, error);
+              return null;
+            }
+          })
+        ).then(results => {
+          const newScores = {};
+          const newValidations = {};
+          const updatedCache = cached ? JSON.parse(cached) : [];
+
+          results.forEach(result => {
+            if (result && result.data) {
+              const { matchUserId, data } = result;
+              const mutualScore = data.mutualScore || 0;
+              const similarityScore = data.similarityScore || 0;
+
+              newScores[matchUserId] = {
+                mutualScore,
+                similarityScore
+              };
+
+              newValidations[matchUserId] = {
+                stillMatches: data.stillMatches,
+                isLowMatch: data.isLowMatch || mutualScore <= 0.5,
+                mutualScore
+              };
+
+              // Update cache with fresh scores
+              const cacheIndex = updatedCache.findIndex(m => m.userId === matchUserId);
+              if (cacheIndex >= 0) {
+                updatedCache[cacheIndex] = {
+                  ...updatedCache[cacheIndex],
+                  mutualScore,
+                  similarityScore
+                };
+              } else {
+                // Find the match in mutualMatches to get full data
+                const match = mutualMatches.find(m => m.userId === matchUserId);
+                if (match) {
+                  updatedCache.push({
+                    userId: matchUserId,
+                    mutualScore,
+                    similarityScore,
+                    user: match
+                  });
+                }
+              }
+            }
+          });
+
+          // Update localStorage with fresh scores
+          if (Object.keys(newScores).length > 0) {
+            localStorage.setItem(`matches_${user.id}`, JSON.stringify(updatedCache));
+
+            // Update state with fresh scores
+            setCachedScores(prev => ({ ...prev, ...newScores }));
+            setMatchValidation(prev => ({ ...prev, ...newValidations }));
+          }
+        });
+      }
     } catch (err) {
       console.error("Failed to fetch matches:", err);
       setError(err.message);

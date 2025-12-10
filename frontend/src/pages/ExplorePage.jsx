@@ -107,91 +107,104 @@ function ExplorePage() {
     eventSource.addEventListener('profile-update', async (event) => {
       const update = JSON.parse(event.data);
 
-      // Check if the updated user is in our matches
-      const isInMatches = allMatches.some(m => m.userId === update.userId);
+      // Use callback form to get latest state without dependency on allMatches
+      setAllMatches(prevMatches => {
+        // Check if the updated user is in our matches
+        const isInMatches = prevMatches.some(m => m.userId === update.userId);
 
-      if (isInMatches) {
-        // Recompute match scores for this user
-        try {
-          const [similarResponse, mutualResponse] = await Promise.all([
-            fetch(`${API_URL}/matching/similar/${user.id}?topK=1000`),
-            fetch(`${API_URL}/matching/mutual/${user.id}?topK=1000`)
-          ]);
+        if (!isInMatches) {
+          return prevMatches; // No changes needed
+        }
 
-          if (similarResponse.ok && mutualResponse.ok) {
-            const similarData = await similarResponse.json();
-            const mutualData = await mutualResponse.json();
+        // Fetch updated scores for this specific user
+        (async () => {
+          try {
+            const [similarResponse, mutualResponse] = await Promise.all([
+              fetch(`${API_URL}/matching/similar/${user.id}?topK=1000`),
+              fetch(`${API_URL}/matching/mutual/${user.id}?topK=1000`)
+            ]);
 
-            const similarMatches = similarData.matches || [];
-            const mutualMatches = mutualData.matches || [];
+            if (similarResponse.ok && mutualResponse.ok) {
+              const similarData = await similarResponse.json();
+              const mutualData = await mutualResponse.json();
 
-            // Find the updated user's new scores
-            const updatedSimilar = similarMatches.find(m => m.userId === update.userId);
-            const updatedMutual = mutualMatches.find(m => m.userId === update.userId);
+              const similarMatches = similarData.matches || [];
+              const mutualMatches = mutualData.matches || [];
 
-            if (updatedSimilar || updatedMutual) {
-              // Update the match with new scores
-              setAllMatches(prevMatches => {
-                const updated = prevMatches.map(match => {
-                  if (match.userId === update.userId) {
-                    return {
-                      ...match,
-                      mutualScore: updatedMutual?.mutualScore || match.mutualScore,
-                      similarityScore: updatedSimilar?.similarityScore || match.similarityScore,
-                      user: {
-                        ...match.user,
-                        lastUpdatedAt: new Date().toISOString()
-                      }
-                    };
-                  }
-                  return match;
+              // Find the updated user's new scores
+              const updatedSimilar = similarMatches.find(m => m.userId === update.userId);
+              const updatedMutual = mutualMatches.find(m => m.userId === update.userId);
+
+              if (updatedSimilar || updatedMutual) {
+                // Update the match with new scores
+                setAllMatches(currentMatches => {
+                  const updated = currentMatches.map(match => {
+                    if (match.userId === update.userId) {
+                      return {
+                        ...match,
+                        mutualScore: updatedMutual?.mutualScore ?? match.mutualScore,
+                        similarityScore: updatedSimilar?.similarityScore ?? match.similarityScore,
+                        user: {
+                          ...match.user,
+                          lastUpdatedAt: new Date().toISOString()
+                        }
+                      };
+                    }
+                    return match;
+                  });
+
+                  // Update localStorage with new scores
+                  localStorage.setItem(`matches_${user.id}`, JSON.stringify(updated));
+                  return updated;
                 });
 
-                // Update localStorage with new scores
-                localStorage.setItem(`matches_${user.id}`, JSON.stringify(updated));
-                return updated;
-              });
-
-              toast.success(`${update.firstName} updated their profile - scores refreshed!`, { icon: '✨' });
-            } else {
-              // User no longer meets criteria - just update timestamp
-              setAllMatches(prevMatches =>
-                prevMatches.map(match => {
-                  if (match.userId === update.userId) {
-                    return {
-                      ...match,
-                      user: {
-                        ...match.user,
-                        lastUpdatedAt: new Date().toISOString()
-                      }
-                    };
-                  }
-                  return match;
-                })
-              );
-              toast(`${update.firstName} updated their profile`, { icon: '⚠️' });
-            }
-          }
-        } catch (error) {
-          console.error('Failed to recompute match scores:', error);
-          // Fallback to just updating timestamp
-          setAllMatches(prevMatches =>
-            prevMatches.map(match => {
-              if (match.userId === update.userId) {
-                return {
-                  ...match,
-                  user: {
-                    ...match.user,
-                    lastUpdatedAt: new Date().toISOString()
-                  }
-                };
+                toast.success(`${update.firstName} updated their profile - scores refreshed!`, { icon: '✨' });
+              } else {
+                // User no longer meets criteria - just update timestamp
+                setAllMatches(currentMatches => {
+                  const updated = currentMatches.map(match => {
+                    if (match.userId === update.userId) {
+                      return {
+                        ...match,
+                        user: {
+                          ...match.user,
+                          lastUpdatedAt: new Date().toISOString()
+                        }
+                      };
+                    }
+                    return match;
+                  });
+                  localStorage.setItem(`matches_${user.id}`, JSON.stringify(updated));
+                  return updated;
+                });
+                toast(`${update.firstName} updated their profile`, { icon: '⚠️' });
               }
-              return match;
-            })
-          );
-          toast.success(`${update.firstName} just updated their profile!`, { icon: '✨' });
-        }
-      }
+            }
+          } catch (error) {
+            console.error('Failed to recompute match scores:', error);
+            // Fallback to just updating timestamp
+            setAllMatches(currentMatches => {
+              const updated = currentMatches.map(match => {
+                if (match.userId === update.userId) {
+                  return {
+                    ...match,
+                    user: {
+                      ...match.user,
+                      lastUpdatedAt: new Date().toISOString()
+                    }
+                  };
+                }
+                return match;
+              });
+              localStorage.setItem(`matches_${user.id}`, JSON.stringify(updated));
+              return updated;
+            });
+            toast.success(`${update.firstName} just updated their profile!`, { icon: '✨' });
+          }
+        })();
+
+        return prevMatches; // Return current state immediately
+      });
     });
 
     eventSource.onerror = (error) => {
@@ -199,7 +212,7 @@ function ExplorePage() {
     };
 
     return () => eventSource.close();
-  }, [user, allMatches]);
+  }, [user]);
 
   // --- LOGIC: Fetch Functions ---
   const fetchLikedUsers = async () => {
