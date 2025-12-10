@@ -6,6 +6,7 @@ import {
   useLoadScript,
   Autocomplete,
 } from "@react-google-maps/api";
+import { Search } from "lucide-react";
 
 function Location({ dbUser, id, setDbUser }) {
   const { isLoaded } = useLoadScript({
@@ -19,7 +20,6 @@ function Location({ dbUser, id, setDbUser }) {
   const [selectedPosition, setSelectedPosition] = useState(null);
   const [locationQuery, setLocationQuery] = useState("");
 
-  // Budget States
   const [minBudget, setMinBudget] = useState("");
   const [maxBudget, setMaxBudget] = useState("");
   const [isBudgetConfirmed, setIsBudgetConfirmed] = useState(false);
@@ -30,7 +30,6 @@ function Location({ dbUser, id, setDbUser }) {
   const autocompleteRef = useRef(null);
   const mapRef = useRef(null);
 
-  /** Get ZIP from lat/lng */
   async function getZipCodeFromLatLng(lat, lng) {
     setIsLoadingZip(true);
     const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
@@ -58,7 +57,6 @@ function Location({ dbUser, id, setDbUser }) {
     }
   }
 
-  /** Auto-detect location */
   useEffect(() => {
     if (!isLoaded) return;
 
@@ -79,9 +77,8 @@ function Location({ dbUser, id, setDbUser }) {
     }
   }, [isLoaded]);
 
-  /** User searches location */
   async function onPlaceChanged() {
-    if (isBudgetConfirmed) return; // 🔒 Block when confirmed
+    if (isBudgetConfirmed) return;
 
     const place = autocompleteRef.current.getPlace();
     if (!place?.geometry) return;
@@ -96,9 +93,8 @@ function Location({ dbUser, id, setDbUser }) {
     await getZipCodeFromLatLng(pos.lat, pos.lng);
   }
 
-  /** User clicks map */
   async function handleMapClick(e) {
-    if (isBudgetConfirmed) return; // 🔒 Block when confirmed
+    if (isBudgetConfirmed) return;
 
     const lat = e.latLng.lat();
     const lng = e.latLng.lng();
@@ -110,39 +106,38 @@ function Location({ dbUser, id, setDbUser }) {
   }
 
   const saveToDB = async () => {
-  if (!id || !dbUser) return;
+    if (!id || !dbUser) return;
 
-  const updateUser = {
-    ...dbUser,
-    zipCode: zipCode || dbUser.zipCode,
-    budget: {
-      min: Number(minBudget) || dbUser?.budget?.min || 0,
-      max: Number(maxBudget) || dbUser?.budget?.max || 0,
-    },
+    const updateUser = {
+      ...dbUser,
+      zipCode: zipCode || dbUser.zipCode,
+      budget: {
+        min: Number(minBudget) || dbUser?.budget?.min || 0,
+        max: Number(maxBudget) || dbUser?.budget?.max || 0,
+      },
+    };
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/users/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateUser),
+      });
+
+      if (!res.ok) {
+        console.error("Failed to update user:", await res.text());
+        return;
+      }
+
+      const saved = await res.json();
+      setDbUser(saved);
+      console.log("✔ Saved:", saved);
+
+    } catch (err) {
+      console.error("🔥 saveToDB error:", err);
+    }
   };
 
-  try {
-    const res = await fetch(`http://localhost:8080/api/users/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updateUser),
-    });
-
-    if (!res.ok) {
-      console.error("Failed to update user:", await res.text());
-      return;
-    }
-
-    const saved = await res.json();
-    setDbUser(saved);
-    console.log("✔ Saved:", saved);
-
-  } catch (err) {
-    console.error("🔥 saveToDB error:", err);
-  }
-};
-
-  /** Disable UI until maps library loaded */
   if (!isLoaded) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -154,7 +149,6 @@ function Location({ dbUser, id, setDbUser }) {
   return (
     <div className="flex flex-col gap-6 animate-fade-in-up">
 
-      {/* 1. Search Input */}
       <div className="form-control w-full relative z-10">
         <label className="label">
           <span className="label-text font-semibold">Start your search</span>
@@ -170,16 +164,16 @@ function Location({ dbUser, id, setDbUser }) {
               placeholder="Search by city, neighborhood, or address..."
               onChange={(e) => setLocationQuery(e.target.value)}
               className="input input-bordered w-full pl-11 shadow-sm focus:shadow-md transition-shadow"
-              disabled={isBudgetConfirmed} // 🔒 Disable when confirmed
+              disabled={isBudgetConfirmed}
             />
-            <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-4 top-3.5 h-5 w-5 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <Search
+              className="absolute left-4 top-3 h-5 w-5 opacity-50"
+              strokeWidth={2}
+            />
           </div>
         </Autocomplete>
       </div>
 
-      {/* 2. Map UI */}
       <div className="relative w-full h-80 rounded-2xl overflow-hidden shadow-inner border border-base-300">
 
         {!selectedPosition ? (
@@ -216,13 +210,11 @@ function Location({ dbUser, id, setDbUser }) {
           </GoogleMap>
         )}
 
-        {/* ZIP Badge */}
         <div className="absolute top-4 right-4 badge badge-lg bg-base-100/90 backdrop-blur shadow-md border-0 gap-2 p-4 text-sm font-semibold">
           📍 ZIP: {isLoadingZip ? <span className="loading loading-dots loading-xs"></span> : (zipCode || "Unknown")}
         </div>
       </div>
 
-      {/* 3. Budget Section */}
       <div className={`transition-colors duration-300 p-6 rounded-2xl border ${isBudgetConfirmed ? "bg-base-100 border-primary/40 shadow-sm" : "bg-base-200/50 border-base-200"
         }`}>
         <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
@@ -230,7 +222,6 @@ function Location({ dbUser, id, setDbUser }) {
         </h3>
 
         <div className="flex items-center gap-4">
-          {/* MIN */}
           <div className="form-control w-full">
             <label className="label pt-0"><span className="label-text text-xs opacity-70">Minimum</span></label>
             <div className="relative">
@@ -249,7 +240,6 @@ function Location({ dbUser, id, setDbUser }) {
 
           <div className="text-2xl text-base-content/30 mt-4">-</div>
 
-          {/* MAX */}
           <div className="form-control w-full">
             <label className="label pt-0"><span className="label-text text-xs opacity-70">Maximum</span></label>
             <div className="relative">
@@ -267,7 +257,6 @@ function Location({ dbUser, id, setDbUser }) {
           </div>
         </div>
 
-        {/* Confirm Budget */}
         <div className="mt-5 pt-3 border-t border-base-content/10">
           <label className="cursor-pointer label justify-start gap-3 hover:opacity-80 transition-opacity">
             <input

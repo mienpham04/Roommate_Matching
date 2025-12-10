@@ -3,10 +3,10 @@ import { useNavigate } from "react-router";
 import {
   User,
   Mail,
-  Phone,
   Calendar,
   VenusAndMars,
   CheckCircle2,
+  Check,
 } from "lucide-react";
 
 const Info = ({ dbUser, id }) => {
@@ -53,11 +53,9 @@ const Info = ({ dbUser, id }) => {
     );
   }
 
-  // --- REVIEW STATE ---
   return (
     <div className="flex flex-col gap-6 animate-fade-in-up">
 
-      {/* 1. Header Area */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold">Confirm Details</h2>
@@ -65,15 +63,11 @@ const Info = ({ dbUser, id }) => {
         </div>
       </div>
 
-      {/* 2. Main Card */}
       <div className="bg-base-200/30 rounded-3xl p-6 border border-base-200 relative overflow-hidden">
-
-        {/* Background Decoration */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-4 -mt-4 pointer-events-none"></div>
 
         <div className="flex flex-col gap-6 relative z-10">
 
-          {/* Avatar Section */}
           <div className="flex items-center gap-5">
             <div className="avatar">
               <div className="w-20 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 shadow-lg">
@@ -88,7 +82,6 @@ const Info = ({ dbUser, id }) => {
 
           <div className="divider my-0"></div>
 
-          {/* Fields Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 
             <FieldDisplay
@@ -119,7 +112,6 @@ const Info = ({ dbUser, id }) => {
         </div>
       </div>
 
-      {/* 3. Confirmation Button */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
         <button
           onClick={handleModify}
@@ -135,9 +127,7 @@ const Info = ({ dbUser, id }) => {
           onClick={handleConfirm}
           className="btn btn-primary text-white shadow-md hover:shadow-lg hover:scale-[1.02] transition-all"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-1">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-          </svg>
+          <Check className="w-4 h-4 mr-1" strokeWidth={2} />
           Yes, looks good
         </button>
       </div>
