@@ -195,4 +195,33 @@ public class LikeController {
             return ResponseEntity.status(500).body(Map.of("error", "Failed to check like", "message", e.getMessage()));
         }
     }
+
+    /**
+     * Unmatch two users (remove both likes in both directions)
+     * DELETE /api/likes/unmatch
+     * Body: { "userId1": "user123", "userId2": "user456" }
+     */
+    @DeleteMapping("/unmatch")
+    public ResponseEntity<Map<String, Object>> unmatch(@RequestBody Map<String, String> request) {
+        try {
+            String userId1 = request.get("userId1");
+            String userId2 = request.get("userId2");
+
+            if (userId1 == null || userId2 == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "userId1 and userId2 are required"));
+            }
+
+            // Delete both directions of the like
+            likeRepository.deleteByFromUserIdAndToUserId(userId1, userId2);
+            likeRepository.deleteByFromUserIdAndToUserId(userId2, userId1);
+
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Successfully unmatched"
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to unmatch", "message", e.getMessage()));
+        }
+    }
 }

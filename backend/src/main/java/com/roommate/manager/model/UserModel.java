@@ -1,6 +1,7 @@
 package com.roommate.manager.model;
 
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -33,6 +34,9 @@ public class UserModel {
 
     @CreatedDate
     private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime lastUpdatedAt;
 
     // Getters and Setters
 
@@ -133,5 +137,12 @@ public class UserModel {
     }
     public void setPreferences(PreferenceModel preferences) {
         this.preferences = preferences;
+    }
+
+    public LocalDateTime getLastUpdatedAt() {
+        return lastUpdatedAt;
+    }
+    public void setLastUpdatedAt(LocalDateTime lastUpdatedAt) {
+        this.lastUpdatedAt = lastUpdatedAt;
     }
 }

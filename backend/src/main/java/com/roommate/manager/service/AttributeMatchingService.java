@@ -39,11 +39,22 @@ public class AttributeMatchingService {
 
     /**
      * Check if two users meet hard requirements (must pass all filters)
+     * Updated: No hard requirements - all factors now contribute to score only
      */
     public boolean meetsHardRequirements(UserModel userA, UserModel userB) {
-        return passesAgeRequirement(userA, userB) &&
-               passesGenderRequirement(userA, userB) &&
-               passesLifestyleRequirements(userA, userB);
+        // Gender is the only hard requirement remaining
+        boolean passesGender = passesGenderRequirement(userA, userB);
+
+        System.out.println("    Checking " + userA.getFirstName() + "'s requirements for " + userB.getFirstName() + ":");
+        System.out.println("      Gender: " + (passesGender ? "✓" : "✗"));
+
+        if (!passesGender) {
+            System.out.println("      ❌ Failed Gender: " + userA.getFirstName() + " wants " +
+                (userA.getPreferences() != null && userA.getPreferences().getGender() != null ? userA.getPreferences().getGender() : "any") +
+                ", " + userB.getFirstName() + " is " + (userB.getGender() != null ? userB.getGender() : "unknown"));
+        }
+
+        return passesGender;
     }
 
     /**
@@ -71,8 +82,6 @@ public class AttributeMatchingService {
     }
 
     private double calculateAgeMatch(UserModel userA, UserModel userB) {
-        if (!passesAgeRequirement(userA, userB)) return 0.0;
-
         if (userA.getPreferences() == null) return 1.0;
 
         int ageBInYears = calculateAge(userB.getDateOfBirth());
@@ -81,15 +90,31 @@ public class AttributeMatchingService {
 
         if (minAge == null || maxAge == null) return 1.0;
 
-        // Calculate how centered the age is within the preferred range
-        int range = maxAge - minAge;
-        if (range == 0) return 1.0;
-
+        // Calculate the midpoint of preferred age range
         int midPoint = (minAge + maxAge) / 2;
-        int distance = Math.abs(ageBInYears - midPoint);
+        int range = maxAge - minAge;
 
-        // Score decreases as we move away from center
-        return Math.max(0.0, 1.0 - (double) distance / (range / 2.0));
+        // If age is within preferred range, score based on how centered it is
+        if (ageBInYears >= minAge && ageBInYears <= maxAge) {
+            if (range == 0) return 1.0;
+            int distance = Math.abs(ageBInYears - midPoint);
+            // Score from 1.0 at center to 0.7 at edges
+            return Math.max(0.7, 1.0 - (double) distance / (range / 2.0) * 0.3);
+        }
+
+        // If age is outside preferred range, score decreases with distance
+        int distanceFromRange;
+        if (ageBInYears < minAge) {
+            distanceFromRange = minAge - ageBInYears;
+        } else {
+            distanceFromRange = ageBInYears - maxAge;
+        }
+
+        // Decay score: starts at 0.6 just outside range, decreases gradually
+        // Every 5 years outside range reduces score by ~0.15
+        // Minimum score is 0.1 (never completely zero)
+        double penalty = distanceFromRange * 0.03;
+        return Math.max(0.1, 0.6 - penalty);
     }
 
     private int calculateAge(Object dateOfBirth) {
@@ -173,31 +198,43 @@ public class AttributeMatchingService {
         double score = 0.0;
         int factors = 0;
 
-        // Smoking match
+        // Smoking match - partial credit for mismatches
         Boolean prefSmoking = userA.getPreferences().getSmoking();
         Boolean actualSmoking = userB.getLifestyle().getSmoking();
         if (prefSmoking != null && actualSmoking != null) {
-            score += prefSmoking.equals(actualSmoking) ? 1.0 : 0.0;
+            if (prefSmoking.equals(actualSmoking)) {
+                score += 1.0; // Perfect match
+            } else {
+                score += 0.3; // Mismatch but not complete failure
+            }
             factors++;
         }
 
-        // Pet match
+        // Pet match - partial credit for mismatches
         Boolean prefPets = userA.getPreferences().getPetFriendly();
         Boolean actualPets = userB.getLifestyle().getPetFriendly();
         if (prefPets != null && actualPets != null) {
-            score += prefPets.equals(actualPets) ? 1.0 : 0.0;
+            if (prefPets.equals(actualPets)) {
+                score += 1.0; // Perfect match
+            } else {
+                score += 0.3; // Mismatch but not complete failure
+            }
             factors++;
         }
 
-        // Night owl match
+        // Night owl match - partial credit (slightly more forgiving for schedule flexibility)
         Boolean prefNightOwl = userA.getPreferences().getNightOwl();
         Boolean actualNightOwl = userB.getLifestyle().getNightOwl();
         if (prefNightOwl != null && actualNightOwl != null) {
-            score += prefNightOwl.equals(actualNightOwl) ? 1.0 : 0.0;
+            if (prefNightOwl.equals(actualNightOwl)) {
+                score += 1.0; // Perfect match
+            } else {
+                score += 0.4; // Mismatch but people can adapt schedules
+            }
             factors++;
         }
 
-        // Guest frequency match (simple string comparison for now)
+        // Guest frequency match (uses existing gradual scoring)
         String prefGuests = userA.getPreferences().getGuestFrequency();
         String actualGuests = userB.getLifestyle().getGuestFrequency();
         if (prefGuests != null && actualGuests != null) {

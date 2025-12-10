@@ -3,6 +3,8 @@ package com.roommate.manager.kafka;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import com.roommate.manager.model.events.ProfileUpdateEvent;
+
 @Service
 public class KafkaProducerService {
 
@@ -12,11 +14,11 @@ public class KafkaProducerService {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void sendMessage(String topic, String key, Object message) {
-        kafkaTemplate.send(topic, key, message);
-    }
-
-    public void sendMessage(String topic, Object message) {
-        kafkaTemplate.send(topic, message);
+    /**
+     * Send profile update event to Kafka
+     * Used for both PROFILE and PREFERENCE updates
+     */
+    public void sendProfileUpdated(ProfileUpdateEvent event) {
+        kafkaTemplate.send("profile.updated", event.getUserId(), event);
     }
 }

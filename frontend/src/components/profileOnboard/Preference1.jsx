@@ -19,8 +19,8 @@ function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
     }
   }, [dbUser]);
 
-  const saveToDB = async (updatedPreferences) => {
-    // Merge with existing preferences to avoid overwriting other preference fields
+  // Update parent state without saving to DB
+  const updateParentState = (updatedPreferences) => {
     const mergedPreferences = {
       ...dbUser?.preferences,
       ...updatedPreferences,
@@ -31,21 +31,7 @@ function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
       preferences: mergedPreferences,
     };
 
-    try {
-      const res = await fetch(`http://localhost:8080/api/users/${userId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedUser),
-      });
-
-      if (res.ok) {
-        setDbUser(updatedUser);
-      } else {
-        console.error("Failed saving preferences:", await res.text());
-      }
-    } catch (err) {
-      console.error("Error saving preferences:", err);
-    }
+    setDbUser(updatedUser);
   };
 
   const handleChange = (field, value) => {
@@ -53,7 +39,7 @@ function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
     if (value === "") {
       const updated = { ...data, [field]: "" };
       setData(updated);
-      saveToDB(updated);
+      updateParentState(updated);
       return;
     }
 
@@ -62,7 +48,7 @@ function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
 
     const updated = { ...data, [field]: numeric };
     setData(updated);
-    saveToDB(updated);
+    updateParentState(updated);
   };
 
   const isAnyAge = data.minAge === 15 && data.maxAge === 99;
@@ -73,7 +59,7 @@ function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
       : { ...data, minAge: 20, maxAge: 30 };
 
     setData(updated);
-    saveToDB(updated);
+    updateParentState(updated);
   };
 
   const GenderOption = ({ label, value, icon }) => {
@@ -86,7 +72,7 @@ function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
         onClick={() => {
           if (isEditMode) {
             setData(updated);
-            saveToDB(updated);
+            updateParentState(updated);
           }
         }}
         disabled={!isEditMode}
@@ -108,14 +94,6 @@ function Preference1({ dbUser, userId, setDbUser, isEditMode = true }) {
 
   return (
     <div className="max-w-4xl mx-auto w-full px-4">
-
-      <div className="text-center mb-10">
-        <h2 className="text-3xl font-bold mb-2">Roommate Preferences</h2>
-        <p className="text-base-content/60 max-w-lg mx-auto">
-          Set your boundaries. We'll only show you matches that fit within these criteria.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 gap-4 mb-6">
         <div className="card bg-base-100 shadow-sm border border-base-200 overflow-visible">
           <div className="card-body p-5">

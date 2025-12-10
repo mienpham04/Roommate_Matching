@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from "react";
 import { Pencil, X, User, Mail, Phone, Calendar, VenusAndMars } from "lucide-react";
 import EditableField from "../EditableField";
+import BudgetField from "../BudgetField";
 
 function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
   const fileInputRef = useRef(null);
@@ -26,16 +27,11 @@ function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
     setProfileImg(dbUser?.profileImageUrl || "https://i.pravatar.cc/200");
   };
 
-  const handleFieldUpdate = async (field, newValue) => {
+  const handleFieldUpdate = (field, newValue) => {
+    // Update parent state only (no API call)
     const updateUser = { ...dbUser, [field]: newValue };
-
-    await fetch(`http://localhost:8080/api/users/${userId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updateUser),
-    });
     setDbUser(updateUser);
-  }
+  };
 
   return (
     <div className="w-full mx-auto">
@@ -124,6 +120,13 @@ function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
           value={dbUser?.dateOfBirth || ""}
           icon={Calendar}
           type="date"
+          onSave={handleFieldUpdate}
+          isEditMode={isEditMode}
+        />
+
+        <BudgetField
+          label="Budget Range"
+          value={dbUser?.budget}
           onSave={handleFieldUpdate}
           isEditMode={isEditMode}
         />

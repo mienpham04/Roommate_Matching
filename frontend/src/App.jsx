@@ -21,11 +21,16 @@ function App() {
     </Routes>
 
     <Toaster
+      position="top-left"
       toastOptions={{
         duration: 3000,
         style: {
-          minWidth: '250px',
-        }
+          minWidth: '300px',
+        },
+      }}
+      containerStyle={{
+        top: 120, 
+        left: 20,  
       }}
     />
     </>
