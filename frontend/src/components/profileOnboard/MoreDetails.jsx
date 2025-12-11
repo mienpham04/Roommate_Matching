@@ -1,18 +1,15 @@
 import { useState, useEffect } from "react";
-import { FileText, Sparkles, Quote, Plus, Eraser, Save } from "lucide-react";
-import toast from "react-hot-toast";
+import { FileText, Sparkles, Quote, Plus, Eraser } from "lucide-react";
 
 function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
   const [bio, setBio] = useState(dbUser?.moreAboutMe || "");
-
-  // Sync with DB prop changes
+  
   useEffect(() => {
     if (dbUser) {
       setBio(dbUser.moreAboutMe || "");
     }
   }, [dbUser]);
 
-  // Update parent state when bio changes (no immediate save to DB)
   useEffect(() => {
     if (isEditMode && dbUser) {
       setDbUser({
@@ -26,7 +23,6 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
     if (!isEditMode) return;
     
     setBio((prev) => {
-      // Avoid duplicates immediately next to each other
       if (prev.endsWith(topic)) return prev;
       
       const separator = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n") ? " " : "";
@@ -47,10 +43,8 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       
-      {/* Header removed as requested */}
-
       {isEditMode ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           

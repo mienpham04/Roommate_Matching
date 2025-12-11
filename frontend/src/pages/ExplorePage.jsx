@@ -30,7 +30,7 @@ function ExplorePage() {
   });
   const [displayedMatches, setDisplayedMatches] = useState([]);
   const [error, setError] = useState(null);
-  const [currentLimit, setCurrentLimit] = useState(5);
+  const [currentLimit, setCurrentLimit] = useState(8);
   const [likedUsers, setLikedUsers] = useState(new Set());
   const [mutualMatchIds, setMutualMatchIds] = useState(new Set());
   const [activeTab, setActiveTab] = useState("explore");
