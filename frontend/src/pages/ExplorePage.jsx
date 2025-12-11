@@ -343,24 +343,74 @@ function ExplorePage() {
       const data = await res.json();
       if (data.success) {
         const likedUserIds = data.likedUserIds || [];
+        const cachedMatches = localStorage.getItem(`matches_${user.id}`);
+        const cached = cachedMatches ? JSON.parse(cachedMatches) : [];
+        const updatedCache = [...cached];
+
         const likedUsersWithDetails = await Promise.all(
           likedUserIds.map(async (likedId) => {
             try {
               const userRes = await fetch(`${API_URL}/users/${likedId}`);
-              if (userRes.ok) {
-                const userData = await userRes.json();
-                return {
-                  userId: userData.id,
-                  user: userData,
-                  isMutualMatch: false 
-                };
+              if (!userRes.ok) return null;
+
+              const userData = await userRes.json();
+
+              // Try to reuse cached scores for consistency
+              const cachedEntry = cached.find((m) => m.userId === likedId);
+              let mutualScore = cachedEntry?.mutualScore;
+              let similarityScore = cachedEntry?.similarityScore;
+
+              // If no cached scores, fetch fresh validation
+              if (mutualScore === undefined || similarityScore === undefined) {
+                try {
+                  const scoreRes = await fetch(`${API_URL}/matching/validate`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ userId1: user.id, userId2: likedId })
+                  });
+                  if (scoreRes.ok) {
+                    const scoreData = await scoreRes.json();
+                    mutualScore = scoreData.mutualScore ?? 0;
+                    similarityScore = scoreData.similarityScore ?? 0;
+
+                    // Persist in local cache
+                    const cacheIndex = updatedCache.findIndex((m) => m.userId === likedId);
+                    if (cacheIndex >= 0) {
+                      updatedCache[cacheIndex] = {
+                        ...updatedCache[cacheIndex],
+                        mutualScore,
+                        similarityScore
+                      };
+                    } else {
+                      updatedCache.push({
+                        userId: likedId,
+                        mutualScore,
+                        similarityScore,
+                        user: userData
+                      });
+                    }
+                  }
+                } catch (scoreErr) {
+                  console.error("Failed to fetch validation scores for sent like", likedId, scoreErr);
+                }
               }
-              return null;
+
+              return {
+                userId: userData.id,
+                user: userData,
+                isMutualMatch: false,
+                mutualScore,
+                similarityScore
+              };
             } catch (err) {
               return null;
             }
           })
         );
+
+        // Update shared cache if we added any scores
+        localStorage.setItem(`matches_${user.id}`, JSON.stringify(updatedCache));
+
         setSentLikes(likedUsersWithDetails.filter(match => match !== null));
       }
     } catch (err) {
