@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { UsersRound, User, Users, Heart, Compass } from "lucide-react";
+import { UsersRound, User, Users, Compass } from "lucide-react";
 import { UserButton, useUser, SignInButton } from "@clerk/clerk-react";
 
 function Navbar() {
@@ -7,9 +7,9 @@ function Navbar() {
   const { user } = useUser();
 
   const navItems = [
-    { name: "Profile", path: `/user/${user?.id}`, icon: User },
-    { name: "Matches", path: "/matches", icon: Users },
-    { name: "Explore", path: "/explore", icon: Compass }
+    { name: "Your Profile", path: `/user/${user?.id}`, icon: User },
+    { name: "Your Matches", path: "/matches", icon: Users },
+    { name: "See Explore", path: "/explore", icon: Compass }
   ];
 
   const isActive = (path) => {

@@ -1,11 +1,32 @@
 import { Routes, Route } from "react-router";
 import { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
+import { useEffect, useRef } from "react";
+import { useUser } from "@clerk/clerk-react";
 import HomePage from "./pages/HomePage";
 import ProfilePage from "./pages/ProfilePage";
 import ExplorePage from "./pages/ExplorePage";
 import ProcessPage from "./pages/ProcessPage";
 import UserPage from "./pages/UserPage";
 import MatchesPage from "./pages/MatchesPage";
+
+function AuthToastListener() {
+  const { isSignedIn, user } = useUser();
+  const hasShownRef = useRef(false);
+  const prevSignedInRef = useRef(false);
+
+  useEffect(() => {
+    // Signup/Login success
+    if (isSignedIn && user && !hasShownRef.current) {
+      const isNewUser = user.createdAt && user.updatedAt && user.createdAt.getTime() === user.updatedAt.getTime();
+      toast.success(isNewUser ? "Signup successful — welcome!" : "Logged in successfully.");
+      hasShownRef.current = true;
+    }
+    prevSignedInRef.current = !!isSignedIn;
+  }, [isSignedIn, user]);
+
+  return null;
+}
 
 function App() {
 
@@ -20,8 +41,10 @@ function App() {
       <Route path="/matches" element={<MatchesPage />} />
     </Routes>
 
+    <AuthToastListener />
+
     <Toaster
-      position="top-left"
+      position="top-center"
       toastOptions={{
         duration: 3000,
         style: {
@@ -29,7 +52,7 @@ function App() {
         },
       }}
       containerStyle={{
-        top: 120, 
+        top: 90, 
         left: 20,  
       }}
     />

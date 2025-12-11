@@ -1,18 +1,23 @@
 import { useState, useEffect } from "react";
-import { FileText, Sparkles, Quote, Plus, Eraser, Save } from "lucide-react";
+import { FileText, Sparkles, Quote, Plus, Eraser, Save, Rocket } from "lucide-react";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
 
 function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
   const [bio, setBio] = useState(dbUser?.moreAboutMe || "");
+  
+  const navigate = useNavigate();
 
-  // Sync with DB prop changes
+  const handleOnboard = () => {
+    navigate(`/process/${userId}`)
+  }
+
   useEffect(() => {
     if (dbUser) {
       setBio(dbUser.moreAboutMe || "");
     }
   }, [dbUser]);
 
-  // Update parent state when bio changes (no immediate save to DB)
   useEffect(() => {
     if (isEditMode && dbUser) {
       setDbUser({
@@ -26,7 +31,6 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
     if (!isEditMode) return;
     
     setBio((prev) => {
-      // Avoid duplicates immediately next to each other
       if (prev.endsWith(topic)) return prev;
       
       const separator = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n") ? " " : "";
@@ -47,7 +51,8 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+    // 4. Added 'relative' and 'pb-24' to parent to allow absolute positioning of the button
+    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative pb-24">
       
       {/* Header removed as requested */}
 
@@ -141,6 +146,17 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
           )}
         </div>
       )}
+
+      {/* 5. Button positioned Absolutely at Bottom Right of the container */}
+      <button
+        onClick={handleOnboard} 
+        className="absolute bottom-0 right-0 btn btn-lg btn-primary rounded-full shadow-2xl shadow-primary/40 hover:scale-105 transition-all duration-300 flex items-center gap-2"
+        title="Go to Onboarding Process"
+      >
+        <span className="hidden md:inline font-bold">Matching process</span>
+        <Rocket className="w-6 h-6" />
+      </button>
+
     </div>
   );
 }

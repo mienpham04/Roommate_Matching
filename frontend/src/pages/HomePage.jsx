@@ -6,11 +6,23 @@ import {
   Bolt,
   Brain,
 } from "lucide-react";
-import { SignInButton } from "@clerk/clerk-react";
+import { useUser, useClerk } from "@clerk/clerk-react";
+import { useNavigate } from "react-router";
 import { Carousel } from "../components/Carousel";
 import Navbar from "../components/Navbar";
 
 function HomePage() {
+  const navigate = useNavigate();
+  const { isSignedIn, user } = useUser();
+  const { openSignIn } = useClerk();
+
+  const handleStartMatching = () => {
+    if (isSignedIn && user?.id) {
+      navigate(`/user/${user.id}`);
+    } else {
+      openSignIn();
+    }
+  };
   const data = {
     slides: [
       {
@@ -68,12 +80,10 @@ function HomePage() {
 
             {/* Buttons */}
             <div className="flex flex-wrap gap-4">
-              <SignInButton mode="modal">
-                <button className="btn btn-primary btn-lg">
-                  Start Matching Now
-                  <ArrowRightIcon className="size-5" />
-                </button>
-              </SignInButton>
+              <button className="btn btn-primary btn-lg" onClick={handleStartMatching}>
+                Set up your profile now
+                <ArrowRightIcon className="size-5" />
+              </button>
             </div>
 
             {/* STATS */}
