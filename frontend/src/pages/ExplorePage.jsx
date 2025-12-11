@@ -842,7 +842,7 @@ function ExplorePage() {
                      <Users className="size-8 text-base-content/40" />
                   </div>
                   <p className="text-base-content/60 text-lg font-medium">No matches found yet.</p>
-                  <p className="text-base-content/40 text-sm">Try updating your profile preferences!</p>
+                  <p className="text-base-content/40 text-sm">Try updating your location or preferences!</p>
                 </div>
               ) : (
                 <>
