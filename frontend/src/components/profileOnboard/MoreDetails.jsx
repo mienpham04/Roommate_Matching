@@ -12,10 +12,10 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
 
   useEffect(() => {
     if (isEditMode && dbUser) {
-      setDbUser({
-        ...dbUser,
+      setDbUser((prev) => ({
+        ...prev,
         moreAboutMe: bio,
-      });
+      }));
     }
   }, [bio, isEditMode]);
 

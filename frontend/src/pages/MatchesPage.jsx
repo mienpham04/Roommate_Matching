@@ -303,93 +303,113 @@ function MatchesPage() {
         return;
       }
 
-      // Update lastUpdatedAt for this match
-      setMatches(prevMatches =>
-        prevMatches.map(match =>
-          match.userId === update.userId ? { ...match, lastUpdatedAt: new Date().toISOString() } : match
-        )
-      );
-
-      console.log('Is this user in our matches?', isMatch, 'UserId:', update.userId);
-
-      if (isMatch) {
-        // Use efficient pairwise validation - only calculates scores between these 2 users
-        try {
-          console.log('📊 Fetching new scores for:', update.firstName, 'vs', user.id);
-          const response = await fetch(`${API_URL}/matching/validate`, {
+      // Real-time refresh: pull latest user details + scores
+      try {
+        const [userRes, scoreRes] = await Promise.all([
+          fetch(`${API_URL}/users/${update.userId}`),
+          fetch(`${API_URL}/matching/validate`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               userId1: user.id,
               userId2: update.userId
             })
-          });
+          })
+        ]);
 
-          if (response.ok) {
-            const data = await response.json();
-            console.log('✅ Received scores:', data);
-            const mutualScore = data.mutualScore || 0;
-            const similarityScore = data.similarityScore || 0;
-            const isLowMatch = data.isLowMatch || false;
+        const userData = userRes.ok ? await userRes.json() : null;
+        const scoreData = scoreRes.ok ? await scoreRes.json() : null;
 
-            // Update cached scores for display
-            setCachedScores(prev => ({
-              ...prev,
-              [update.userId]: {
-                mutualScore: mutualScore,
-                similarityScore: similarityScore
-              }
-            }));
+        const mutualScore = scoreData?.mutualScore ?? 0;
+        const similarityScore = scoreData?.similarityScore ?? 0;
+        const isLowMatch = scoreData?.isLowMatch || mutualScore <= 0.5;
 
-            // Update validation data for styling
-            setMatchValidation(prev => ({
-              ...prev,
-              [update.userId]: {
-                stillMatches: data.stillMatches,
-                isLowMatch: isLowMatch,
-                mutualScore: mutualScore
-              }
-            }));
-
-            // Also update localStorage so other tabs/pages can use it
-            const cached = localStorage.getItem(`matches_${user.id}`);
-            if (cached) {
-              const cachedMatches = JSON.parse(cached);
-              const updatedCached = cachedMatches.map(match => {
-                if (match.userId === update.userId) {
-                  return {
-                    ...match,
-                    mutualScore: mutualScore,
-                    similarityScore: similarityScore,
-                    user: {
-                      ...match.user,
-                      lastUpdatedAt: new Date().toISOString()
-                    }
-                  };
+        // Update match card details immediately
+        setMatches(prevMatches =>
+          prevMatches.map(match =>
+            match.userId === update.userId
+              ? {
+                  ...match,
+                  name: userData ? `${userData.firstName} ${userData.lastName}` : match.name,
+                  age: userData?.age ?? match.age,
+                  profileImageUrl: userData?.profileImageUrl ?? match.profileImageUrl,
+                  location: userData?.zipCode ?? match.location,
+                  minBudget: userData?.budget?.min ?? match.minBudget,
+                  maxBudget: userData?.budget?.max ?? match.maxBudget,
+                  lifestyle: userData?.lifestyle ?? match.lifestyle,
+                  lastUpdatedAt: new Date().toISOString()
                 }
-                return match;
-              });
-              localStorage.setItem(`matches_${user.id}`, JSON.stringify(updatedCached));
-            }
+              : match
+          )
+        );
 
-            // Show appropriate toast based on match quality
-            console.log('💬 About to show toast. isLowMatch:', isLowMatch, 'mutualScore:', mutualScore);
-            if (isLowMatch) {
-              console.log('📢 Showing LOW MATCH toast');
-              toast(`${update.firstName} updated their profile - match score is now ${Math.round(mutualScore * 100)}%`, {
-                icon: '⚠️',
-                duration: 5000
-              });
-            } else {
-              console.log('📢 Showing SUCCESS toast');
-              toast.success(`${update.firstName} updated their profile - scores refreshed to ${Math.round(mutualScore * 100)}%!`, { icon: '✨' });
-            }
-            console.log('✅ Toast should have been triggered');
+        // Update cached scores for display
+        setCachedScores(prev => ({
+          ...prev,
+          [update.userId]: {
+            mutualScore: mutualScore,
+            similarityScore: similarityScore
           }
-        } catch (error) {
-          console.error('Failed to refetch match scores:', error);
-          toast.error(`Failed to update scores for ${update.firstName}`);
+        }));
+
+        // Update validation data for styling
+        setMatchValidation(prev => ({
+          ...prev,
+          [update.userId]: {
+            stillMatches: scoreData?.stillMatches,
+            isLowMatch: isLowMatch,
+            mutualScore: mutualScore
+          }
+        }));
+
+        // Also update localStorage so other tabs/pages can use it
+        const cached = localStorage.getItem(`matches_${user.id}`);
+        const cachedMatches = cached ? JSON.parse(cached) : [];
+        let foundInCache = false;
+        const updatedCached = cachedMatches.map(match => {
+          if (match.userId === update.userId) {
+            foundInCache = true;
+            return {
+              ...match,
+              mutualScore: mutualScore,
+              similarityScore: similarityScore,
+              user: {
+                ...(userData || match.user),
+                lastUpdatedAt: new Date().toISOString()
+              }
+            };
+          }
+          return match;
+        });
+        if (!foundInCache) {
+          updatedCached.push({
+            userId: update.userId,
+            mutualScore,
+            similarityScore,
+            user: {
+              ...(userData || {}),
+              lastUpdatedAt: new Date().toISOString()
+            }
+          });
         }
+        localStorage.setItem(`matches_${user.id}`, JSON.stringify(updatedCached));
+
+        // Show appropriate toast based on match quality
+        console.log('💬 About to show toast. isLowMatch:', isLowMatch, 'mutualScore:', mutualScore);
+        if (isLowMatch) {
+          console.log('📢 Showing LOW MATCH toast');
+          toast(`${update.firstName} updated their profile - match score is now ${Math.round(mutualScore * 100)}%`, {
+            icon: '⚠️',
+            duration: 5000
+          });
+        } else {
+          console.log('📢 Showing SUCCESS toast');
+          toast.success(`${update.firstName} updated their profile - scores refreshed to ${Math.round(mutualScore * 100)}%!`, { icon: '✨' });
+        }
+        console.log('✅ Toast should have been triggered');
+      } catch (error) {
+        console.error('Failed to refetch match scores or user details:', error);
+        toast.error(`Failed to update ${update.firstName}'s info in real time`);
       }
     });
 

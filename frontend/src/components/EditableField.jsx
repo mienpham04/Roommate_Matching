@@ -1,15 +1,51 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useLayoutEffect } from "react";
 import { Pencil, X, Check } from "lucide-react";
 
-function EditableField({ label, field, value, icon: Icon, type = "text", options = [], onSave, isEditMode = true }) {
+function EditableField({ label, field, value, icon: Icon, type = "text", options = [], onSave, isEditMode = true, saveTrigger }) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentValue, setCurrentValue] = useState(value);
   const [tempValue, setTempValue] = useState(value);
+
+  // Use refs to always have the latest values without triggering effect re-runs
+  const isEditingRef = useRef(isEditing);
+  const tempValueRef = useRef(tempValue);
+  const fieldRef = useRef(field);
+  const onSaveRef = useRef(onSave);
+  const prevSaveTriggerRef = useRef();
+
+  // Keep refs in sync with latest values - use layoutEffect to ensure this runs before other effects
+  useLayoutEffect(() => {
+    isEditingRef.current = isEditing;
+    tempValueRef.current = tempValue;
+    fieldRef.current = field;
+    onSaveRef.current = onSave;
+  });
 
   useEffect(() => {
     setCurrentValue(value);
     setTempValue(value);
   }, [value]);
+
+  // If parent requests a save (top-level Save Changes), commit any in-progress edits
+  useEffect(() => {
+    // Only save when saveTrigger actually changes (not when isEditing changes)
+    const hasChanged = saveTrigger !== undefined && saveTrigger !== prevSaveTriggerRef.current;
+
+    if (hasChanged) {
+      // Check if we're currently editing - if so, save the in-progress edit
+      if (isEditingRef.current) {
+        setCurrentValue(tempValueRef.current);
+        setIsEditing(false);
+        if (onSaveRef.current) {
+          onSaveRef.current(fieldRef.current, tempValueRef.current);
+        }
+      }
+    }
+
+    // Always update the previous trigger value to track future changes
+    prevSaveTriggerRef.current = saveTrigger;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveTrigger]);
 
   const handleSave = () => {
     setCurrentValue(tempValue);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, User, Coffee, Heart, FileText, Edit, Eye, Check, Settings, Sparkles, X } from "lucide-react";
 import Navbar from "../components/Navbar";
 import PersonalInfo from "../components/profileOnboard/PersonalInfo";
@@ -19,16 +19,30 @@ function UserPage() {
     const [originalDbUser, setOriginalDbUser] = useState(null); // Store original data for cancel
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const dbUserRef = useRef(null); // Always keep latest user state handy
+
+    // Keep state and ref in sync whenever user data changes
+    const setDbUserSynced = (updater) => {
+        setDbUser((prev) => {
+            const next = typeof updater === "function" ? updater(prev) : updater;
+            dbUserRef.current = next;
+            return next;
+        });
+    };
+
+    useEffect(() => {
+        dbUserRef.current = dbUser;
+    }, [dbUser]);
 
     useEffect(() => {
         const fetchUser = async () => {
             try {
                 const res = await fetch(`http://localhost:8080/api/users/${id}`);
                 const data = await res.json();
-                setDbUser(data);
+                setDbUserSynced(data);
             } catch (err) {
                 console.error("Failed to fetch DB user:", err);
-                setDbUser({ name: "Test User" });
+                setDbUserSynced({ name: "Test User" });
             }
         };
         fetchUser();
@@ -84,17 +98,18 @@ function UserPage() {
 
     const handleFinish = async () => {
         setIsSaving(true);
+
         try {
             // Save the current state to database
             const response = await fetch(`http://localhost:8080/api/users/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(dbUser),
+                body: JSON.stringify(dbUserRef.current || dbUser),
             });
 
             if (response.ok) {
                 const updatedUser = await response.json();
-                setDbUser(updatedUser);
+                setDbUserSynced(updatedUser);
                 setIsEditMode(false);
 
                 // Show success toast notification
@@ -148,7 +163,7 @@ function UserPage() {
     const handleCancel = () => {
         // Restore original data
         if (originalDbUser) {
-            setDbUser(originalDbUser);
+            setDbUserSynced(originalDbUser);
         }
         // Exit edit mode
         setIsEditMode(false);
@@ -212,11 +227,11 @@ function UserPage() {
 
                 <div className="animate-in fade-in slide-in-from-right-2 duration-200">
                     {preferenceSubTab === 0 ? (
-                        <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
+                        <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />
                     ) : preferenceSubTab === 1 ? (
-                        <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
+                        <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />
                     ) : (
-                        <Preference3 dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />
+                        <Preference3 dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />
                     )}
                 </div>
             </div>
@@ -225,10 +240,10 @@ function UserPage() {
 
     const renderContent = () => {
         switch (active) {
-            case "Profile": return <PersonalInfo dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
-            case "Lifestyle": return <LifeStyle dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
+            case "Profile": return <PersonalInfo dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />;
+            case "Lifestyle": return <LifeStyle dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />;
             case "Preferences": return renderPreferences();
-            case "About Me": return <MoreDetails dbUser={dbUser} userId={id} setDbUser={setDbUser} isEditMode={isEditMode} />;
+            case "About Me": return <MoreDetails dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />;
             default: return null;
         }
     };
