@@ -8,11 +8,13 @@ import Preference2 from "../components/profileOnboard/Preference2";
 import Preference3 from "../components/profileOnboard/Preference3";
 import MoreDetails from "../components/profileOnboard/MoreDetails";
 import { useParams, useLocation } from "react-router";
+import { useUser } from "@clerk/clerk-react";
 import Loading from "../components/Loading";
 
 function UserPage() {
     const { id } = useParams();
-    const location = useLocation(); 
+    const location = useLocation();
+    const { user: currentUser } = useUser();
     const [active, setActive] = useState("Profile");
     const [preferenceSubTab, setPreferenceSubTab] = useState(0);
     const [dbUser, setDbUser] = useState(null);
@@ -20,6 +22,9 @@ function UserPage() {
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const dbUserRef = useRef(null); // Always keep latest user state handy
+
+    // Check if current user is viewing their own profile
+    const isOwnProfile = currentUser?.id === id;
 
     // Keep state and ref in sync whenever user data changes
     const setDbUserSynced = (updater) => {
@@ -184,7 +189,7 @@ function UserPage() {
         setTimeout(() => toastDiv.remove(), 2000);
     };
 
-    const renderPreferences = () => {
+    const renderPreferences = (canEdit) => {
         return (
             // Added negative margin top (-mt-2 md:-mt-6) to pull tabs closer to the title
             <div className="w-full -mt-2 md:-mt-6">
@@ -227,11 +232,11 @@ function UserPage() {
 
                 <div className="animate-in fade-in slide-in-from-right-2 duration-200">
                     {preferenceSubTab === 0 ? (
-                        <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />
+                        <Preference1 dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={canEdit} />
                     ) : preferenceSubTab === 1 ? (
-                        <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />
+                        <Preference2 dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={canEdit} />
                     ) : (
-                        <Preference3 dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />
+                        <Preference3 dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={canEdit} />
                     )}
                 </div>
             </div>
@@ -239,11 +244,14 @@ function UserPage() {
     };
 
     const renderContent = () => {
+        // Only allow editing if viewing own profile
+        const canEdit = isOwnProfile && isEditMode;
+
         switch (active) {
-            case "Profile": return <PersonalInfo dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />;
-            case "Lifestyle": return <LifeStyle dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />;
-            case "Preferences": return renderPreferences();
-            case "About Me": return <MoreDetails dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={isEditMode} />;
+            case "Profile": return <PersonalInfo dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={canEdit} />;
+            case "Lifestyle": return <LifeStyle dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={canEdit} />;
+            case "Preferences": return renderPreferences(canEdit);
+            case "About Me": return <MoreDetails dbUser={dbUser} userId={id} setDbUser={setDbUserSynced} isEditMode={canEdit} />;
             default: return null;
         }
     };
@@ -317,49 +325,56 @@ function UserPage() {
                                 </div>
 
                                 <div className="flex gap-2">
-                                    {isEditMode ? (
-                                        <>
-                                            {/* Cancel Button */}
-                                            <button
-                                                onClick={handleCancel}
-                                                disabled={isSaving}
-                                                className="btn btn-sm md:btn-md btn-ghost rounded-full px-6 transition-all duration-300 hover:bg-base-200 text-base-content/70"
-                                            >
-                                                <X className="w-4 h-4" />
-                                                <span>Cancel</span>
-                                            </button>
+                                    {isOwnProfile ? (
+                                        isEditMode ? (
+                                            <>
+                                                {/* Cancel Button */}
+                                                <button
+                                                    onClick={handleCancel}
+                                                    disabled={isSaving}
+                                                    className="btn btn-sm md:btn-md btn-ghost rounded-full px-6 transition-all duration-300 hover:bg-base-200 text-base-content/70"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                    <span>Cancel</span>
+                                                </button>
 
-                                            {/* Save Button */}
+                                                {/* Save Button */}
+                                                <button
+                                                    onClick={handleFinish}
+                                                    disabled={isSaving}
+                                                    className="btn btn-sm md:btn-md btn-success text-white rounded-full px-6 shadow-success/30 shadow-lg transition-all duration-300"
+                                                >
+                                                    {isSaving ? (
+                                                        <>
+                                                            <span className="loading loading-spinner loading-sm"></span>
+                                                            <span>Saving...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Check className="w-4 h-4" />
+                                                            <span>Save Changes</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </>
+                                        ) : (
                                             <button
-                                                onClick={handleFinish}
-                                                disabled={isSaving}
-                                                className="btn btn-sm md:btn-md btn-success text-white rounded-full px-6 shadow-success/30 shadow-lg transition-all duration-300"
+                                                onClick={() => {
+                                                    // Save original data before entering edit mode
+                                                    setOriginalDbUser(JSON.parse(JSON.stringify(dbUser)));
+                                                    setIsEditMode(true);
+                                                }}
+                                                className="btn btn-sm md:btn-md btn-ghost bg-base-200/50 hover:bg-base-200 text-base-content/70 rounded-full px-6 transition-all duration-300"
                                             >
-                                                {isSaving ? (
-                                                    <>
-                                                        <span className="loading loading-spinner loading-sm"></span>
-                                                        <span>Saving...</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Check className="w-4 h-4" />
-                                                        <span>Save Changes</span>
-                                                    </>
-                                                )}
+                                                <Edit className="w-4 h-4" />
+                                                <span>Edit</span>
                                             </button>
-                                        </>
+                                        )
                                     ) : (
-                                        <button
-                                            onClick={() => {
-                                                // Save original data before entering edit mode
-                                                setOriginalDbUser(JSON.parse(JSON.stringify(dbUser)));
-                                                setIsEditMode(true);
-                                            }}
-                                            className="btn btn-sm md:btn-md btn-ghost bg-base-200/50 hover:bg-base-200 text-base-content/70 rounded-full px-6 transition-all duration-300"
-                                        >
-                                            <Edit className="w-4 h-4" />
-                                            <span>Edit</span>
-                                        </button>
+                                        <div className="badge badge-ghost badge-lg">
+                                            <Eye className="w-4 h-4 mr-2" />
+                                            View Only
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -372,7 +387,7 @@ function UserPage() {
                             </div>
 
                             {/* Footer */}
-                            {isEditMode && (
+                            {isOwnProfile && isEditMode && (
                                 <div className="p-4 md:p-6 border-t border-base-200 bg-base-100/90 backdrop-blur-md shrink-0 flex justify-between items-center z-10">
                                     <button
                                         onClick={handleBack}
