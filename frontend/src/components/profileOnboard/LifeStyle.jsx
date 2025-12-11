@@ -1,4 +1,4 @@
-import { Moon, PawPrint, Cigarette, Users, Pencil, X, Check } from "lucide-react";
+import { Moon, PawPrint, Cigarette, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 
 function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
@@ -10,9 +10,6 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
     guestFrequency: dbUser?.lifestyle?.guestFrequency ?? ""
   });
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [tempGuest, setTempGuest] = useState(lifestyle.guestFrequency);
-
   useEffect(() => {
     if (dbUser?.lifestyle) {
       const newLifestyle = {
@@ -22,7 +19,6 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
         guestFrequency: dbUser.lifestyle.guestFrequency ?? ""
       };
       setLifestyle(newLifestyle);
-      setTempGuest(newLifestyle.guestFrequency);
     }
   }, [dbUser]);
 
@@ -35,22 +31,10 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
     setDbUser(updatedUser);
   };
 
-  const handleToggle = (field, value) => {
+  const handleChange = (field, value) => {
     const updated = { ...lifestyle, [field]: value };
     setLifestyle(updated);
     updateParentState(updated);
-  };
-
-  const saveGuest = () => {
-    const updated = { ...lifestyle, guestFrequency: tempGuest };
-    setLifestyle(updated);
-    updateParentState(updated);
-    setIsEditing(false);
-  };
-
-  const cancelGuest = () => {
-    setTempGuest(lifestyle.guestFrequency);
-    setIsEditing(false);
   };
 
   const ToggleCard = ({ title, desc, icon, field, checked }) => (
@@ -69,7 +53,7 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
             type="checkbox"
             className="toggle toggle-primary toggle-xs md:toggle-sm"
             checked={checked}
-            onChange={(e) => handleToggle(field, e.target.checked)}
+            onChange={(e) => handleChange(field, e.target.checked)}
             disabled={!isEditMode}
           />
         </div>
@@ -125,62 +109,31 @@ function LifeStyle({ dbUser, userId, setDbUser, isEditMode = true }) {
           </div>
 
           <div className="grow">
-
-            {!isEditing ? (
-              <>
-                <div className="flex items-center justify-between bg-base-200/30 border border-base-300 rounded-lg px-3 py-2 min-h-11">
-                  <span className="text-sm font-medium text-base-content truncate">
-                    {lifestyle.guestFrequency || (
-                      <span className="text-base-content/30 italic">Not set</span>
-                    )}
-                  </span>
-
-                  {isEditMode && (
-                    <button
-                      className="btn btn-ghost btn-circle btn-xs text-base-content/40 hover:text-primary"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Pencil size={14} />
-                    </button>
+            <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all duration-200 min-h-11
+              ${isEditMode ? "border-primary/30 bg-base-100" : "border-base-300 bg-base-200/30"}
+            `}>
+              {isEditMode ? (
+                <input
+                  type="text"
+                  className="grow bg-transparent outline-none text-sm text-base-content"
+                  value={lifestyle.guestFrequency || ""}
+                  onChange={(e) => handleChange("guestFrequency", e.target.value)}
+                  placeholder="e.g. I host dinner parties once a month..."
+                />
+              ) : (
+                <span className="text-sm font-medium text-base-content truncate">
+                  {lifestyle.guestFrequency || (
+                    <span className="text-base-content/30 italic">Not set</span>
                   )}
-                </div>
+                </span>
+              )}
+            </div>
 
-                <div className="label">
-                  <span className="label-text-alt text-base-content/50">
-                    Be honest! It helps avoid conflicts later.
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-2 bg-base-100 border border-primary rounded-lg px-3 py-2 ring-1 ring-primary/20 min-h-11">
-
-                  <input
-                    type="text"
-                    className="grow bg-transparent outline-none text-sm text-base-content"
-                    value={tempGuest}
-                    onChange={(e) => setTempGuest(e.target.value)}
-                    autoFocus
-                    placeholder="e.g. I host dinner parties once a month..."
-                  />
-
-                  <button className="btn btn-circle btn-xs btn-success text-white" onClick={saveGuest}>
-                    <Check size={12} />
-                  </button>
-
-                  <button className="btn btn-circle btn-xs btn-ghost text-base-content/60" onClick={cancelGuest}>
-                    <X size={12} />
-                  </button>
-                </div>
-
-                <div className="label">
-                  <span className="label-text-alt text-base-content/50">
-                    Be honest! It helps avoid conflicts later.
-                  </span>
-                </div>
-              </>
-            )}
-
+            <div className="label">
+              <span className="label-text-alt text-base-content/50">
+                Be honest! It helps avoid conflicts later.
+              </span>
+            </div>
           </div>
 
         </div>

@@ -95,6 +95,14 @@ public class VectorSearchService {
                 continue;
             }
 
+            // Skip users with incomplete profiles (missing critical fields)
+            if (!isProfileComplete(candidateUser)) {
+                System.out.println("  Skipping " +
+                    (candidateUser.getFirstName() != null ? candidateUser.getFirstName() : "null") +
+                    " (incomplete profile - missing required fields)");
+                continue;
+            }
+
             // STEP 1: Hard requirements filter (bidirectional)
             boolean aWantsBRequirements = attributeMatchingService.meetsHardRequirements(targetUser, candidateUser);
             boolean bWantsARequirements = attributeMatchingService.meetsHardRequirements(candidateUser, targetUser);
@@ -181,6 +189,17 @@ public class VectorSearchService {
         System.out.println("User 1: " + user1.getFirstName() + " " + user1.getLastName());
         System.out.println("User 2: " + user2.getFirstName() + " " + user2.getLastName());
 
+        // Check if both profiles are complete
+        if (!isProfileComplete(user1) || !isProfileComplete(user2)) {
+            System.out.println("❌ One or both users have incomplete profiles - Returning 0% score");
+            System.out.println("===============================\n");
+            Map<String, Object> result = new HashMap<>();
+            result.put("mutualScore", 0.0);
+            result.put("similarityScore", 0.0);
+            result.put("meetsRequirements", false);
+            return result;
+        }
+
         Map<String, Object> result = new HashMap<>();
 
         // Check hard requirements first (bidirectional)
@@ -245,6 +264,32 @@ public class VectorSearchService {
             " | Similarity=" + String.format("%.2f", similarityScore));
 
         return result;
+    }
+
+    /**
+     * Check if a user profile has all required fields for matching
+     * Required fields: firstName, lastName, gender, zipCode, dateOfBirth
+     *
+     * @param user The user to check
+     * @return true if profile is complete, false otherwise
+     */
+    private boolean isProfileComplete(UserModel user) {
+        if (user == null) {
+            return false;
+        }
+
+        // Check critical fields required for matching
+        boolean hasName = user.getFirstName() != null && !user.getFirstName().trim().isEmpty() &&
+                         user.getLastName() != null && !user.getLastName().trim().isEmpty();
+
+        boolean hasGender = user.getGender() != null && !user.getGender().trim().isEmpty();
+
+        boolean hasZipCode = user.getZipCode() != null && !user.getZipCode().trim().isEmpty() &&
+                            user.getZipCode().length() >= 5;
+
+        boolean hasDateOfBirth = user.getDateOfBirth() != null;
+
+        return hasName && hasGender && hasZipCode && hasDateOfBirth;
     }
 
     /**

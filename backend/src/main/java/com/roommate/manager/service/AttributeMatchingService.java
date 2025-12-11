@@ -30,23 +30,25 @@ public class AttributeMatchingService {
         double locationScore = calculateLocationMatch(userA, userB);
 
         // Weighted combination
-        return (ageScore * 0.25) +
+        // Location weight increased to 0.20 since proximity within same city is now important
+        return (ageScore * 0.20) +
                (genderScore * 0.25) +
-               (lifestyleScore * 0.30) +
+               (lifestyleScore * 0.25) +
                (budgetScore * 0.10) +
-               (locationScore * 0.10);
+               (locationScore * 0.20);
     }
 
     /**
      * Check if two users meet hard requirements (must pass all filters)
-     * Updated: No hard requirements - all factors now contribute to score only
+     * Hard requirements: Gender + Same City (location)
      */
     public boolean meetsHardRequirements(UserModel userA, UserModel userB) {
-        // Gender is the only hard requirement remaining
         boolean passesGender = passesGenderRequirement(userA, userB);
+        boolean passesLocation = passesCityRequirement(userA, userB);
 
         System.out.println("    Checking " + userA.getFirstName() + "'s requirements for " + userB.getFirstName() + ":");
         System.out.println("      Gender: " + (passesGender ? "✓" : "✗"));
+        System.out.println("      Location (Same City): " + (passesLocation ? "✓" : "✗"));
 
         if (!passesGender) {
             System.out.println("      ❌ Failed Gender: " + userA.getFirstName() + " wants " +
@@ -54,7 +56,37 @@ public class AttributeMatchingService {
                 ", " + userB.getFirstName() + " is " + (userB.getGender() != null ? userB.getGender() : "unknown"));
         }
 
-        return passesGender;
+        if (!passesLocation) {
+            System.out.println("      ❌ Failed Location: " + userA.getFirstName() + " is in city " +
+                getCityCode(userA.getZipCode()) + ", " + userB.getFirstName() + " is in city " + getCityCode(userB.getZipCode()));
+        }
+
+        return passesGender && passesLocation;
+    }
+
+    /**
+     * Check if two users are in the same city (based on first 3 digits of zipcode)
+     */
+    private boolean passesCityRequirement(UserModel userA, UserModel userB) {
+        if (userA.getZipCode() == null || userB.getZipCode() == null) {
+            return false; // Require both users to have zipcode set
+        }
+
+        String cityA = getCityCode(userA.getZipCode());
+        String cityB = getCityCode(userB.getZipCode());
+
+        return cityA != null && cityB != null && cityA.equals(cityB);
+    }
+
+    /**
+     * Extract city code from zipcode (first 3 digits)
+     * In US zipcodes, the first 3 digits represent the sectional center facility (roughly a city/metro area)
+     */
+    private String getCityCode(String zipCode) {
+        if (zipCode == null || zipCode.length() < 3) {
+            return null;
+        }
+        return zipCode.substring(0, 3);
     }
 
     /**
@@ -314,18 +346,77 @@ public class AttributeMatchingService {
 
     // ========== LOCATION MATCHING ==========
 
+    /**
+     * Calculate location match score with proximity-based scoring
+     *
+     * Scoring strategy:
+     * - Same exact zipcode: 1.0 (perfect match)
+     * - Same city, close zipcodes: 0.7-0.95 (higher score for closer proximity)
+     * - Different city: 0.1 (filtered out by hard requirements, but very low score if reached)
+     *
+     * Within same city, proximity is based on the numeric difference in zipcodes.
+     * Smaller difference = higher score (closer neighborhoods)
+     */
     private double calculateLocationMatch(UserModel userA, UserModel userB) {
         if (userA.getZipCode() == null || userB.getZipCode() == null) {
-            return 0.5; // Neutral if location not specified
+            return 0.1; // Very low score if location not specified
         }
 
-        // Exact zip code match
-        if (userA.getZipCode().equals(userB.getZipCode())) {
+        String zipA = userA.getZipCode();
+        String zipB = userB.getZipCode();
+
+        // Exact zip code match - same neighborhood
+        if (zipA.equals(zipB)) {
             return 1.0;
         }
 
-        // Could extend this to calculate distance between zip codes
-        // For now, different zip = lower score
-        return 0.3;
+        // Check if same city (first 3 digits)
+        String cityA = getCityCode(zipA);
+        String cityB = getCityCode(zipB);
+
+        if (cityA == null || cityB == null || !cityA.equals(cityB)) {
+            // Different cities - should be filtered by hard requirements
+            // But if this is reached, give very low score
+            return 0.1;
+        }
+
+        // Same city, different zipcode - score based on proximity
+        // Extract numeric values from zipcodes for distance calculation
+        try {
+            int zipNumA = Integer.parseInt(zipA.replaceAll("[^0-9]", ""));
+            int zipNumB = Integer.parseInt(zipB.replaceAll("[^0-9]", ""));
+
+            int distance = Math.abs(zipNumA - zipNumB);
+
+            // Proximity scoring within same city:
+            // - Distance 0-10: Score 0.90-1.00 (very close, adjacent neighborhoods)
+            // - Distance 11-50: Score 0.75-0.89 (nearby areas)
+            // - Distance 51-100: Score 0.60-0.74 (same city, farther apart)
+            // - Distance 100+: Score 0.50-0.59 (same city, opposite ends)
+
+            double score;
+            if (distance <= 10) {
+                // Very close zipcodes - linear scale from 0.90 to 1.0
+                score = 1.0 - (distance * 0.01);
+            } else if (distance <= 50) {
+                // Nearby - score from 0.75 to 0.89
+                score = 0.89 - ((distance - 10) * 0.0035);
+            } else if (distance <= 100) {
+                // Same city, farther - score from 0.60 to 0.74
+                score = 0.74 - ((distance - 50) * 0.0028);
+            } else {
+                // Same city, far apart - score from 0.50 to 0.59
+                // Cap at distance 200 for score calculation
+                int cappedDistance = Math.min(distance, 200);
+                score = 0.59 - ((cappedDistance - 100) * 0.0009);
+            }
+
+            // Ensure minimum score of 0.50 for same city
+            return Math.max(0.50, score);
+
+        } catch (NumberFormatException e) {
+            // If zipcode parsing fails, give neutral same-city score
+            return 0.70;
+        }
     }
 }

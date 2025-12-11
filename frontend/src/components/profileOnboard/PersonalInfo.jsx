@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { Pencil, X, User, Mail, Phone, Calendar, VenusAndMars } from "lucide-react";
-import EditableField from "../EditableField";
+import SimpleField from "../SimpleField";
 import BudgetField from "../BudgetField";
 
 function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
@@ -29,8 +29,10 @@ function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
 
   const handleFieldUpdate = (field, newValue) => {
     // Update parent state only (no API call)
-    const updateUser = { ...dbUser, [field]: newValue };
-    setDbUser(updateUser);
+    setDbUser((prev) => ({
+      ...prev,
+      [field]: newValue
+    }));
   };
 
   return (
@@ -65,62 +67,62 @@ function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-3">
 
-        <EditableField
+        <SimpleField
           label="First Name"
           field="firstName"
           value={dbUser?.firstName || ""}
           icon={User}
-          onSave={handleFieldUpdate}
+          onChange={handleFieldUpdate}
           isEditMode={isEditMode}
         />
 
-        <EditableField
+        <SimpleField
           label="Last Name"
           field="lastName"
           value={dbUser?.lastName || ""}
           icon={User}
-          onSave={handleFieldUpdate}
+          onChange={handleFieldUpdate}
           isEditMode={isEditMode}
         />
 
-        <EditableField
+        <SimpleField
           label="Email Address"
           field="email"
           value={dbUser?.email || ""}
           icon={Mail}
           type="email"
-          onSave={handleFieldUpdate}
+          onChange={handleFieldUpdate}
           isEditMode={isEditMode}
         />
 
-        <EditableField
+        <SimpleField
           label="Phone Number"
           field="phone"
           value={dbUser?.phone || ""}
           icon={Phone}
           type="tel"
-          onSave={handleFieldUpdate}
+          onChange={handleFieldUpdate}
           isEditMode={isEditMode}
         />
 
-        <EditableField
+        <SimpleField
           label="Gender"
           field="gender"
           value={dbUser?.gender || ""}
           icon={VenusAndMars}
           type="select"
           options={["Male", "Female", "Non-binary", "Other"]}
-          onSave={handleFieldUpdate}
+          onChange={handleFieldUpdate}
           isEditMode={isEditMode}
         />
 
-        <EditableField
+        <SimpleField
           label="Date of Birth"
           field="dateOfBirth"
           value={dbUser?.dateOfBirth || ""}
           icon={Calendar}
           type="date"
-          onSave={handleFieldUpdate}
+          onChange={handleFieldUpdate}
           isEditMode={isEditMode}
         />
 
