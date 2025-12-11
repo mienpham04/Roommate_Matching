@@ -1,17 +1,9 @@
 import { useState, useEffect } from "react";
-import { FileText, Sparkles, Quote, Plus, Eraser, Save, Rocket } from "lucide-react";
-import toast from "react-hot-toast";
-import { useNavigate } from "react-router";
+import { FileText, Sparkles, Quote, Plus, Eraser } from "lucide-react";
 
 function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
   const [bio, setBio] = useState(dbUser?.moreAboutMe || "");
   
-  const navigate = useNavigate();
-
-  const handleOnboard = () => {
-    navigate(`/process/${userId}`)
-  }
-
   useEffect(() => {
     if (dbUser) {
       setBio(dbUser.moreAboutMe || "");
@@ -51,11 +43,8 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
   ];
 
   return (
-    // 4. Added 'relative' and 'pb-24' to parent to allow absolute positioning of the button
-    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative pb-24">
+    <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
       
-      {/* Header removed as requested */}
-
       {isEditMode ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
@@ -146,17 +135,6 @@ function MoreDetails({ dbUser, userId, setDbUser, isEditMode = true }) {
           )}
         </div>
       )}
-
-      {/* 5. Button positioned Absolutely at Bottom Right of the container */}
-      <button
-        onClick={handleOnboard} 
-        className="absolute bottom-0 right-0 btn btn-lg btn-primary rounded-full shadow-2xl shadow-primary/40 hover:scale-105 transition-all duration-300 flex items-center gap-2"
-        title="Go to Onboarding Process"
-      >
-        <span className="hidden md:inline font-bold">Matching process</span>
-        <Rocket className="w-6 h-6" />
-      </button>
-
     </div>
   );
 }
