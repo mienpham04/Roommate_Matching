@@ -1014,11 +1014,11 @@ function ExplorePage() {
                           setActiveTab(tab.id);
                           setSearchQuery(""); // Optional: Clear search when switching tabs
                         }}
-                        className={`
+                className={`
                 relative flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-colors duration-200
                 ${
                   isActive
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary text-base-content"
                     : "text-base-content/60 hover:bg-base-200 hover:text-base-content"
                 }
               `}
