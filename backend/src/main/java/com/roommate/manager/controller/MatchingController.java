@@ -1,6 +1,7 @@
 package com.roommate.manager.controller;
 
 import com.roommate.manager.service.VectorSearchService;
+import com.roommate.manager.service.UltraOptimizedVectorSearchService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +16,9 @@ public class MatchingController {
 
     @Autowired
     private VectorSearchService vectorSearchService;
+
+    @Autowired
+    private UltraOptimizedVectorSearchService ultraOptimizedVectorSearchService;
 
     /**
      * Find similar roommates for a given user using AI embeddings
@@ -90,6 +94,53 @@ public class MatchingController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Mutual matching failed");
             errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+
+    /**
+     * ULTRA-FAST mutual matching using embeddings directly from Vertex AI
+     * Zero AI generation calls - uses pre-stored embeddings from the vector index
+     * Sub-second performance even with 10,000+ users
+     *
+     * Example: GET /api/matching/mutual/ultrafast/user123?topK=10
+     */
+    @GetMapping("/mutual/ultrafast/{userId}")
+    public ResponseEntity<Map<String, Object>> findMutualMatchesUltraFast(
+            @PathVariable String userId,
+            @RequestParam(defaultValue = "3") int topK
+    ) {
+        try {
+            long startTime = System.currentTimeMillis();
+            List<Map<String, Object>> matches = ultraOptimizedVectorSearchService.findMutualMatchesUltraFast(userId, topK);
+            long duration = System.currentTimeMillis() - startTime;
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("userId", userId);
+            response.put("matchingType", "bidirectional-ultrafast");
+            response.put("totalMatches", matches.size());
+            response.put("matches", matches);
+            response.put("executionTime_ms", duration);
+            response.put("performanceNote", "Uses embeddings directly from Vertex AI - zero AI generation calls");
+            response.put("scoreExplanation", Map.of(
+                "forwardScore", "How well the match satisfies your preferences",
+                "reverseScore", "How well you satisfy the match's preferences",
+                "mutualScore", "Average of both scores (mutual compatibility)"
+            ));
+
+            return ResponseEntity.ok(response);
+
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "User not found");
+            errorResponse.put("message", e.getMessage());
+            return ResponseEntity.status(404).body(errorResponse);
+
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Ultra-fast matching failed");
+            errorResponse.put("message", e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(500).body(errorResponse);
         }
     }

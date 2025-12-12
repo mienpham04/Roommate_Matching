@@ -35,3 +35,4 @@ build/
 ### environment files ###
 .env
 gcp-credentials.json
+MATCHING_OPTIMIZATION_GUIDE.md
