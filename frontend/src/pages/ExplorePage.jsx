@@ -125,7 +125,7 @@ function ExplorePage() {
           try {
             const [similarResponse, mutualResponse] = await Promise.all([
               fetch(`${API_URL}/matching/similar/${user.id}?topK=1000`),
-              fetch(`${API_URL}/matching/mutual/${user.id}?topK=1000`)
+              fetch(`${API_URL}/matching/mutual/ultrafast/${user.id}?topK=1000`)
             ]);
 
             if (similarResponse.ok && mutualResponse.ok) {
@@ -434,7 +434,7 @@ function ExplorePage() {
       const similarData = await similarResponse.json();
       completeStep(2);
 
-      const mutualResponse = await fetch(`${API_URL}/matching/mutual/${userId}?topK=1000`);
+      const mutualResponse = await fetch(`${API_URL}/matching/mutual/ultrafast/${userId}?topK=1000`);
       if (!mutualResponse.ok) throw new Error("Failed to fetch roommate potential");
       const mutualData = await mutualResponse.json();
       completeStep(3);
