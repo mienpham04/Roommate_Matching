@@ -12,7 +12,8 @@ import {
   MessageCircle,
   CheckCircle2,
   Calendar,
-  Briefcase
+  Briefcase,
+  UserCircle
 } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
@@ -29,13 +30,15 @@ function ExplorePage() {
   });
   const [displayedMatches, setDisplayedMatches] = useState([]);
   const [error, setError] = useState(null);
-  const [currentLimit, setCurrentLimit] = useState(8);
+  const [currentLimit, setCurrentLimit] = useState(15);
+  const [allLimit, setAllLimit] = useState(15);
   const [likedUsers, setLikedUsers] = useState(new Set());
   const [mutualMatchIds, setMutualMatchIds] = useState(new Set());
-  const [activeTab, setActiveTab] = useState("explore");
+  const [activeTab, setActiveTab] = useState("all");
   const [receivedLikes, setReceivedLikes] = useState([]);
   const [sentLikes, setSentLikes] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
   const [steps, setSteps] = useState([
     { text: "Getting your profile ID…", done: false },
     { text: "Finding people with similar lifestyles…", done: false },
@@ -99,6 +102,7 @@ function ExplorePage() {
       fetchReceivedLikes();
       fetchSentLikes();
       fetchMutualMatches();
+      fetchAllUsers();
     } else {
       setLoading(false);
     }
@@ -235,6 +239,36 @@ function ExplorePage() {
       }
     } catch (err) {
       console.error("Failed to fetch current user:", err);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    try {
+      const response = await fetch(`${API_URL}/users`);
+      if (response.ok) {
+        const users = await response.json();
+        // Filter out current user and sort by lastUpdatedAt (most recent first)
+        const filteredUsers = users
+          .filter(u => u.id !== user.id)
+          .sort((a, b) => {
+            // Handle cases where dates might be null/undefined
+            const dateA = a.lastUpdatedAt || a.createdAt || 0;
+            const dateB = b.lastUpdatedAt || b.createdAt || 0;
+
+            // If both have dates, sort by date (most recent first)
+            if (dateA && dateB) {
+              return new Date(dateB) - new Date(dateA);
+            }
+            // If only one has a date, prioritize the one with a date
+            if (dateA) return -1;
+            if (dateB) return 1;
+            // If neither has a date, maintain original order
+            return 0;
+          });
+        setAllUsers(filteredUsers);
+      }
+    } catch (err) {
+      console.error("Failed to fetch all users:", err);
     }
   };
 
@@ -512,6 +546,10 @@ function ExplorePage() {
     setCurrentLimit(prev => prev + 5);
   };
 
+  const loadMoreAll = () => {
+    setAllLimit(prev => prev + 15);
+  };
+
   const calculateAge = (dateOfBirth) => {
     if (!dateOfBirth) return "N/A";
     const birthDate = new Date(dateOfBirth);
@@ -589,6 +627,7 @@ function ExplorePage() {
     const isLiked = likedUsers.has(match.userId);
     const mutualScore = match.mutualScore ? Math.round(match.mutualScore * 100) : 0;
     const similarityScore = match.similarityScore ? Math.round(match.similarityScore * 100) : 0;
+    const showScores = type !== "all" && (match.mutualScore !== undefined || match.similarityScore !== undefined);
     
     // Determine Card Theme colors
     let themeColor = "text-primary";
@@ -694,8 +733,8 @@ function ExplorePage() {
             </div>
           </div>
 
-          {/* Stats Bars - Only show for Explore or when data exists */}
-          {(match.mutualScore !== undefined || match.similarityScore !== undefined) && (
+          {/* Stats Bars - hidden on All Users tab */}
+          {showScores && (
             <div className="space-y-3 mb-6 bg-base-200/50 p-4 rounded-2xl">
                {match.mutualScore !== undefined && (
                   <div>
@@ -798,83 +837,143 @@ function ExplorePage() {
               </div>
 
               {/* Right: Tabs & Actions */}
-              <div className="flex items-center gap-3">
-                
-                {/* Compact Tabs */}
-                <div className="bg-base-100 p-1.5 rounded-xl border border-base-200 shadow-sm inline-flex gap-1.5 relative">
-                  {[
-                    { id: 'explore', label: 'Suggestions', icon: Sparkles },
-                    { id: 'likes', label: 'Likes You', icon: Heart, count: receivedLikes.length },
-                    { id: 'sent', label: 'Sent', icon: ArrowUp, count: sentLikes.length }
-                  ].map((tab) => {
-                    const isActive = activeTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`
-                          relative flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm transition-all duration-300 ease-out
-                          ${isActive
-                            ? "bg-primary text-white shadow-md font-black transform scale-105"
-                            : "text-base-content/70 hover:text-base-content font-bold hover:bg-base-200"}
-                        `}
-                      >
-                        <tab.icon 
-                            className={`size-4 ${isActive ? "fill-white/20" : ""} transition-colors`} 
-                            strokeWidth={isActive ? 2.5 : 2} 
-                        />
-                        <span>{tab.label}</span>
-                        
-                        {/* Counter Badge */}
-                        {tab.count !== undefined && tab.count > 0 && (
-                          <span className={`
-                            ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold
-                            ${isActive ? "bg-white/20 text-white" : "bg-base-300 text-base-content/70"}
-                          `}>
-                            {tab.count}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Right: Tabs & Actions */}
+<div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+  
+  {/* FIXED WIDTH TABS - NO POPPING */}
+  <div className="bg-base-100 p-1 rounded-xl border border-base-200 shadow-sm w-full md:min-w-[480px]">
+    <div className="grid grid-cols-4 gap-1">
+      {[
+        { id: 'all', label: 'All', icon: UserCircle },
+        { id: 'explore', label: 'For You', icon: Sparkles },
+        { id: 'likes', label: 'Likes', icon: Heart, count: receivedLikes.length },
+        { id: 'sent', label: 'Sent', icon: ArrowUp, count: sentLikes.length }
+      ].map((tab) => {
+        const isActive = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+              className={`
+              relative flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-colors duration-200
+              ${isActive
+                ? "bg-primary text-base-content shadow-sm border border-primary/20"
+                : "text-base-content/70 hover:bg-base-200 hover:text-base-content"}
+            `}
+          >
+            <tab.icon 
+               className="size-4" 
+               strokeWidth={2.5} // Keep icon weight consistent
+            />
+            
+            <span className="truncate">{tab.label}</span>
+            
+            {/* Counter Badge */}
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className={`
+                ml-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold
+                ${isActive ? "bg-primary text-white" : "bg-base-300 text-base-content/60"}
+              `}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  </div>
 
-                {/* Refresh Button (Only show on explore tab) */}
-                {activeTab === 'explore' && (
-                  <button
-                    onClick={fetchMatches}
-                    disabled={loading}
-                    className="btn btn-circle btn-sm btn-ghost border border-base-200"
-                    title="Refresh Matches"
-                  >
-                    <RefreshCw className={`size-4 text-base-content/70 ${loading ? 'animate-spin' : ''}`} />
-                  </button>
-                )}
-              </div>
+</div>
+              
+
             </div>
 
-            {/* --- LEGEND BAR (Compact) --- */}
-            {activeTab === "explore" && (
-              <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-base-content/60 mb-6">
-                <span className="uppercase tracking-wider font-bold text-base-content/40 text-[10px]">Match Types:</span>
-                
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                    <span className="text-emerald-700">Roommate Fit (Preferences)</span>
-                </div>
+            {/* --- LEGEND BAR + REFRESH --- */}
+<div className="h-8 mb-6 flex items-center justify-between">
+  {activeTab === "explore" ? (
+    // Show Legend for Explore Tab
+    <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-base-content/60 animate-in fade-in zoom-in-95 duration-200">
+      <span className="uppercase tracking-wider font-bold text-base-content/40 text-[10px]">Match Types:</span>
+      
+      <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+          <span className="text-emerald-700">Roommate Fit</span>
+      </div>
 
-                <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
-                    <span className="text-indigo-700">Lifestyle (Habits)</span>
-                </div>
-              </div>
-            )}
+      <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+          <span className="text-indigo-700">Lifestyle</span>
+      </div>
+    </div>
+  ) : (
+     // Show simple text (or empty spacer) for other tabs to hold the height
+     <div className="text-xs font-medium text-base-content/40 italic animate-in fade-in zoom-in-95 duration-200">
+        {activeTab === 'all' && "Browsing all community members"}
+        {activeTab === 'likes' && "People who liked your profile"}
+        {activeTab === 'sent' && "People you have reached out to"}
+     </div>
+  )}
+
+  {activeTab === 'explore' && (
+    <button
+      onClick={fetchMatches}
+      disabled={loading}
+      className="btn btn-circle btn-ghost border border-base-200 bg-base-100 shadow-sm"
+      title="Refresh matches"
+    >
+      <RefreshCw className={`size-4 ${loading ? 'animate-spin text-primary' : 'text-base-content/70'}`} />
+    </button>
+  )}
+</div>
+
+
 
             {/* --- CONTENT AREA --- */}
-            
-            {/* 1. Explore Tab */}
+
+            {/* 1. All Users Tab */}
+            {activeTab === "all" && (
+              <>
+                {allUsers.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 bg-base-100 rounded-2xl border border-dashed border-base-300">
+                    <div className="bg-base-200 p-4 rounded-full mb-3">
+                      <UserCircle className="size-6 text-base-content/40" />
+                    </div>
+                    <p className="text-base-content/60 font-medium">No users found.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                      {allUsers.slice(0, allLimit).map((userItem) => (
+                        <UserCard
+                          key={userItem.id}
+                          match={{
+                            userId: userItem.id,
+                            user: userItem,
+                            mutualScore: 0,
+                            forwardScore: 0,
+                            reverseScore: 0
+                          }}
+                          type="all"
+                        />
+                      ))}
+                    </div>
+                    {allUsers.length > allLimit && (
+                      <div className="flex justify-center mt-10">
+                        <button className="btn btn-outline btn-sm rounded-full px-6" onClick={loadMoreAll}>
+                          Load More
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
+            {/* 2. Suggestions Tab */}
             {activeTab === "explore" && (
               <>
+                <div className="flex justify-end mb-4">
+        </div>
                 {displayedMatches.length === 0 && allMatches.filter(m => !mutualMatchIds.has(m.userId)).length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 bg-base-100 rounded-2xl border border-dashed border-base-300">
                     <div className="bg-base-200 p-4 rounded-full mb-3">
@@ -902,7 +1001,7 @@ function ExplorePage() {
               </>
             )}
 
-            {/* 2. Likes Received Tab */}
+            {/* 3. Likes Received Tab */}
             {activeTab === "likes" && (
               <>
                 {receivedLikes.length === 0 ? (
@@ -920,7 +1019,7 @@ function ExplorePage() {
               </>
             )}
 
-            {/* 3. Sent Likes Tab */}
+            {/* 4. Sent Likes Tab */}
             {activeTab === "sent" && (
               <>
                 {sentLikes.length === 0 ? (
