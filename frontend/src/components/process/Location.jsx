@@ -24,6 +24,7 @@ function Location({ dbUser, id, setDbUser }) {
   const [maxBudget, setMaxBudget] = useState("");
   const [isBudgetConfirmed, setIsBudgetConfirmed] = useState(false);
   const [zipCode, setZipCode] = useState("");
+  const [city, setCity] = useState("");
   const [isLoadingZip, setIsLoadingZip] = useState(false);
 
   const autocompleteRef = useRef(null);
@@ -36,10 +37,23 @@ function Location({ dbUser, id, setDbUser }) {
     try {
       const res = await fetch(url);
       const data = await res.json();
-      if (!data.results?.length) { setZipCode(""); return; }
-      const zipComponent = data.results[0].address_components.find((comp) => comp.types.includes("postal_code"));
+      if (!data.results?.length) {
+        setZipCode("");
+        setCity("");
+        return;
+      }
+      const addressComponents = data.results[0].address_components;
+      const zipComponent = addressComponents.find((comp) => comp.types.includes("postal_code"));
+      const cityComponent = addressComponents.find((comp) =>
+        comp.types.includes("locality") || comp.types.includes("sublocality")
+      );
       setZipCode(zipComponent ? zipComponent.long_name : "N/A");
-    } catch (err) { console.log("ZIP Error:", err); setZipCode(""); } 
+      setCity(cityComponent ? cityComponent.long_name : "");
+    } catch (err) {
+      console.log("Geocoding Error:", err);
+      setZipCode("");
+      setCity("");
+    }
     finally { setIsLoadingZip(false); }
   }
 
@@ -87,6 +101,7 @@ function Location({ dbUser, id, setDbUser }) {
       const updateUser = {
         ...dbUser,
         zipCode: zipCode || dbUser.zipCode,
+        city: city || dbUser.city,
         budget: { min: Number(minBudget) || 0, max: Number(maxBudget) || 0 },
       };
       try {

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { UsersRound, User, Users, Compass, Rocket, Sparkles } from "lucide-react";
+import { User, Users, Compass, Rocket, Sparkles, ChevronUp, Heart } from "lucide-react";
 import { UserButton, useUser, SignInButton } from "@clerk/clerk-react";
 
 function Navbar() {
@@ -29,18 +29,20 @@ function Navbar() {
         <Link
             to={"/"}
             className="flex items-center gap-3 hover:scale-105 transition-transform duration-200 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            aria-label="Oday Home"
+            aria-label="Homieu Home"
           >
-            <div className="size-10 rounded-xl bg-linear-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-lg">
-              <UsersRound className="size-6 text-white" aria-hidden="true" />
+            <div className="flex flex-col items-center justify-center size-10">
+              <ChevronUp className="size-7 text-[#FF6B6B] -mb-1" strokeWidth={3} aria-hidden="true" />
+              <Heart className="size-4 text-[#FF6B6B] fill-[#FF6B6B]" strokeWidth={2} aria-hidden="true" />
             </div>
 
             <div className="flex flex-col">
-              <span className="font-black text-xl bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent font-mono tracking-wider">
-                Oday
+              <span className="font-black text-xl font-sans tracking-wide">
+                <span className="text-[#FF6B6B]">Hom</span>
+                <span className="text-base-content/60">ieu</span>
               </span>
               <span className="text-xs text-base-content/60 font-medium -mt-1">
-                Find your hommie
+                Yes, that's how I met my homie
               </span>
             </div>
         </Link>

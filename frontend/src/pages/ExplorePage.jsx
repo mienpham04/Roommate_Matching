@@ -1,16 +1,15 @@
 import Navbar from "../components/Navbar";
 import { useEffect, useState } from "react";
-import { 
-  X, 
-  Home, 
-  Users, 
-  Heart, 
-  ArrowDown, 
-  ArrowUp, 
-  Sparkles, 
-  RefreshCw, 
-  MapPin, 
-  MessageCircle, 
+import {
+  X,
+  Home,
+  Users,
+  Heart,
+  ArrowUp,
+  Sparkles,
+  RefreshCw,
+  MapPin,
+  MessageCircle,
   CheckCircle2,
   Calendar,
   Briefcase
@@ -36,6 +35,7 @@ function ExplorePage() {
   const [activeTab, setActiveTab] = useState("explore");
   const [receivedLikes, setReceivedLikes] = useState([]);
   const [sentLikes, setSentLikes] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [steps, setSteps] = useState([
     { text: "Getting your profile ID…", done: false },
     { text: "Finding people with similar lifestyles…", done: false },
@@ -89,6 +89,7 @@ function ExplorePage() {
   // --- LOGIC: Fetch Data on Mount ---
   useEffect(() => {
     if (user?.id) {
+      fetchCurrentUser();
       if (allMatches.length === 0) {
         fetchMatches();
       } else {
@@ -219,6 +220,24 @@ function ExplorePage() {
   }, [user]);
 
   // --- LOGIC: Fetch Functions ---
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch(`${API_URL}/users/${user.id}`, {
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        console.log("Current user data:", userData);
+        console.log("City:", userData.city);
+        setCurrentUser(userData);
+      }
+    } catch (err) {
+      console.error("Failed to fetch current user:", err);
+    }
+  };
+
   const fetchMutualMatches = async () => {
     try {
       const response = await fetch(`${API_URL}/likes/mutual/${user.id}`);
@@ -758,152 +777,170 @@ function ExplorePage() {
 
       {/* --- MAIN CONTENT --- */}
       {!loading && !error && user && (
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-10 relative">
-          
-          {/* Header */}
-          <div className="flex flex-col items-center mb-10 text-center">
-            <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary tracking-tight mb-3">
-               Explore
-            </h1>
-            <p className="text-lg text-base-content/60 max-w-xl">
-               Discover people who match your vibe, budget, and lifestyle.
-            </p>
-          </div>
-
-          {/* Custom Tabs */}
-          <div className="flex justify-center mb-10">
-            <div className="bg-base-100 p-1.5 rounded-full shadow-lg border border-base-200 inline-flex">
-               {[
-                 { id: 'explore', label: 'Suggestions', icon: Sparkles },
-                 { id: 'likes', label: 'Likes You', icon: Heart, count: receivedLikes.length },
-                 { id: 'sent', label: 'Sent', icon: ArrowUp, count: sentLikes.length }
-               ].map((tab) => (
-                 <button
-                   key={tab.id}
-                   onClick={() => setActiveTab(tab.id)}
-                   className={`
-                     flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300
-                     ${activeTab === tab.id 
-                       ? "bg-primary text-primary-content shadow-md" 
-                       : "text-base-content/60 hover:bg-base-200 hover:text-base-content"}
-                   `}
-                 >
-                   <tab.icon className={`size-4 ${activeTab === tab.id ? "fill-current" : ""}`} />
-                   {tab.label}
-                   {tab.count !== undefined && tab.count > 0 && (
-                     <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${activeTab === tab.id ? "bg-white/20" : "bg-base-300"}`}>
-                       {tab.count}
-                     </span>
-                   )}
-                 </button>
-               ))}
-            </div>
-          </div>
-
-          {/* REFRESH (Only explore) */}
-          {activeTab === 'explore' && (
-             <div className="flex justify-end mb-4">
-                <button
-                  onClick={fetchMatches}
-                  disabled={loading}
-                  className="btn btn-ghost btn-sm gap-2 text-base-content/50 hover:bg-base-100"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </button>
-             </div>
-          )}
-
-          {/* --- CONTENT AREA --- */}
-          
-          {/* 1. Explore Tab */}
-          {activeTab === "explore" && (
-            <>
-              {/* --- LEGEND / INFO BOX (Simplified) --- */}
-              <div className="mb-8 flex flex-wrap justify-center gap-3 md:gap-6">
-                 {/* Roommate Fit Legend */}
-                 <div className="flex items-center gap-2 px-4 py-2 bg-base-100 rounded-full border border-base-200 shadow-sm text-sm">
-                    <Home className="size-4 text-emerald-500 fill-emerald-500" />
-                    <span className="font-bold text-emerald-700">Roommate Fit:</span>
-                    <span className="text-base-content/60">Matches preferences</span>
-                 </div>
-
-                 {/* Lifestyle Legend */}
-                 <div className="flex items-center gap-2 px-4 py-2 bg-base-100 rounded-full border border-base-200 shadow-sm text-sm">
-                    <Users className="size-4 text-indigo-500" />
-                    <span className="font-bold text-indigo-700">Lifestyle:</span>
-                    <span className="text-base-content/60">Similar daily habits</span>
-                 </div>
+          <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6 relative">
+            
+            {/* --- COMPACT HEADER --- */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 border-b border-base-200 pb-4">
+              
+              {/* Left: Title & Context */}
+              <div>
+                <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary tracking-tight">
+                  Explore
+                </h1>
+                <div className="flex items-center gap-3 mt-1 text-sm font-medium text-base-content/60">
+                  {currentUser?.city && (
+                    <span className="flex items-center gap-1">
+                      <MapPin className="size-3.5" />
+                      {currentUser.city}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {displayedMatches.length === 0 && allMatches.filter(m => !mutualMatchIds.has(m.userId)).length === 0 ? (
-                <div className="text-center py-20 bg-base-100 rounded-3xl border border-dashed border-base-300">
-                  <div className="bg-base-200 inline-flex p-4 rounded-full mb-4">
-                     <Users className="size-8 text-base-content/40" />
-                  </div>
-                  <p className="text-base-content/60 text-lg font-medium">No matches found yet.</p>
-                  <p className="text-base-content/40 text-sm">Try updating your location or preferences!</p>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {displayedMatches.map((match) => (
-                      <UserCard key={match.userId} match={match} type="explore" />
-                    ))}
-                  </div>
-
-                  {displayedMatches.length < allMatches.filter(m => !mutualMatchIds.has(m.userId)).length && (
-                    <div className="flex justify-center mt-12">
-                      <button className="btn btn-outline btn-primary btn-wide rounded-full" onClick={loadMore}>
-                        Load More Matches
+              {/* Right: Tabs & Actions */}
+              <div className="flex items-center gap-3">
+                
+                {/* Compact Tabs */}
+                <div className="bg-base-100 p-1.5 rounded-xl border border-base-200 shadow-sm inline-flex gap-1.5 relative">
+                  {[
+                    { id: 'explore', label: 'Suggestions', icon: Sparkles },
+                    { id: 'likes', label: 'Likes You', icon: Heart, count: receivedLikes.length },
+                    { id: 'sent', label: 'Sent', icon: ArrowUp, count: sentLikes.length }
+                  ].map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`
+                          relative flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm transition-all duration-300 ease-out
+                          ${isActive
+                            ? "bg-primary text-white shadow-md font-black transform scale-105"
+                            : "text-base-content/70 hover:text-base-content font-bold hover:bg-base-200"}
+                        `}
+                      >
+                        <tab.icon 
+                            className={`size-4 ${isActive ? "fill-white/20" : ""} transition-colors`} 
+                            strokeWidth={isActive ? 2.5 : 2} 
+                        />
+                        <span>{tab.label}</span>
+                        
+                        {/* Counter Badge */}
+                        {tab.count !== undefined && tab.count > 0 && (
+                          <span className={`
+                            ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold
+                            ${isActive ? "bg-white/20 text-white" : "bg-base-300 text-base-content/70"}
+                          `}>
+                            {tab.count}
+                          </span>
+                        )}
                       </button>
+                    );
+                  })}
+                </div>
+
+                {/* Refresh Button (Only show on explore tab) */}
+                {activeTab === 'explore' && (
+                  <button
+                    onClick={fetchMatches}
+                    disabled={loading}
+                    className="btn btn-circle btn-sm btn-ghost border border-base-200"
+                    title="Refresh Matches"
+                  >
+                    <RefreshCw className={`size-4 text-base-content/70 ${loading ? 'animate-spin' : ''}`} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* --- LEGEND BAR (Compact) --- */}
+            {activeTab === "explore" && (
+              <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-base-content/60 mb-6">
+                <span className="uppercase tracking-wider font-bold text-base-content/40 text-[10px]">Match Types:</span>
+                
+                <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                    <span className="text-emerald-700">Roommate Fit (Preferences)</span>
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+                    <span className="text-indigo-700">Lifestyle (Habits)</span>
+                </div>
+              </div>
+            )}
+
+            {/* --- CONTENT AREA --- */}
+            
+            {/* 1. Explore Tab */}
+            {activeTab === "explore" && (
+              <>
+                {displayedMatches.length === 0 && allMatches.filter(m => !mutualMatchIds.has(m.userId)).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-20 bg-base-100 rounded-2xl border border-dashed border-base-300">
+                    <div className="bg-base-200 p-4 rounded-full mb-3">
+                      <Users className="size-6 text-base-content/40" />
                     </div>
-                  )}
-                </>
-              )}
-            </>
-          )}
+                    <p className="text-base-content/60 font-medium">No matches found yet.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                      {displayedMatches.map((match) => (
+                        <UserCard key={match.userId} match={match} type="explore" />
+                      ))}
+                    </div>
 
-          {/* 2. Likes Received Tab */}
-          {activeTab === "likes" && (
-            <>
-               {receivedLikes.length === 0 ? (
-                  <div className="text-center py-20 bg-base-100 rounded-3xl border border-dashed border-base-300">
-                     <Heart className="w-16 h-16 text-pink-200 mx-auto mb-4" />
-                     <h3 className="text-xl font-bold text-base-content mb-2">No likes yet</h3>
-                     <p className="text-base-content/60">When someone likes you, they'll appear here.</p>
-                  </div>
-               ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                     {receivedLikes.map((match) => (
-                        <UserCard key={match.userId} match={match} type="received" />
-                     ))}
-                  </div>
-               )}
-            </>
-          )}
+                    {displayedMatches.length < allMatches.filter(m => !mutualMatchIds.has(m.userId)).length && (
+                      <div className="flex justify-center mt-10">
+                        <button className="btn btn-outline btn-sm rounded-full px-6" onClick={loadMore}>
+                          Load More
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
 
-          {/* 3. Sent Likes Tab */}
-          {activeTab === "sent" && (
-             <>
-               {sentLikes.length === 0 ? (
-                  <div className="text-center py-20 bg-base-100 rounded-3xl border border-dashed border-base-300">
-                     <ArrowUp className="w-16 h-16 text-base-content/20 mx-auto mb-4" />
-                     <h3 className="text-xl font-bold text-base-content mb-2">No likes sent</h3>
-                     <p className="text-base-content/60">Go explore and find some roommates!</p>
-                  </div>
-               ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                     {sentLikes.map((match) => (
-                        <UserCard key={match.userId} match={match} type="sent" />
-                     ))}
-                  </div>
-               )}
-             </>
-          )}
+            {/* 2. Likes Received Tab */}
+            {activeTab === "likes" && (
+              <>
+                {receivedLikes.length === 0 ? (
+                    <div className="text-center py-20">
+                      <Heart className="w-12 h-12 text-base-content/20 mx-auto mb-3" />
+                      <p className="text-base-content/50">No new likes yet.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                      {receivedLikes.map((match) => (
+                          <UserCard key={match.userId} match={match} type="received" />
+                      ))}
+                    </div>
+                )}
+              </>
+            )}
 
-        </div>
-      )}
+            {/* 3. Sent Likes Tab */}
+            {activeTab === "sent" && (
+              <>
+                {sentLikes.length === 0 ? (
+                    <div className="text-center py-20">
+                      <ArrowUp className="w-12 h-12 text-base-content/20 mx-auto mb-3" />
+                      <p className="text-base-content/50">No sent likes yet.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                      {sentLikes.map((match) => (
+                          <UserCard key={match.userId} match={match} type="sent" />
+                      ))}
+                    </div>
+                )}
+              </>
+            )}
+
+          </div>
+        )}
+
 
       {/* --- SLIDE-OVER DETAILS PANEL --- */}
       {selected && (
