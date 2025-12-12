@@ -1,49 +1,98 @@
 package com.roommate.manager.service;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import com.roommate.manager.model.NotificationModel;
+import com.roommate.manager.model.UserModel;
+import com.roommate.manager.repository.NotificationRepository;
+import com.roommate.manager.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class NotificationService {
 
     @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private NotificationRepository notificationRepository;
 
-    private static final int MATCH_THRESHOLD = 75; // Customize your threshold
+    @Autowired
+    private UserRepository userRepository;
 
-    @KafkaListener(topics = "match.score.updated", groupId = "notification-service")
-    public void listenMatchScore(Map<String, Object> event) {
-        System.out.println("🔔 NotificationService received score event: " + event);
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
-        String userId = (String) event.get("userId");
-        Integer score = (Integer) event.get("score");
-
-        if (score == null) {
-            System.out.println("⚠️  Missing score field in event.");
+    /**
+     * Create and broadcast notification via WebSocket
+     */
+    public void createNotification(String userId, String type, String fromUserId) {
+        // Fetch from user details for caching
+        UserModel fromUser = userRepository.findById(fromUserId).orElse(null);
+        if (fromUser == null) {
+            System.err.println("Cannot create notification - fromUser not found: " + fromUserId);
             return;
         }
 
-        // Only notify when the score is high enough
-        if (score < MATCH_THRESHOLD) {
-            System.out.println("ℹ️ Score too low, no notification sent.");
-            return;
-        }
+        String fromUserName = fromUser.getFirstName() + " " + fromUser.getLastName();
+        String fromUserImageUrl = fromUser.getProfileImageUrl();
 
-        // Build a rich notification event
-        Map<String, Object> notificationEvent = new HashMap<>();
-        notificationEvent.put("userId", userId);
-        notificationEvent.put("message", "🎉 You have a new compatible roommate match!");
-        notificationEvent.put("score", score);
-        notificationEvent.put("timestamp", System.currentTimeMillis());
+        // Save to database
+        NotificationModel notification = new NotificationModel(
+            userId, type, fromUserId, fromUserName, fromUserImageUrl
+        );
+        notification = notificationRepository.save(notification);
 
-        // Send to notification topic
-        kafkaTemplate.send("notifications.new_match", userId, notificationEvent);
+        // Broadcast via WebSocket to specific user
+        messagingTemplate.convertAndSendToUser(
+            userId,
+            "/notifications",
+            notification
+        );
 
-        System.out.println("📤 NotificationService published notifications.new_match → " + notificationEvent);
+        System.out.println("Created and broadcasted notification: " + type +
+                         " to user " + userId + " from " + fromUserId);
+    }
+
+    /**
+     * Get recent notifications (last 48 hours)
+     */
+    public List<NotificationModel> getRecentNotifications(String userId) {
+        LocalDateTime since = LocalDateTime.now().minusHours(48);
+        return notificationRepository.findByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(userId, since);
+    }
+
+    /**
+     * Get all notification history
+     */
+    public List<NotificationModel> getAllNotifications(String userId) {
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    /**
+     * Mark notification as read
+     */
+    public void markAsRead(String notificationId) {
+        notificationRepository.findById(notificationId).ifPresent(notification -> {
+            notification.setRead(true);
+            notificationRepository.save(notification);
+        });
+    }
+
+    /**
+     * Mark all notifications as read for a user
+     */
+    public void markAllAsRead(String userId) {
+        List<NotificationModel> unread = notificationRepository.findByUserIdAndReadFalse(userId);
+        unread.forEach(notification -> {
+            notification.setRead(true);
+            notificationRepository.save(notification);
+        });
+    }
+
+    /**
+     * Get unread count
+     */
+    public long getUnreadCount(String userId) {
+        return notificationRepository.countByUserIdAndReadFalse(userId);
     }
 }

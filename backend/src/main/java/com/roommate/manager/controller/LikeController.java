@@ -2,8 +2,10 @@ package com.roommate.manager.controller;
 
 import com.roommate.manager.model.LikeModel;
 import com.roommate.manager.model.UserModel;
+import com.roommate.manager.model.events.LikeEvent;
 import com.roommate.manager.repository.LikeRepository;
 import com.roommate.manager.repository.UserRepository;
+import com.roommate.manager.kafka.KafkaProducerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +22,9 @@ public class LikeController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private KafkaProducerService kafkaProducerService;
 
     /**
      * Send a like/heart from one user to another
@@ -51,6 +56,16 @@ public class LikeController {
 
             // Check if it's a mutual like
             boolean isMutual = likeRepository.existsByFromUserIdAndToUserId(toUserId, fromUserId);
+
+            // Publish Kafka event
+            try {
+                String eventType = isMutual ? "MATCH_CREATED" : "LIKE_SENT";
+                LikeEvent event = new LikeEvent(fromUserId, toUserId, eventType);
+                kafkaProducerService.sendLikeEvent(event);
+                System.out.println("Published like event: " + eventType);
+            } catch (Exception e) {
+                System.err.println("Warning: Failed to publish like event: " + e.getMessage());
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
@@ -214,6 +229,15 @@ public class LikeController {
             // Delete both directions of the like
             likeRepository.deleteByFromUserIdAndToUserId(userId1, userId2);
             likeRepository.deleteByFromUserIdAndToUserId(userId2, userId1);
+
+            // Publish Kafka event
+            try {
+                LikeEvent event = new LikeEvent(userId1, userId2, "UNMATCH");
+                kafkaProducerService.sendLikeEvent(event);
+                System.out.println("Published unmatch event");
+            } catch (Exception e) {
+                System.err.println("Warning: Failed to publish unmatch event: " + e.getMessage());
+            }
 
             return ResponseEntity.ok(Map.of(
                 "success", true,
