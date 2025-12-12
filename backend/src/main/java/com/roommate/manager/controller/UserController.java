@@ -5,6 +5,7 @@ import com.roommate.manager.repository.UserRepository;
 import com.roommate.manager.service.IndexManagementService;
 import com.roommate.manager.kafka.KafkaProducerService;
 import com.roommate.manager.model.events.ProfileUpdateEvent;
+import com.roommate.manager.model.events.CityUpdateEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,6 +48,20 @@ public class UserController {
 
         // Save user to MongoDB (id is already set to Clerk ID)
         UserModel savedUser = userRepository.save(user);
+
+        // Publish city update event
+        try {
+            CityUpdateEvent event = new CityUpdateEvent(
+                savedUser.getId(),
+                null,
+                savedUser.getCity(),
+                "USER_CREATED"
+            );
+            kafkaProducerService.sendCityUpdateEvent(event);
+            System.out.println("Published city update event for new user");
+        } catch (Exception e) {
+            System.err.println("Warning: Failed to publish city update event: " + e.getMessage());
+        }
 
         // Upload vectors to STREAMING index (supports real-time upsert)
         try {
@@ -100,8 +115,29 @@ public class UserController {
     // UPDATE (Replace entire user)
     @PutMapping("/{id}")
     public UserModel updateUser(@PathVariable String id, @RequestBody UserModel updatedUser) {
+        // Fetch old user to check city change
+        UserModel oldUser = userRepository.findById(id).orElse(null);
+        String oldCity = (oldUser != null) ? oldUser.getCity() : null;
+
         updatedUser.setId(id);
         UserModel savedUser = userRepository.save(updatedUser);
+
+        // Publish city update event if city changed
+        String newCity = savedUser.getCity();
+        if (oldCity == null || !oldCity.equals(newCity)) {
+            try {
+                CityUpdateEvent event = new CityUpdateEvent(
+                    id,
+                    oldCity,
+                    newCity,
+                    "USER_UPDATED"
+                );
+                kafkaProducerService.sendCityUpdateEvent(event);
+                System.out.println("Published city update event for user update");
+            } catch (Exception e) {
+                System.err.println("Warning: Failed to publish city update event: " + e.getMessage());
+            }
+        }
 
         // Update vectors in STREAMING index
         try {
@@ -125,7 +161,27 @@ public class UserController {
     // DELETE
     @DeleteMapping("/{id}")
     public void deleteUser(@PathVariable String id) {
+        // Fetch user to get city before deletion
+        UserModel user = userRepository.findById(id).orElse(null);
+        String city = (user != null) ? user.getCity() : null;
+
         userRepository.deleteById(id);
+
+        // Publish city update event
+        if (city != null) {
+            try {
+                CityUpdateEvent event = new CityUpdateEvent(
+                    id,
+                    city,
+                    null,
+                    "USER_DELETED"
+                );
+                kafkaProducerService.sendCityUpdateEvent(event);
+                System.out.println("Published city update event for user deletion");
+            } catch (Exception e) {
+                System.err.println("Warning: Failed to publish city update event: " + e.getMessage());
+            }
+        }
 
         // Remove vectors from STREAMING index
         try {
