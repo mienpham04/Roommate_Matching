@@ -7,7 +7,8 @@ function Navbar() {
   const { user } = useUser();
 
   const navItems = [
-    { name: "Profile", path: `/user/${user?.id}`, icon: Rocket },
+    { name: "Dashboard", path: "/dashboard", icon: Rocket },
+    { name: "Profile", path: `/user/${user?.id}`, icon: User },
     { name: "Matches", path: "/matches", icon: Users },
     { name: "Explore", path: "/explore", icon: Compass },
     { name: "Match Up", path: `/process/${user?.id}`, icon: Sparkles }

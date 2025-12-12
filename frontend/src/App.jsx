@@ -9,6 +9,7 @@ import ExplorePage from "./pages/ExplorePage";
 import ProcessPage from "./pages/ProcessPage";
 import UserPage from "./pages/UserPage";
 import MatchesPage from "./pages/MatchesPage";
+import DashboardPage from "./pages/DashboardPage";
 
 function AuthToastListener() {
   const { isSignedIn, user } = useUser();
@@ -34,6 +35,7 @@ function App() {
     <>
     <Routes>
       <Route path="/" element={<HomePage />}/>
+      <Route path="/dashboard" element={<DashboardPage />}/>
       <Route path="/profile/view/:id" element={<ProfilePage />}/>
       <Route path="/process/:id" element={<ProcessPage />} />
       <Route path="/explore" element={<ExplorePage />}/>
