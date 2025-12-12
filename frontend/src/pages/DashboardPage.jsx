@@ -1,12 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router';
 import Navbar from '../components/Navbar';
-import { Bell, MapPin, TrendingUp, Heart, Users, UserMinus, Sparkles } from 'lucide-react';
+import { 
+  Bell, MapPin, TrendingUp, Heart, 
+  Sparkles, Eye, X, Search
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useWebSocket } from '../hooks/useWebSocket';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+
+// --- Sub-Components ---
+
+const StatCard = ({ title, value, icon: Icon, color, subtext }) => (
+  <div className="bg-base-100 p-6 rounded-2xl shadow-sm border border-base-200 flex items-center justify-between">
+    <div>
+      <p className="text-sm font-medium text-base-content/60">{title}</p>
+      <h3 className="text-3xl font-black mt-1 text-base-content">{value}</h3>
+      {subtext && <p className="text-xs font-medium text-base-content/40 mt-1">{subtext}</p>}
+    </div>
+    <div className={`p-4 rounded-xl ${color} bg-opacity-10`}>
+      <Icon className={`size-8 ${color.replace('bg-', 'text-')}`} />
+    </div>
+  </div>
+);
+
+const SkeletonLoader = () => (
+  <div className="animate-pulse space-y-4">
+    <div className="h-4 bg-base-300 rounded w-3/4"></div>
+    <div className="h-4 bg-base-300 rounded w-1/2"></div>
+    <div className="h-12 bg-base-300 rounded w-full mt-4"></div>
+  </div>
+);
+
+// --- Main Dashboard Page ---
 
 function DashboardPage() {
   const { user, isSignedIn } = useUser();
@@ -15,41 +43,53 @@ function DashboardPage() {
   const [cityStats, setCityStats] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  
+  // Simulated data (Replace with real API)
+  const [stats, setStats] = useState({ views: 0 });
+  // In a real app, this comes from user.publicMetadata.lookingIn or similar
+  const currentSearchCity = "Austin, TX"; 
 
-  // WebSocket connection
   const { connected, subscribe } = useWebSocket(user?.id);
 
-  // Fetch initial data
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  }, []);
+
   useEffect(() => {
     if (!user?.id) return;
 
     const fetchData = async () => {
       try {
         setLoading(true);
+        
+        const [notifRes, countRes, cityRes] = await Promise.all([
+          fetch(`${API_URL}/notifications/recent/${user.id}`),
+          fetch(`${API_URL}/notifications/unread-count/${user.id}`),
+          // Increased limit to 10 to make the panel larger/taller
+          fetch(`${API_URL}/city-stats/top?limit=10`) 
+        ]);
 
-        // Fetch recent notifications
-        const notifRes = await fetch(`${API_URL}/notifications/recent/${user.id}`);
         if (notifRes.ok) {
-          const notifData = await notifRes.json();
-          setNotifications(notifData.notifications || []);
+          const data = await notifRes.json();
+          setNotifications(data.notifications || []);
         }
-
-        // Fetch unread count
-        const countRes = await fetch(`${API_URL}/notifications/unread-count/${user.id}`);
         if (countRes.ok) {
-          const countData = await countRes.json();
-          setUnreadCount(countData.unreadCount || 0);
+          const data = await countRes.json();
+          setUnreadCount(data.unreadCount || 0);
+        }
+        if (cityRes.ok) {
+          const data = await cityRes.json();
+          setCityStats(data.topCities || []);
         }
 
-        // Fetch city stats
-        const cityRes = await fetch(`${API_URL}/city-stats/top?limit=10`);
-        if (cityRes.ok) {
-          const cityData = await cityRes.json();
-          setCityStats(cityData.topCities || []);
-        }
+        setStats({ views: 45 });
+
       } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-        toast.error('Failed to load dashboard data');
+        console.error('Dashboard load failed:', error);
+        toast.error('Could not load latest updates');
       } finally {
         setLoading(false);
       }
@@ -58,371 +98,193 @@ function DashboardPage() {
     fetchData();
   }, [user?.id]);
 
-  // Subscribe to WebSocket updates
   useEffect(() => {
     if (!connected || !user?.id) return;
 
-    // Subscribe to user-specific notifications
     const notifSub = subscribe(`/user/${user.id}/notifications`, (notification) => {
-      console.log('Received notification:', notification);
-
-      // Add to notifications list
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount((prev) => prev + 1);
-
-      // Show toast based on type
-      const fromName = notification.fromUserName || 'Someone';
-      switch (notification.type) {
-        case 'LIKE_RECEIVED':
-          toast.success(`${fromName} liked you!`, { icon: '❤️', duration: 5000 });
-          break;
-        case 'NEW_MATCH':
-          toast.success(`You matched with ${fromName}!`, { icon: '🎉', duration: 5000 });
-          break;
-        case 'UNMATCH':
-          toast(`${fromName} unmatched with you`, { icon: '💔', duration: 4000 });
-          break;
-      }
+      toast('New activity on your profile', { icon: '🔔' });
     });
 
-    // Subscribe to global city stats
-    const citySub = subscribe('/topic/city-stats', (stats) => {
-      console.log('Received city stats update:', stats);
-      setCityStats(stats.topCities || []);
+    const citySub = subscribe('/topic/city-stats', (data) => {
+      if(data?.topCities) setCityStats(data.topCities);
     });
 
     return () => {
-      if (notifSub) notifSub.unsubscribe();
-      if (citySub) citySub.unsubscribe();
+      notifSub?.unsubscribe();
+      citySub?.unsubscribe();
     };
   }, [connected, user?.id, subscribe]);
 
-  // Mark notification as read
-  const markAsRead = async (notificationId) => {
+  const markAsRead = async (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
     try {
-      const res = await fetch(`${API_URL}/notifications/mark-read/${notificationId}`, {
-        method: 'PUT',
-      });
-
-      if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === notificationId ? { ...n, read: true } : n
-          )
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
-    }
+      await fetch(`${API_URL}/notifications/mark-read/${id}`, { method: 'PUT' });
+    } catch (e) { console.error(e); }
   };
 
-  // Mark all as read
-  const markAllAsRead = async () => {
-    try {
-      const res = await fetch(`${API_URL}/notifications/mark-all-read/${user.id}`, {
-        method: 'PUT',
-      });
-
-      if (res.ok) {
-        setNotifications((prev) =>
-          prev.map((n) => ({ ...n, read: true }))
-        );
-        setUnreadCount(0);
-        toast.success('All notifications marked as read');
-      }
-    } catch (error) {
-      console.error('Failed to mark all as read:', error);
-      toast.error('Failed to mark all as read');
-    }
-  };
-
-  // Get notification icon
-  const getNotificationIcon = (type) => {
+  const getNotificationConfig = (type) => {
     switch (type) {
-      case 'LIKE_RECEIVED':
-        return <Heart className="size-5 text-pink-500 fill-pink-500" />;
-      case 'NEW_MATCH':
-        return <Sparkles className="size-5 text-emerald-500" />;
-      case 'UNMATCH':
-        return <UserMinus className="size-5 text-base-content/50" />;
-      default:
-        return <Bell className="size-5 text-base-content/50" />;
+      case 'LIKE_RECEIVED': return { icon: Heart, color: 'text-pink-500', bg: 'bg-pink-500' };
+      case 'NEW_MATCH': return { icon: Sparkles, color: 'text-amber-500', bg: 'bg-amber-500' };
+      case 'UNMATCH': return { icon: X, color: 'text-error', bg: 'bg-error' };
+      default: return { icon: Bell, color: 'text-primary', bg: 'bg-primary' };
     }
   };
 
-  // Get notification text
-  const getNotificationText = (notification) => {
-    const fromName = notification.fromUserName || 'Someone';
-    switch (notification.type) {
-      case 'LIKE_RECEIVED':
-        return `${fromName} liked you`;
-      case 'NEW_MATCH':
-        return `You matched with ${fromName}!`;
-      case 'UNMATCH':
-        return `${fromName} unmatched with you`;
-      default:
-        return 'New notification';
-    }
-  };
-
-  // Format time ago
-  const formatTimeAgo = (timestamp) => {
-    const now = new Date();
-    const time = new Date(timestamp);
-    const diffMs = now - time;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
-
-  if (!isSignedIn) {
-    return (
-      <div className="min-h-screen bg-base-200/30 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Please sign in to view your dashboard</h2>
-          <button onClick={() => navigate('/')} className="btn btn-primary">
-            Go to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!isSignedIn) return null; 
 
   return (
-    <div className="min-h-screen bg-base-200/30 font-sans">
+    <div className="min-h-screen bg-base-200/50 font-sans pb-12">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 py-8 space-y-8">
+        
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-base-content/60 mt-1">
-            Welcome back, {user?.firstName || 'there'}! Here's what's happening.
-          </p>
-
-          {/* Connection Status */}
-          <div className="mt-2 flex items-center gap-2">
-            <div className={`size-2 rounded-full ${connected ? 'bg-success' : 'bg-error'}`}></div>
-            <span className="text-xs text-base-content/50">
-              {connected ? 'Connected' : 'Disconnected'} - Real-time updates {connected ? 'enabled' : 'disabled'}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-black text-base-content tracking-tight">
+              {greeting}, {user?.firstName}!
+            </h1>
+            <p className="text-base-content/60 mt-1">
+              Welcome back to your roommate finder dashboard.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-base-100 rounded-full border border-base-200 shadow-sm text-xs font-medium">
+            <div className={`size-2 rounded-full ${connected ? 'bg-success animate-pulse' : 'bg-error'}`} />
+            <span className="text-base-content/70">
+              System {connected ? 'Online' : 'Offline'}
             </span>
           </div>
         </div>
 
-        {/* Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Notifications Panel */}
-          <div className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden">
-            {/* Panel Header */}
-            <div className="p-6 border-b border-base-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <Bell className="size-5 text-primary" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold">Notifications</h2>
-                  <p className="text-xs text-base-content/60">Recent activity (last 48 hours)</p>
-                </div>
-              </div>
-              {unreadCount > 0 && (
-                <div className="flex items-center gap-2">
-                  <div className="badge badge-primary badge-sm">{unreadCount} new</div>
-                  <button
-                    onClick={markAllAsRead}
-                    className="btn btn-ghost btn-xs"
-                  >
-                    Mark all read
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Notifications List */}
-            <div className="max-h-[500px] overflow-y-auto">
-              {loading ? (
-                <div className="p-8 text-center">
-                  <span className="loading loading-spinner loading-lg text-primary"></span>
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Bell className="size-12 text-base-content/20 mx-auto mb-3" />
-                  <p className="text-base-content/50">No notifications yet</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-base-200">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      onClick={() => !notification.read && markAsRead(notification.id)}
-                      className={`p-4 flex items-start gap-3 hover:bg-base-200/50 transition-colors cursor-pointer ${
-                        !notification.read ? 'bg-primary/5' : ''
-                      }`}
-                    >
-                      {/* Avatar */}
-                      <img
-                        src={
-                          notification.fromUserImageUrl ||
-                          `https://ui-avatars.com/api/?name=${notification.fromUserName}`
-                        }
-                        alt={notification.fromUserName}
-                        className="size-10 rounded-full object-cover"
-                      />
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-medium">
-                            {getNotificationText(notification)}
-                          </p>
-                          {getNotificationIcon(notification.type)}
-                        </div>
-                        <p className="text-xs text-base-content/50 mt-1">
-                          {formatTimeAgo(notification.createdAt)}
-                        </p>
-                      </div>
-
-                      {/* Unread Indicator */}
-                      {!notification.read && (
-                        <div className="size-2 bg-primary rounded-full shrink-0 mt-1"></div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* View All Button */}
-            {notifications.length > 0 && (
-              <div className="p-4 border-t border-base-200">
-                <button
-                  onClick={() => navigate('/notifications-history')}
-                  className="btn btn-block btn-ghost btn-sm"
-                >
-                  View All Notifications
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* City Statistics Panel */}
-          <div className="bg-base-100 rounded-2xl shadow-lg border border-base-200 overflow-hidden">
-            {/* Panel Header */}
-            <div className="p-6 border-b border-base-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-secondary/10 p-2 rounded-lg">
-                  <MapPin className="size-5 text-secondary" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold">Top Cities</h2>
-                  <p className="text-xs text-base-content/60">
-                    Where people are looking for roommates
-                  </p>
-                </div>
-              </div>
-              <TrendingUp className="size-5 text-base-content/30" />
-            </div>
-
-            {/* City Stats List */}
-            <div className="max-h-[500px] overflow-y-auto p-6">
-              {loading ? (
-                <div className="text-center py-8">
-                  <span className="loading loading-spinner loading-lg text-secondary"></span>
-                </div>
-              ) : cityStats.length === 0 ? (
-                <div className="text-center py-8">
-                  <MapPin className="size-12 text-base-content/20 mx-auto mb-3" />
-                  <p className="text-base-content/50">No city data available</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {cityStats.map((city, index) => {
-                    const maxCount = cityStats[0]?.count || 1;
-                    const percentage = (city.count / maxCount) * 100;
-
-                    return (
-                      <div
-                        key={city.city}
-                        className="group hover:bg-base-200/50 p-3 rounded-xl transition-colors"
-                      >
-                        {/* City Rank & Name */}
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`size-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                                index === 0
-                                  ? 'bg-yellow-500 text-white'
-                                  : index === 1
-                                  ? 'bg-gray-400 text-white'
-                                  : index === 2
-                                  ? 'bg-orange-600 text-white'
-                                  : 'bg-base-200 text-base-content/70'
-                              }`}
-                            >
-                              {index + 1}
-                            </div>
-                            <div>
-                              <p className="font-bold text-base-content">
-                                {city.city}
-                              </p>
-                              <p className="text-xs text-base-content/50">
-                                {city.count} {city.count === 1 ? 'user' : 'users'}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Count Badge */}
-                          <div className="badge badge-secondary badge-lg font-bold">
-                            {city.count}
-                          </div>
-                        </div>
-
-                        {/* Progress Bar */}
-                        <div className="w-full bg-base-200 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="bg-gradient-to-r from-secondary to-accent h-full transition-all duration-500 ease-out"
-                            style={{ width: `${percentage}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+        {/* Top KPI Grid (Modified) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card 1: Profile Views (Kept) */}
+          <StatCard 
+            title="Profile Views" 
+            value={stats.views} 
+            icon={Eye} 
+            color="bg-blue-500" 
+            subtext="Last 7 days"
+          />
+          
+          {/* Card 2: Current Search Target (Replaced Active Cities) */}
+          <StatCard 
+            title="Searching In" 
+            value={currentSearchCity} 
+            icon={Search} 
+            color="bg-primary" 
+            subtext="Target Location"
+          />
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={() => navigate('/explore')}
-            className="btn btn-outline btn-lg rounded-xl gap-2"
-          >
-            <Users className="size-5" />
-            Explore Matches
-          </button>
-          <button
-            onClick={() => navigate('/matches')}
-            className="btn btn-outline btn-lg rounded-xl gap-2"
-          >
-            <Heart className="size-5" />
-            View Matches
-          </button>
-          <button
-            onClick={() => navigate(`/user/${user.id}`)}
-            className="btn btn-outline btn-lg rounded-xl gap-2"
-          >
-            <Users className="size-5" />
-            Edit Profile
-          </button>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          
+          {/* Left Column: Notifications (Span 2) */}
+          <div className="xl:col-span-2">
+            <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 overflow-hidden h-full flex flex-col min-h-[600px]">
+              <div className="p-6 border-b border-base-200 flex justify-between items-center bg-base-100/50 backdrop-blur-sm sticky top-0 z-10">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-bold">Activity Feed</h2>
+                  {unreadCount > 0 && <span className="badge badge-primary badge-sm">{unreadCount} new</span>}
+                </div>
+                <button onClick={() => navigate('/notifications')} className="btn btn-ghost btn-xs">View History</button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-2">
+                {loading ? (
+                   <div className="p-6 space-y-4"><SkeletonLoader /><SkeletonLoader /></div>
+                ) : notifications.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-8 text-base-content/40">
+                    <div className="p-4 bg-base-200 rounded-full mb-3"><Bell className="size-8" /></div>
+                    <p>No recent activity.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    {notifications.map((notif) => {
+                      const { icon: Icon, color, bg } = getNotificationConfig(notif.type);
+                      return (
+                        <div 
+                          key={notif.id}
+                          onClick={() => !notif.read && markAsRead(notif.id)}
+                          className={`group p-4 rounded-xl flex items-start gap-4 transition-all cursor-pointer border border-transparent hover:border-base-200 hover:bg-base-200/30 ${!notif.read ? 'bg-primary/5' : ''}`}
+                        >
+                          <div className={`mt-1 p-2 rounded-full shrink-0 ${bg} bg-opacity-10`}>
+                            <Icon className={`size-4 ${color}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between items-start">
+                              <p className={`text-sm ${!notif.read ? 'font-semibold text-base-content' : 'font-medium text-base-content/70'}`}>
+                                {notif.type === 'NEW_MATCH' ? 'New Match Found!' : notif.type === 'LIKE_RECEIVED' ? 'New Like Received' : 'Notification'}
+                              </p>
+                              <span className="text-[10px] text-base-content/40 whitespace-nowrap ml-2">
+                                {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute:'2-digit' })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-base-content/60 mt-0.5 truncate">
+                              {notif.fromUserName || 'Someone'} interacted with your profile.
+                            </p>
+                          </div>
+                          {!notif.read && <div className="size-2 bg-primary rounded-full mt-2" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Popular Cities (Expanded) */}
+          <div className="xl:col-span-1">
+            <div className="bg-base-100 rounded-2xl shadow-sm border border-base-200 p-6 h-full flex flex-col">
+              <div className="mb-6">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <TrendingUp className="size-5 text-secondary" /> Popular Cities
+                </h3>
+                <p className="text-xs text-base-content/50 mt-1">Trending roommate searches this week</p>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                {loading ? (
+                  <SkeletonLoader />
+                ) : (
+                  <div className="space-y-5">
+                    {cityStats.map((city, idx) => (
+                      <div key={city.city} className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-3">
+                            <span className={`font-mono text-xs w-6 h-6 flex items-center justify-center rounded bg-base-200 text-base-content/60 ${idx < 3 ? 'font-bold text-secondary bg-secondary/10' : ''}`}>
+                              {idx + 1}
+                            </span>
+                            <span className="font-medium">{city.city}</span>
+                          </div>
+                          <span className="text-base-content/50 text-xs font-mono">{city.count}</span>
+                        </div>
+                        <progress 
+                          className="progress progress-secondary w-full h-1.5 opacity-70" 
+                          value={city.count} 
+                          max={cityStats[0]?.count || 100}
+                        ></progress>
+                      </div>
+                    ))}
+                    {cityStats.length === 0 && <p className="text-sm text-base-content/50 text-center py-10">No city data available.</p>}
+                  </div>
+                )}
+              </div>
+              
+              <div className="pt-6 border-t border-base-200 mt-4">
+                 <button onClick={() => navigate('/explore')} className="btn btn-outline btn-sm btn-block text-xs">
+                    Explore all locations
+                 </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
