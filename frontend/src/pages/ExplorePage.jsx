@@ -965,7 +965,7 @@ function ExplorePage() {
                      <Sparkles className="size-4 text-primary" /> About Me
                   </h3>
                   <p className="text-base-content/70 leading-relaxed bg-base-200/50 p-4 rounded-2xl">
-                     {selected.description || "This user hasn't written a bio yet."}
+                     {selected.user.moreAboutMe || "This user hasn't written a bio yet."}
                   </p>
                </div>
 
@@ -1006,9 +1006,6 @@ function ExplorePage() {
                         </div>
                         <div className="badge badge-lg p-4 bg-base-200 border-base-300 gap-2">
                            Guests: {selected.user.lifestyle.guestFrequency || "N/A"}
-                        </div>
-                        <div className="badge badge-lg p-4 bg-base-200 border-base-300 gap-2">
-                           Cleanliness: {selected.user.lifestyle.cleanliness || "N/A"}
                         </div>
                      </div>
                   </div>
