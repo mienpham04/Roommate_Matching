@@ -18,11 +18,13 @@ import {
 } from "lucide-react";
 import { useUser } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
+import { useLocation } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 function ExplorePage() {
   const { user } = useUser();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [allMatches, setAllMatches] = useState(() => {
@@ -48,6 +50,7 @@ function ExplorePage() {
     { text: "Finalizing your matches…", done: false },
   ]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [matchesFetched, setMatchesFetched] = useState(false);
 
   const getFilteredData = (dataList) => {
     if (!searchQuery) return dataList;
@@ -109,11 +112,11 @@ function ExplorePage() {
   useEffect(() => {
     if (user?.id) {
       fetchCurrentUser();
-      if (allMatches.length === 0) {
-        fetchMatches();
-      } else {
-        setLoading(false);
+      // Check if we have cached matches
+      if (allMatches.length > 0) {
+        setMatchesFetched(true);
       }
+      setLoading(false);
       fetchLikedUsers();
       fetchReceivedLikes();
       fetchSentLikes();
@@ -123,6 +126,20 @@ function ExplorePage() {
       setLoading(false);
     }
   }, [user]);
+
+  // --- LOGIC: Handle URL Query Parameter for Tab ---
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+
+    if (tabParam === 'explore') {
+      setActiveTab('explore');
+      // Trigger matching if not already fetched
+      if (!matchesFetched && user?.id) {
+        fetchMatches();
+      }
+    }
+  }, [location.search, user?.id]);
 
   // --- LOGIC: SSE Updates ---
   useEffect(() => {
@@ -602,6 +619,7 @@ function ExplorePage() {
       completeStep(4);
       setAllMatches(combined);
       localStorage.setItem(`matches_${user.id}`, JSON.stringify(combined));
+      setMatchesFetched(true);
       completeStep(5);
     } catch (err) {
       console.error("Error fetching matches:", err);
@@ -899,58 +917,14 @@ function ExplorePage() {
     <div className="min-h-screen bg-base-200/30 relative font-sans">
       <Navbar />
 
-      {/* --- LOADING STATE --- */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center min-h-[80vh]">
-          <div className="bg-base-100 p-8 rounded-3xl shadow-xl max-w-md w-full border border-base-200">
-            <h2 className="text-2xl font-black mb-6 text-center text-primary">
-              Finding Your Crew
-            </h2>
-            <div className="space-y-4">
-              {steps.map((step, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 animate-in slide-in-from-left-2 duration-300"
-                  style={{ animationDelay: `${i * 100}ms` }}
-                >
-                  <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${step.done ? "bg-success/20 text-success" : "bg-base-200"}`}
-                  >
-                    {step.done ? (
-                      <CheckCircle2 className="size-4" />
-                    ) : (
-                      <span className="loading loading-spinner loading-xs text-base-content/30"></span>
-                    )}
-                  </div>
-                  <p
-                    className={`text-sm font-medium transition-colors ${step.done ? "text-base-content" : "text-base-content/40"}`}
-                  >
-                    {step.text}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- ERROR STATE --- */}
-      {!loading && error && (
-        <div className="max-w-2xl mx-auto px-4 py-20">
-          <div className="alert alert-error shadow-lg rounded-2xl">
-            <span>Error loading matches: {error}</span>
-          </div>
-        </div>
-      )}
-
       {/* --- MAIN CONTENT --- */}
-      {!loading && !error && user && (
+      {user && (
         <div className="max-w-7xl mx-auto px-4 lg:px-8 py-6 relative">
           {/* --- HEADER --- */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6 border-b border-base-200 pb-4">
             {/* Left: Title & Context */}
             <div className="shrink-0">
-              <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500 tracking-tight">
                 Explore
               </h1>
               <div className="flex items-center gap-3 mt-1 text-sm font-medium text-base-content/60">
@@ -1013,6 +987,10 @@ function ExplorePage() {
                         onClick={() => {
                           setActiveTab(tab.id);
                           setSearchQuery(""); // Optional: Clear search when switching tabs
+                          // Fetch matches when clicking "For You" tab for the first time
+                          if (tab.id === "explore" && !matchesFetched) {
+                            fetchMatches();
+                          }
                         }}
                 className={`
                 relative flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-colors duration-200
@@ -1149,6 +1127,54 @@ function ExplorePage() {
           {/* 2. Suggestions (For You) Tab */}
           {activeTab === "explore" &&
             (() => {
+              // Show loading state if matches are being fetched
+              if (loading) {
+                return (
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <div className="bg-base-100 p-8 rounded-3xl shadow-xl max-w-md w-full border border-base-200">
+                      <h2 className="text-2xl font-black mb-6 text-center text-primary">
+                        Finding Your Crew
+                      </h2>
+                      <div className="space-y-4">
+                        {steps.map((step, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center gap-3 animate-in slide-in-from-left-2 duration-300"
+                            style={{ animationDelay: `${i * 100}ms` }}
+                          >
+                            <div
+                              className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${step.done ? "bg-success/20 text-success" : "bg-base-200"}`}
+                            >
+                              {step.done ? (
+                                <CheckCircle2 className="size-4" />
+                              ) : (
+                                <span className="loading loading-spinner loading-xs text-base-content/30"></span>
+                              )}
+                            </div>
+                            <p
+                              className={`text-sm font-medium transition-colors ${step.done ? "text-base-content" : "text-base-content/40"}`}
+                            >
+                              {step.text}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Show error state if there's an error
+              if (error) {
+                return (
+                  <div className="max-w-2xl mx-auto px-4 py-20">
+                    <div className="alert alert-error shadow-lg rounded-2xl">
+                      <span>Error loading matches: {error}</span>
+                    </div>
+                  </div>
+                );
+              }
+
               // LOGIC: If searching, filter ALL matches. If not, use displayedMatches (paginated).
               // Note: We filter out mutual matches first to keep the logic consistent with your original code.
               const baseList = allMatches.filter(

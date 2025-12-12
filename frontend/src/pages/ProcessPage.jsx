@@ -57,7 +57,7 @@ function ProcessPage() {
   const currentStepData = stepData[current];
 
   const handleSubmit = () => {
-    window.location.href = '/explore';
+    navigate('/explore?tab=explore');
   };
 
   const handleNext = () => {

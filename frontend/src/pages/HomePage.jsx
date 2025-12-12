@@ -180,7 +180,7 @@ function HomePage() {
       <div className="max-w-7xl mx-auto px-4 py-20">
         <div className="text-center mb-16">
           <h2 className="text-4xl font-bold mb-16 bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-            How Oday works
+            How Homieu works
           </h2>
         </div>
 

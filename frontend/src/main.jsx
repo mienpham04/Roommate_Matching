@@ -19,7 +19,23 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+        <ClerkProvider
+          publishableKey={PUBLISHABLE_KEY}
+          localization={{
+            signIn: {
+              start: {
+                title: 'Sign in to Homieu',
+                subtitle: 'Welcome back! Please sign in to continue'
+              }
+            },
+            signUp: {
+              start: {
+                title: 'Create your Homieu account',
+                subtitle: 'to continue to Homieu'
+              }
+            }
+          }}
+        >
           <App />
         </ClerkProvider>
       </QueryClientProvider>
