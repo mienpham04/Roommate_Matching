@@ -37,9 +37,8 @@ function Navbar() {
             </div>
 
             <div className="flex flex-col">
-              <span className="font-black text-xl font-sans tracking-wide">
-                <span className="text-[#FF6B6B]">Hom</span>
-                <span className="text-base-content/60">ieu</span>
+              <span className="font-black text-2xl md:text-3xl font-sans tracking-wide bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+                Homieu
               </span>
               <span className="text-xs text-base-content/60 font-medium -mt-1">
                 Yes, that's how I met my homie
