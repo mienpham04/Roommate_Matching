@@ -9,6 +9,7 @@ import ExplorePage from "./pages/ExplorePage";
 import ProcessPage from "./pages/ProcessPage";
 import UserPage from "./pages/UserPage";
 import MatchesPage from "./pages/MatchesPage";
+import ChatPage from "./pages/ChatPage";
 
 function AuthToastListener() {
   const { isSignedIn, user } = useUser();
@@ -39,6 +40,7 @@ function App() {
       <Route path="/explore" element={<ExplorePage />}/>
       <Route path="/user/:id" element={<UserPage />} />
       <Route path="/matches" element={<MatchesPage />} />
+      <Route path="/chat" element={<ChatPage />} />
     </Routes>
 
     <AuthToastListener />
