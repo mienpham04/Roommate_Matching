@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router";
 import { User, Users, Compass, Rocket, Sparkles, ChevronUp, Heart, MessageCircle } from "lucide-react";
 import { UserButton, useUser, SignInButton } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
+import useChatSSE from "../hooks/useChatSSE";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
@@ -19,28 +20,52 @@ function Navbar() {
 
   ];
 
-  // Fetch unread message count
-  useEffect(() => {
+  // Fetch unread count from API
+  const fetchUnreadCount = async () => {
     if (!user?.id) return;
 
-    const fetchUnreadCount = async () => {
-      try {
-        const res = await fetch(`${API_URL}/chat/unread/${user.id}`);
-        const data = await res.json();
-        if (data.success) {
-          setTotalUnread(data.totalUnread || 0);
-        }
-      } catch (error) {
-        console.error('Failed to fetch unread count:', error);
+    try {
+      const res = await fetch(`${API_URL}/chat/unread/${user.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setTotalUnread(data.totalUnread || 0);
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  };
 
-    fetchUnreadCount();
+  // SSE subscription for real-time badge updates
+  useChatSSE(user?.id, {
+    onNewMessage: (message) => {
+      // Only increment if the message is for us and we're not on the chat page
+      if (message.recipientId === user?.id && location.pathname !== '/chat') {
+        setTotalUnread(prev => prev + 1);
+      }
+    },
+    onMessageRead: (readReceipt) => {
+      // Refresh count when messages are marked as read
+      fetchUnreadCount();
+    }
+  });
 
-    // Poll for unread count every 30 seconds
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
+  // Initial fetch on mount
+  useEffect(() => {
+    if (user?.id) {
+      fetchUnreadCount();
+    }
   }, [user?.id]);
+
+  // Refresh count when navigating away from chat page
+  useEffect(() => {
+    if (location.pathname === '/chat' && user?.id) {
+      // Small delay to allow messages to be marked as read
+      const timer = setTimeout(() => {
+        fetchUnreadCount();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, user?.id]);
 
   const isActive = (path) => {
     return location.pathname === path;
