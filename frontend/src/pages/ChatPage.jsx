@@ -26,9 +26,12 @@ function ChatPage() {
     onNewMessage: (message) => {
       console.log('📨 New message callback:', message);
 
+      // Convert messageId to id for consistency
+      const normalizedMessage = { ...message, id: message.messageId };
+
       // Add message to current conversation if it matches
       if (selectedConversation && message.conversationId === selectedConversation.id) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => [...prev, normalizedMessage]);
 
         // Mark as read immediately since user is viewing the conversation
         markAsRead([message.messageId]);
@@ -50,7 +53,7 @@ function ChatPage() {
       if (selectedConversation && readReceipt.conversationId === selectedConversation.id) {
         setMessages((prev) =>
           prev.map((msg) =>
-            readReceipt.messageIds.includes(msg.messageId)
+            readReceipt.messageIds.includes(msg.id)
               ? { ...msg, isRead: true, readAt: readReceipt.readAt }
               : msg
           )
@@ -105,7 +108,7 @@ function ChatPage() {
     if (selectedConversation && messages.length > 0) {
       const unreadMessageIds = messages
         .filter((msg) => !msg.isRead && msg.recipientId === user?.id)
-        .map((msg) => msg.messageId);
+        .map((msg) => msg.id);
 
       if (unreadMessageIds.length > 0) {
         markAsRead(unreadMessageIds);

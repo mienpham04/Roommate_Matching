@@ -44,6 +44,10 @@ function Navbar() {
       }
     },
     onMessageRead: (readReceipt) => {
+      // Immediately clear badge if on chat page, then fetch accurate count
+      if (location.pathname === '/chat') {
+        setTotalUnread(0);
+      }
       // Refresh count when messages are marked as read
       fetchUnreadCount();
     }
@@ -56,18 +60,26 @@ function Navbar() {
     }
   }, [user?.id]);
 
-  // Refresh count when navigating to chat page
+  // Refresh count when navigating to chat page and poll while on chat
   useEffect(() => {
     if (location.pathname === '/chat' && user?.id) {
       // Immediately clear badge when user opens chat for better UX
       setTotalUnread(0);
 
-      // Then fetch accurate count after messages are marked as read
-      // (in case there are other unread conversations)
-      const timer = setTimeout(() => {
+      // Fetch accurate count after a short delay
+      const initialTimer = setTimeout(() => {
+        fetchUnreadCount();
+      }, 500);
+
+      // Poll every 2 seconds while on chat page to keep badge accurate
+      const pollInterval = setInterval(() => {
         fetchUnreadCount();
       }, 2000);
-      return () => clearTimeout(timer);
+
+      return () => {
+        clearTimeout(initialTimer);
+        clearInterval(pollInterval);
+      };
     }
   }, [location.pathname, user?.id]);
 
