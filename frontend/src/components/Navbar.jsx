@@ -56,13 +56,17 @@ function Navbar() {
     }
   }, [user?.id]);
 
-  // Refresh count when navigating away from chat page
+  // Refresh count when navigating to chat page
   useEffect(() => {
     if (location.pathname === '/chat' && user?.id) {
-      // Small delay to allow messages to be marked as read
+      // Immediately clear badge when user opens chat for better UX
+      setTotalUnread(0);
+
+      // Then fetch accurate count after messages are marked as read
+      // (in case there are other unread conversations)
       const timer = setTimeout(() => {
         fetchUnreadCount();
-      }, 1000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [location.pathname, user?.id]);
