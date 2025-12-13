@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react"; // Added useRef
 import { useUser } from "@clerk/clerk-react";
+import { useNavigate } from "react-router";
 import {
   Heart,
   MapPin,
@@ -21,7 +22,7 @@ import Navbar from "../components/Navbar";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 // --- Sub-Component: Modern Match Card ---
-const MatchCard = ({ match, scores, isUpdated, onUnmatch, validationData }) => {
+const MatchCard = ({ match, scores, isUpdated, onUnmatch, onMessage, validationData }) => {
   const mutualScore = scores?.mutualScore ? Math.round(scores.mutualScore * 100) : 0;
   const similarityScore = scores?.similarityScore ? Math.round(scores.similarityScore * 100) : 0;
 
@@ -204,13 +205,14 @@ const MatchCard = ({ match, scores, isUpdated, onUnmatch, validationData }) => {
 
           {/* Action Buttons */}
           <div className="grid grid-cols-5 gap-2 mt-auto pt-4 border-t border-base-200">
-             <button 
-               className="col-span-1 btn btn-ghost btn-circle bg-base-200 hover:bg-base-300 border-none text-base-content/70"
+             <button
+               onClick={() => onMessage(match)}
+               className="col-span-1 btn btn-ghost btn-circle bg-base-200 hover:bg-base-300 border-none text-base-content/70 hover:text-primary"
                title="Send Message"
              >
                 <MessageCircle className="w-5 h-5" />
              </button>
-             <button 
+             <button
                onClick={() => window.open(`/user/${match.userId}`, '_blank')}
                className="col-span-4 btn btn-primary text-white shadow-lg shadow-primary/30 hover:shadow-primary/50 border-none group-hover:scale-[1.02] transition-transform"
              >
@@ -261,6 +263,7 @@ const MatchCard = ({ match, scores, isUpdated, onUnmatch, validationData }) => {
 // --- Main Page Component ---
 function MatchesPage() {
   const { user, isLoaded } = useUser();
+  const navigate = useNavigate();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -616,6 +619,12 @@ function MatchesPage() {
     return diff / (1000 * 60 * 60) <= 24;
   };
 
+  const handleMessage = async (match) => {
+    // Navigate to chat page with the match's userId
+    // The chat page will create/load the conversation automatically
+    navigate('/chat', { state: { selectedUserId: match.userId } });
+  };
+
   const handleUnmatch = async (targetUserId) => {
     try {
       const response = await fetch(`${API_URL}/likes/unmatch`, {
@@ -729,6 +738,7 @@ function MatchesPage() {
                       scores={cachedScores[match.userId]}
                       isUpdated={isRecentlyUpdated(match.lastUpdatedAt)}
                       onUnmatch={handleUnmatch}
+                      onMessage={handleMessage}
                       validationData={matchValidation[match.userId]}
                     />
                   ))}

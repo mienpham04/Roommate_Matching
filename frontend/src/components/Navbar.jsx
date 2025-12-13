@@ -1,18 +1,46 @@
 import { Link, useLocation } from "react-router";
-import { User, Users, Compass, Rocket, Sparkles, ChevronUp, Heart } from "lucide-react";
+import { User, Users, Compass, Rocket, Sparkles, ChevronUp, Heart, MessageCircle } from "lucide-react";
 import { UserButton, useUser, SignInButton } from "@clerk/clerk-react";
+import { useEffect, useState } from "react";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 function Navbar() {
   const location = useLocation();
   const { user } = useUser();
+  const [totalUnread, setTotalUnread] = useState(0);
 
   const navItems = [
     { name: "Profile", path: `/user/${user?.id}`, icon: Rocket },
+    { name: "Messages", path: "/chat", icon: MessageCircle, badge: totalUnread },
     { name: "Matches", path: "/matches", icon: Users },
     { name: "Explore", path: "/explore", icon: Compass },
     { name: "Match Up", path: `/process/${user?.id}`, icon: Sparkles }
 
   ];
+
+  // Fetch unread message count
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await fetch(`${API_URL}/chat/unread/${user.id}`);
+        const data = await res.json();
+        if (data.success) {
+          setTotalUnread(data.totalUnread || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch unread count:', error);
+      }
+    };
+
+    fetchUnreadCount();
+
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   const isActive = (path) => {
     return location.pathname === path;
@@ -71,10 +99,15 @@ function Navbar() {
                       key={item.name}
                       to={item.path}
                       aria-current={active ? "page" : undefined}
-                      className={itemClasses}
+                      className={`${itemClasses} relative`}
                     >
                       <Icon className={`size-4 ${isActionItem ? "animate-pulse" : ""}`} aria-hidden="true" />
                       <span className="hidden md:inline">{item.name}</span>
+                      {item.badge && item.badge > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-error text-error-content text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                          {item.badge > 9 ? '9+' : item.badge}
+                        </span>
+                      )}
                     </Link>
                   );
               })}
