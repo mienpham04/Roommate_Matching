@@ -18,6 +18,7 @@ function ChatPage() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState({});
+  const [userCache, setUserCache] = useState({}); // Cache user details
   const messagesEndRef = useRef(null);
 
   // SSE connection for real-time updates
@@ -69,7 +70,7 @@ function ChatPage() {
   // Auto-select conversation when coming from Matches page
   useEffect(() => {
     const selectedUserId = location.state?.selectedUserId;
-    if (selectedUserId && conversations.length > 0 && user?.id) {
+    if (selectedUserId && user?.id) {
       // Find or create conversation with this user
       const conversationId = [user.id, selectedUserId].sort().join('_');
       let conversation = conversations.find(c => c.id === conversationId);
@@ -79,6 +80,7 @@ function ChatPage() {
         selectConversation(conversation);
       } else {
         // Conversation doesn't exist yet, create placeholder
+        // This allows sending the first message
         conversation = {
           id: conversationId,
           user1Id: [user.id, selectedUserId].sort()[0],
@@ -120,6 +122,12 @@ function ChatPage() {
 
       if (data.success) {
         setConversations(data.conversations);
+
+        // Fetch user details for all conversation participants
+        data.conversations.forEach(conv => {
+          const otherUserId = conv.user1Id === user.id ? conv.user2Id : conv.user1Id;
+          fetchUserDetails(otherUserId);
+        });
       }
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
@@ -141,6 +149,29 @@ function ChatPage() {
       }
     } catch (error) {
       console.error('Failed to fetch unread counts:', error);
+    }
+  };
+
+  const fetchUserDetails = async (userId) => {
+    // Don't fetch if already cached
+    if (userCache[userId]) return;
+
+    try {
+      const res = await fetch(`${API_URL}/users/${userId}`);
+      if (res.ok) {
+        const userData = await res.json();
+        setUserCache(prev => ({
+          ...prev,
+          [userId]: {
+            id: userData.id,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            profileImageUrl: userData.profileImageUrl
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch user details:', error);
     }
   };
 
@@ -227,13 +258,28 @@ function ChatPage() {
   const selectConversation = (conversation) => {
     setSelectedConversation(conversation);
     fetchMessages(conversation.id);
+
+    // Fetch user details for display
+    const otherUserId = conversation.user1Id === user?.id
+      ? conversation.user2Id
+      : conversation.user1Id;
+    fetchUserDetails(otherUserId);
   };
 
   const getOtherUserName = (conversation) => {
-    // This is a simplified version - you'd want to fetch actual user details
     const otherUserId =
       conversation.user1Id === user?.id ? conversation.user2Id : conversation.user1Id;
-    return otherUserId; // In production, fetch and display actual name
+
+    const otherUser = userCache[otherUserId];
+    if (otherUser) {
+      return `${otherUser.firstName} ${otherUser.lastName}`;
+    }
+
+    // Fetch user details if not cached
+    fetchUserDetails(otherUserId);
+
+    // Return user ID as fallback while loading
+    return otherUserId;
   };
 
   if (!isLoaded || loading) {
