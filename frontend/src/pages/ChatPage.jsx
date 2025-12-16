@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { useLocation } from 'react-router';
-import { MessageCircle, Send, ArrowLeft, Check, CheckCheck, Loader2, AlertCircle } from 'lucide-react';
+import { MessageCircle, Send, ArrowLeft, Check, CheckCheck, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 import useChatSSE from '../hooks/useChatSSE';
@@ -22,6 +22,7 @@ function ChatPage() {
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [deleteConfirmation, setDeleteConfirmation] = useState(null); // { messageId, content }
 
   // SSE connection for real-time updates
   const { isConnected } = useChatSSE(user?.id, {
@@ -60,6 +61,15 @@ function ChatPage() {
               : msg
           )
         );
+      }
+    },
+    onMessageDeleted: (deletion) => {
+      console.log('🗑️  Message deletion callback:', deletion);
+
+      // Remove deleted message from current conversation
+      if (selectedConversation && deletion.conversationId === selectedConversation.id) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== deletion.messageId));
+        toast('Message deleted', { icon: '🗑️', duration: 2000 });
       }
     }
   });
@@ -329,6 +339,62 @@ function ChatPage() {
     }
   };
 
+  const deleteMessage = async (messageId, messageContent) => {
+    if (!messageId) return;
+
+    // Show custom confirmation modal
+    setDeleteConfirmation({ messageId, content: messageContent });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return;
+
+    const { messageId } = deleteConfirmation;
+
+    // Close modal
+    setDeleteConfirmation(null);
+
+    try {
+      // Optimistically remove from UI
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+
+      const res = await fetch(`${API_URL}/chat/message/${messageId}?userId=${user.id}`, {
+        method: 'DELETE'
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to delete message');
+      }
+
+      toast.success('Message deleted', { icon: '🗑️' });
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+
+      // Restore message on error
+      fetchMessages(selectedConversation.id);
+
+      toast.error(error.message || 'Failed to delete message');
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmation(null);
+  };
+
+  // Handle ESC key to close delete confirmation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && deleteConfirmation) {
+        cancelDelete();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [deleteConfirmation]);
+
   const selectConversation = (conversation) => {
     setSelectedConversation(conversation);
     fetchMessages(conversation.id);
@@ -491,37 +557,50 @@ function ChatPage() {
                           key={msg.id || index}
                           className={`flex flex-col ${isSender ? 'items-end' : 'items-start'}`}
                         >
-                          <div
-                            className={`max-w-[70%] px-4 py-2 rounded-2xl transition-opacity ${
-                              isSender
-                                ? 'bg-primary text-primary-content'
-                                : 'bg-base-200 text-base-content'
-                            } ${msg.sending ? 'opacity-70' : 'opacity-100'}`}
-                          >
-                            <p>{msg.content}</p>
+                          <div className="relative group max-w-[70%]">
                             <div
-                              className={`flex items-center gap-1 mt-1 text-xs ${
-                                isSender ? 'text-primary-content/70' : 'text-base-content/50'
-                              }`}
+                              className={`px-4 py-2 rounded-2xl transition-opacity ${
+                                isSender
+                                  ? 'bg-primary text-primary-content'
+                                  : 'bg-base-200 text-base-content'
+                              } ${msg.sending ? 'opacity-70' : 'opacity-100'} ${isSender && !msg.sending ? 'pr-10' : ''}`}
                             >
-                              <span>
-                                {new Date(msg.timestamp).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </span>
-                              {isSender && (
+                              <p>{msg.content}</p>
+                              <div
+                                className={`flex items-center gap-1 mt-1 text-xs ${
+                                  isSender ? 'text-primary-content/70' : 'text-base-content/50'
+                                }`}
+                              >
                                 <span>
-                                  {msg.sending ? (
-                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                  ) : msg.isRead ? (
-                                    <CheckCheck className="w-3 h-3" />
-                                  ) : (
-                                    <Check className="w-3 h-3" />
-                                  )}
+                                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
                                 </span>
-                              )}
+                                {isSender && (
+                                  <span>
+                                    {msg.sending ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : msg.isRead ? (
+                                      <CheckCheck className="w-3 h-3" />
+                                    ) : (
+                                      <Check className="w-3 h-3" />
+                                    )}
+                                  </span>
+                                )}
+                              </div>
                             </div>
+
+                            {/* Delete button - positioned at bottom right corner */}
+                            {isSender && !msg.sending && (
+                              <button
+                                onClick={() => deleteMessage(msg.id, msg.content)}
+                                className="absolute bottom-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-error hover:bg-opacity-20 rounded-full"
+                                title="Delete message"
+                              >
+                                <Trash2 className="w-4 h-4 text-error" />
+                              </button>
+                            )}
                           </div>
 
                           {/* Status text below the latest sent message */}
@@ -582,6 +661,55 @@ function ChatPage() {
           )}
         </div>
       </main>
+
+      {/* Custom Delete Confirmation Modal */}
+      {deleteConfirmation && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm"
+          onClick={cancelDelete}
+        >
+          <div
+            className="bg-base-100 rounded-3xl shadow-2xl p-6 max-w-md w-full mx-4 animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-error bg-opacity-10 rounded-full">
+                <Trash2 className="w-6 h-6 text-error" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-base-content mb-2">
+                  Delete Message?
+                </h3>
+                <p className="text-sm text-base-content/70 mb-4">
+                  This action cannot be undone. The message will be deleted for everyone.
+                </p>
+                {deleteConfirmation.content && (
+                  <div className="bg-base-200 rounded-lg p-3 mb-4 max-h-24 overflow-y-auto">
+                    <p className="text-sm text-base-content/60 italic line-clamp-3">
+                      "{deleteConfirmation.content}"
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={cancelDelete}
+                className="btn btn-ghost flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="btn btn-error flex-1"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -17,6 +17,7 @@ export function useChatSSE(userId, callbacks = {}) {
   const {
     onNewMessage = () => {},
     onMessageRead = () => {},
+    onMessageDeleted = () => {},
     onError = () => {}
   } = callbacks;
 
@@ -67,6 +68,18 @@ export function useChatSSE(userId, callbacks = {}) {
         onMessageRead(readReceipt);
       } catch (error) {
         console.error('Failed to parse read receipt event:', error);
+      }
+    });
+
+    eventSource.addEventListener('message-deleted', (event) => {
+      try {
+        const deletion = JSON.parse(event.data);
+        console.log('🗑️  Message deleted:', deletion);
+
+        // Call callback
+        onMessageDeleted(deletion);
+      } catch (error) {
+        console.error('Failed to parse message deletion event:', error);
       }
     });
 

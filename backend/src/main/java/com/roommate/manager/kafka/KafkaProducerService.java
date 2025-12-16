@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.roommate.manager.model.events.MessageEvent;
 import com.roommate.manager.model.events.MessageReadEvent;
+import com.roommate.manager.model.events.MessageDeleteEvent;
 import com.roommate.manager.model.events.ProfileUpdateEvent;
 
 @Service
@@ -38,5 +39,13 @@ public class KafkaProducerService {
     public void sendMessageReadReceipt(MessageReadEvent event) {
         kafkaTemplate.send("chat.message.read", event.getConversationId(), event);
         System.out.println("📤 Published read receipt event to Kafka: " + event.getMessageIds().size() + " messages");
+    }
+
+    /**
+     * Send message deleted event to Kafka
+     */
+    public void sendMessageDeleted(MessageDeleteEvent event) {
+        kafkaTemplate.send("chat.message.deleted", event.getConversationId(), event);
+        System.out.println("📤 Published message deletion event to Kafka: " + event.getMessageId());
     }
 }

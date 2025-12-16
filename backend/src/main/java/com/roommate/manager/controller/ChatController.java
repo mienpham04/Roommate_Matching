@@ -5,6 +5,7 @@ import com.roommate.manager.model.ConversationModel;
 import com.roommate.manager.model.MessageModel;
 import com.roommate.manager.model.events.MessageEvent;
 import com.roommate.manager.model.events.MessageReadEvent;
+import com.roommate.manager.model.events.MessageDeleteEvent;
 import com.roommate.manager.repository.ConversationRepository;
 import com.roommate.manager.repository.MessageRepository;
 import com.roommate.manager.service.ChatService;
@@ -151,6 +152,52 @@ public class ChatController {
 
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", "Failed to mark as read", "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * Delete a message
+     * DELETE /api/chat/message/{messageId}
+     * Query param: userId (to verify sender)
+     */
+    @DeleteMapping("/message/{messageId}")
+    public ResponseEntity<Map<String, Object>> deleteMessage(
+            @PathVariable String messageId,
+            @RequestParam String userId) {
+        try {
+            // Verify message exists and user is the sender
+            Optional<MessageModel> messageOpt = messageRepository.findById(messageId);
+
+            if (messageOpt.isEmpty()) {
+                return ResponseEntity.status(404).body(Map.of("error", "Message not found"));
+            }
+
+            MessageModel message = messageOpt.get();
+
+            // Only sender can delete their own message
+            if (!message.getSenderId().equals(userId)) {
+                return ResponseEntity.status(403).body(Map.of("error", "You can only delete your own messages"));
+            }
+
+            // Delete the message
+            messageRepository.deleteById(messageId);
+
+            // Publish deletion event for real-time updates
+            MessageDeleteEvent event = new MessageDeleteEvent();
+            event.setMessageId(messageId);
+            event.setConversationId(message.getConversationId());
+            event.setDeletedBy(userId);
+            event.setDeletedAt(LocalDateTime.now());
+
+            kafkaProducerService.sendMessageDeleted(event);
+
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "messageId", messageId
+            ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", "Failed to delete message", "message", e.getMessage()));
         }
     }
 

@@ -78,6 +78,28 @@ public class ChatStreamController {
     }
 
     /**
+     * Broadcast message deletion to ALL users (they filter by conversationId on frontend)
+     */
+    public void broadcastMessageDeleted(String conversationId, Map<String, Object> deletionData) {
+        System.out.println("📢 Broadcasting message deletion for conversation " + conversationId);
+
+        int totalSent = 0;
+
+        // Broadcast to all connected users (they'll filter by conversationId on frontend)
+        for (Map.Entry<String, CopyOnWriteArrayList<SseEmitter>> entry : userEmitters.entrySet()) {
+            String userId = entry.getKey();
+            CopyOnWriteArrayList<SseEmitter> emitters = entry.getValue();
+
+            if (emitters != null && !emitters.isEmpty()) {
+                sendToEmitters(emitters, "message-deleted", deletionData, userId);
+                totalSent += emitters.size();
+            }
+        }
+
+        System.out.println("✉️ Broadcasted message deletion to " + totalSent + " total connections");
+    }
+
+    /**
      * Helper method to send events to emitters
      */
     private void sendToEmitters(CopyOnWriteArrayList<SseEmitter> emitters, String eventName, Map<String, Object> data, String userId) {
