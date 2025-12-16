@@ -200,34 +200,72 @@ function ChatPage() {
         ? selectedConversation.user2Id
         : selectedConversation.user1Id;
 
+    const messageContent = messageInput.trim();
+
+    // Create optimistic message (temporary ID for instant display)
+    const optimisticMessage = {
+      id: `temp_${Date.now()}`,
+      senderId: user.id,
+      recipientId: recipientId,
+      content: messageContent,
+      timestamp: new Date().toISOString(),
+      isRead: false,
+      sending: true // Flag to show loading state
+    };
+
+    // INSTANT UI UPDATE - Add message immediately
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setMessageInput(''); // Clear input immediately
     setSending(true);
 
     try {
+      // Send to backend in the background
       const res = await fetch(`${API_URL}/chat/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           senderId: user.id,
           recipientId: recipientId,
-          content: messageInput.trim()
+          content: messageContent
         })
       });
 
       const data = await res.json();
 
       if (data.success) {
-        // Add message to local state immediately
-        setMessages((prev) => [...prev, data.message]);
-        setMessageInput('');
+        // Replace optimistic message with real message from server
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === optimisticMessage.id ? data.message : msg
+          )
+        );
 
-        // Refresh conversations to update last message
-        fetchConversations();
+        // Update conversations list locally (no need to refetch)
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === selectedConversation.id
+              ? {
+                  ...conv,
+                  lastMessageContent: messageContent,
+                  lastMessageTimestamp: data.message.timestamp,
+                  lastMessageSenderId: user.id
+                }
+              : conv
+          )
+        );
       } else {
         throw new Error(data.error || 'Failed to send message');
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      toast.error(error.message || 'Failed to send message');
+
+      // Remove the optimistic message on failure
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id));
+
+      // Restore the message input so user can retry
+      setMessageInput(messageContent);
+
+      toast.error(error.message || 'Failed to send message. Please try again.');
     } finally {
       setSending(false);
     }
@@ -400,11 +438,11 @@ function ChatPage() {
                           className={`flex ${isSender ? 'justify-end' : 'justify-start'}`}
                         >
                           <div
-                            className={`max-w-[70%] px-4 py-2 rounded-2xl ${
+                            className={`max-w-[70%] px-4 py-2 rounded-2xl transition-opacity ${
                               isSender
                                 ? 'bg-primary text-primary-content'
                                 : 'bg-base-200 text-base-content'
-                            }`}
+                            } ${msg.sending ? 'opacity-70' : 'opacity-100'}`}
                           >
                             <p>{msg.content}</p>
                             <div
@@ -420,7 +458,9 @@ function ChatPage() {
                               </span>
                               {isSender && (
                                 <span>
-                                  {msg.isRead ? (
+                                  {msg.sending ? (
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                  ) : msg.isRead ? (
                                     <CheckCheck className="w-3 h-3" />
                                   ) : (
                                     <Check className="w-3 h-3" />
