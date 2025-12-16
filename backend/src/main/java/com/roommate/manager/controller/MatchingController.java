@@ -225,11 +225,12 @@ public class MatchingController {
     }
 
     /**
-     * Calculate scores between two specific users (EFFICIENT - no full scan)
+     * Calculate scores between two specific users (ULTRA EFFICIENT - uses Vertex AI embeddings directly)
      * POST /api/matching/validate
      * Body: { "userId1": "user123", "userId2": "user456" }
      *
      * This is much more efficient than fetching all matches - only compares these 2 users
+     * Uses UltraOptimizedVectorSearchService for FAST, RELIABLE scoring with Vertex AI embeddings
      */
     @PostMapping("/validate")
     public ResponseEntity<Map<String, Object>> validateMatch(@RequestBody Map<String, String> request) {
@@ -241,8 +242,8 @@ public class MatchingController {
                 return ResponseEntity.badRequest().body(Map.of("error", "userId1 and userId2 are required"));
             }
 
-            // Use efficient pairwise calculation - only compares these 2 users
-            Map<String, Object> scores = vectorSearchService.calculatePairwiseScores(userId1, userId2);
+            // Use ULTRA-OPTIMIZED pairwise calculation with Vertex AI embeddings
+            Map<String, Object> scores = ultraOptimizedVectorSearchService.calculatePairwiseScores(userId1, userId2);
 
             // Return the scores with validation status
             Map<String, Object> response = new HashMap<>();
@@ -254,6 +255,7 @@ public class MatchingController {
             response.put("stillMatches", scores.get("meetsRequirements"));
             response.put("attributeScore", scores.get("attributeScore"));
             response.put("embeddingScore", scores.get("embeddingScore"));
+            response.put("error", scores.get("error")); // Include error if Vertex AI fetch failed
 
             return ResponseEntity.ok(response);
 
@@ -261,6 +263,7 @@ public class MatchingController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Match validation failed");
             errorResponse.put("message", e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(500).body(errorResponse);
         }
     }

@@ -385,6 +385,122 @@ public class UltraOptimizedVectorSearchService {
         return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
     }
 
+    /**
+     * Calculate compatibility scores between exactly TWO users (efficient for real-time updates)
+     * Uses embeddings directly from Vertex AI - ULTRA FAST, no regeneration!
+     *
+     * @param userId1 First user ID
+     * @param userId2 Second user ID
+     * @return Map containing mutualScore, similarityScore, and detailed breakdown
+     */
+    public Map<String, Object> calculatePairwiseScores(String userId1, String userId2) throws IOException {
+        // Get both users
+        Optional<UserModel> user1Optional = userRepository.findById(userId1);
+        Optional<UserModel> user2Optional = userRepository.findById(userId2);
+
+        if (user1Optional.isEmpty() || user2Optional.isEmpty()) {
+            throw new IllegalArgumentException("One or both users not found");
+        }
+
+        UserModel user1 = user1Optional.get();
+        UserModel user2 = user2Optional.get();
+
+        System.out.println("====== ULTRA-FAST PAIRWISE MATCHING ======");
+        System.out.println("User 1: " + user1.getFirstName() + " " + user1.getLastName());
+        System.out.println("User 2: " + user2.getFirstName() + " " + user2.getLastName());
+
+        // Check if both profiles are complete
+        if (!isProfileComplete(user1) || !isProfileComplete(user2)) {
+            System.out.println("❌ One or both users have incomplete profiles - Returning 0% score");
+            System.out.println("==========================================\n");
+            Map<String, Object> result = new HashMap<>();
+            result.put("mutualScore", 0.0);
+            result.put("similarityScore", 0.0);
+            result.put("meetsRequirements", false);
+            result.put("isLowMatch", true);
+            return result;
+        }
+
+        Map<String, Object> result = new HashMap<>();
+
+        // Check hard requirements first (bidirectional)
+        boolean user1WantsUser2 = attributeMatchingService.meetsHardRequirements(user1, user2);
+        boolean user2WantsUser1 = attributeMatchingService.meetsHardRequirements(user2, user1);
+
+        System.out.println("Hard Requirements Check:");
+        System.out.println("  " + user1.getFirstName() + " wants " + user2.getFirstName() + ": " + user1WantsUser2);
+        System.out.println("  " + user2.getFirstName() + " wants " + user1.getFirstName() + ": " + user2WantsUser1);
+
+        if (!user1WantsUser2 || !user2WantsUser1) {
+            // Hard requirements not met - return 0 scores
+            System.out.println("❌ FAILED HARD REQUIREMENTS - Returning 0% score");
+            System.out.println("==========================================\n");
+            result.put("mutualScore", 0.0);
+            result.put("similarityScore", 0.0);
+            result.put("meetsRequirements", false);
+            result.put("isLowMatch", true);
+            return result;
+        }
+
+        try {
+            // Get embeddings directly from Vertex AI (NO regeneration!)
+            List<Float> user1ProfileEmb = getEmbeddingFromVertexAI(userId1 + "_profile");
+            List<Float> user1PreferenceEmb = getEmbeddingFromVertexAI(userId1 + "_preference");
+            List<Float> user2ProfileEmb = getEmbeddingFromVertexAI(userId2 + "_profile");
+            List<Float> user2PreferenceEmb = getEmbeddingFromVertexAI(userId2 + "_preference");
+
+            // Calculate attribute-based compatibility scores
+            double forwardAttributeScore = attributeMatchingService.calculateCompatibilityScore(user1, user2);
+            double reverseAttributeScore = attributeMatchingService.calculateCompatibilityScore(user2, user1);
+            double mutualAttributeScore = (forwardAttributeScore + reverseAttributeScore) / 2.0;
+
+            // Calculate embedding-based similarity (preference vs profile matching)
+            double forwardEmbeddingScore = calculateCosineSimilarity(user1PreferenceEmb, user2ProfileEmb);
+            double reverseEmbeddingScore = calculateCosineSimilarity(user2PreferenceEmb, user1ProfileEmb);
+            double mutualEmbeddingScore = (forwardEmbeddingScore + reverseEmbeddingScore) / 2.0;
+
+            // Calculate similarity score (profile vs profile - lifestyle similarity)
+            double similarityScore = calculateCosineSimilarity(user1ProfileEmb, user2ProfileEmb);
+
+            // Combine scores with weighting (50% attribute + 50% embedding)
+            double hybridForwardScore = (forwardAttributeScore * 0.5) + (forwardEmbeddingScore * 0.5);
+            double hybridReverseScore = (reverseAttributeScore * 0.5) + (reverseEmbeddingScore * 0.5);
+            double hybridMutualScore = (hybridForwardScore + hybridReverseScore) / 2.0;
+
+            // Build result
+            result.put("userId1", userId1);
+            result.put("userId2", userId2);
+            result.put("mutualScore", hybridMutualScore);
+            result.put("similarityScore", similarityScore);
+            result.put("meetsRequirements", true);
+            result.put("isLowMatch", hybridMutualScore <= 0.5);
+
+            // Detailed breakdown
+            result.put("attributeScore", mutualAttributeScore);
+            result.put("embeddingScore", mutualEmbeddingScore);
+            result.put("forwardScore", hybridForwardScore);
+            result.put("reverseScore", hybridReverseScore);
+
+            System.out.println("PAIRWISE SCORE: " + user1.getFirstName() + " <-> " + user2.getFirstName() +
+                " | Mutual=" + String.format("%.2f", hybridMutualScore) +
+                " | Similarity=" + String.format("%.2f", similarityScore));
+            System.out.println("==========================================\n");
+
+            return result;
+
+        } catch (IOException e) {
+            // If we can't fetch embeddings from Vertex AI, fall back to 0
+            System.err.println("❌ Failed to fetch embeddings from Vertex AI: " + e.getMessage());
+            System.out.println("==========================================\n");
+            result.put("mutualScore", 0.0);
+            result.put("similarityScore", 0.0);
+            result.put("meetsRequirements", false);
+            result.put("isLowMatch", true);
+            result.put("error", "Failed to fetch embeddings: " + e.getMessage());
+            return result;
+        }
+    }
+
     // Helper class to hold candidate with their Vertex AI embeddings
     private static class CandidateWithEmbeddings {
         String userId;
