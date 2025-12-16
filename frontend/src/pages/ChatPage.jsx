@@ -20,6 +20,8 @@ function ChatPage() {
   const [unreadCounts, setUnreadCounts] = useState({});
   const [userCache, setUserCache] = useState({}); // Cache user details
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   // SSE connection for real-time updates
   const { isConnected } = useChatSSE(user?.id, {
@@ -98,10 +100,40 @@ function ChatPage() {
     }
   }, [location.state, conversations, user?.id]);
 
-  // Scroll to bottom when messages change
+  // Smart auto-scroll: only scroll if user is at/near bottom or if new message
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    // Check if user is scrolled near the bottom (within 100px)
+    const isNearBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+    // Auto-scroll if user is near bottom OR if shouldAutoScroll is true (user just sent a message)
+    if (isNearBottom || shouldAutoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      setShouldAutoScroll(false); // Reset after scrolling
+    }
+  }, [messages, shouldAutoScroll]);
+
+  // Track scroll position to determine if user has scrolled up
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+      // Don't interfere with shouldAutoScroll if it's true (user just sent message)
+      if (!shouldAutoScroll) {
+        // User can freely scroll without being forced down
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [shouldAutoScroll]);
 
   // Mark messages as read when viewing a conversation
   useEffect(() => {
@@ -216,6 +248,7 @@ function ChatPage() {
     // INSTANT UI UPDATE - Add message immediately
     setMessages((prev) => [...prev, optimisticMessage]);
     setMessageInput(''); // Clear input immediately
+    setShouldAutoScroll(true); // Force scroll after sending
     setSending(true);
 
     try {
@@ -423,7 +456,7 @@ function ChatPage() {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{ minHeight: 0 }}>
+              <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4" style={{ minHeight: 0 }}>
                 {messages.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-base-content/50">
                     <p className="text-sm">No messages yet. Start the conversation!</p>
@@ -432,10 +465,31 @@ function ChatPage() {
                   <>
                     {messages.map((msg, index) => {
                       const isSender = msg.senderId === user.id;
+
+                      // Find the latest message sent by current user
+                      const latestSentMessageIndex = messages
+                        .map((m, i) => ({ msg: m, index: i }))
+                        .reverse()
+                        .find(item => item.msg.senderId === user.id)?.index;
+
+                      const isLatestSentMessage = isSender && index === latestSentMessageIndex;
+
+                      // Determine status text
+                      let statusText = '';
+                      if (isSender && isLatestSentMessage) {
+                        if (msg.sending) {
+                          statusText = 'Sending...';
+                        } else if (msg.isRead) {
+                          statusText = 'Read';
+                        } else {
+                          statusText = 'Sent';
+                        }
+                      }
+
                       return (
                         <div
                           key={msg.id || index}
-                          className={`flex ${isSender ? 'justify-end' : 'justify-start'}`}
+                          className={`flex flex-col ${isSender ? 'items-end' : 'items-start'}`}
                         >
                           <div
                             className={`max-w-[70%] px-4 py-2 rounded-2xl transition-opacity ${
@@ -469,6 +523,13 @@ function ChatPage() {
                               )}
                             </div>
                           </div>
+
+                          {/* Status text below the latest sent message */}
+                          {statusText && (
+                            <span className="text-xs text-base-content/40 mt-1 px-1">
+                              {statusText}
+                            </span>
+                          )}
                         </div>
                       );
                     })}
