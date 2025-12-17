@@ -2,33 +2,57 @@ import { useRef, useState, useEffect } from "react";
 import { Pencil, X, User, Mail, Phone, Calendar, VenusAndMars } from "lucide-react";
 import SimpleField from "../SimpleField";
 import BudgetField from "../BudgetField";
+import { useUser } from "@clerk/clerk-react";
 
-function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
+function PersonalInfo({ dbUser, setDbUser, isEditMode = true }) {
+  const { user } = useUser();
   const fileInputRef = useRef(null);
   const [customPhoto, setCustomPhoto] = useState(null);
   const [profileImg, setProfileImg] = useState(
-    dbUser?.profileImageUrl || "https://i.pravatar.cc/200"
+    dbUser?.profileImageUrl || user.imageUrl
   );
 
   useEffect(() => {
     if (dbUser?.profileImageUrl) setProfileImg(dbUser.profileImageUrl);
   }, [dbUser]);
 
-  const handleImageUpload = (e) => {
+  const uploadToClerk = async (file) => {
+    if (!user) return;
+
+    await user.setProfileImage({ file });
+
+    const imageUrl = user.imageUrl;
+
+    await fetch("/api/users/profile-image", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clerkId: user.id,
+        imageUrl,
+      }),
+    });
+    setDbUser((prev) => ({
+      ...prev,
+      profileImageUrl: imageUrl,
+    }));
+  };
+
+  const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
     setProfileImg(url);
     setCustomPhoto(url);
+    await uploadToClerk(file);
   };
+
   const handleRemove = (e) => {
     e.stopPropagation();
     setCustomPhoto(null);
-    setProfileImg(dbUser?.profileImageUrl || "https://i.pravatar.cc/200");
+    setProfileImg(dbUser?.profileImageUrl || user.imageUrl);
   };
 
   const handleFieldUpdate = (field, newValue) => {
-    // Update parent state only (no API call)
     setDbUser((prev) => ({
       ...prev,
       [field]: newValue

@@ -18,15 +18,13 @@ function UserPage() {
     const [active, setActive] = useState("Profile");
     const [preferenceSubTab, setPreferenceSubTab] = useState(0);
     const [dbUser, setDbUser] = useState(null);
-    const [originalDbUser, setOriginalDbUser] = useState(null); // Store original data for cancel
+    const [originalDbUser, setOriginalDbUser] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const dbUserRef = useRef(null); // Always keep latest user state handy
+    const dbUserRef = useRef(null);
 
-    // Check if current user is viewing their own profile
     const isOwnProfile = currentUser?.id === id;
 
-    // Keep state and ref in sync whenever user data changes
     const setDbUserSynced = (updater) => {
         setDbUser((prev) => {
             const next = typeof updater === "function" ? updater(prev) : updater;
@@ -259,14 +257,14 @@ function UserPage() {
     if (!dbUser) return <Loading />;
 
     return (
-        <div className="h-screen w-full bg-gradient-to-br from-base-200 to-base-300 flex flex-col font-sans overflow-hidden text-base-content">
+        <div className="h-screen w-full bg-linear-to-br from-base-200 to-base-300 flex flex-col font-sans overflow-hidden text-base-content">
             <Navbar />
 
             <div className="flex-1 overflow-hidden">
                 <div className="max-w-7xl mx-auto h-full flex gap-4 md:gap-8 p-4 md:p-8 items-stretch">
 
                     {/* Left Sidebar */}
-                    <div className="w-20 md:w-64 flex-shrink-0 flex flex-col gap-2 relative z-20 pt-4">
+                    <div className="w-20 md:w-64 shrink-0 flex flex-col gap-2 relative z-20 pt-4">
                         <div className="px-4 mb-6 hidden md:block">
                             <h3 className="text-xs font-extrabold text-base-content/40 uppercase tracking-widest flex items-center gap-2">
                                 <Settings className="w-3 h-3" /> Account
