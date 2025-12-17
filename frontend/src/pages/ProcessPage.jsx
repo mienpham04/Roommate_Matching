@@ -87,7 +87,7 @@ function ProcessPage() {
         <div className="bg-pink-50 w-full max-w-6xl h-[800px] lg:h-[700px] rounded-[2.5rem] shadow-2xl shadow-pink-200/50 overflow-hidden grid grid-cols-1 lg:grid-cols-12 border border-pink-100 ring-1 ring-pink-200/30">
 
           {/* SIDEBAR */}
-          <div className="lg:col-span-4 bg-gradient-to-br from-pink-200 via-pink-300 to-rose-300 text-gray-800 p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden">
+          <div className="lg:col-span-4 bg-linear-to-br from-pink-200 via-pink-300 to-rose-300 text-gray-800 p-8 lg:p-10 flex flex-col justify-between relative overflow-hidden">
 
             {/* Background Decorations */}
             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/30 rounded-full blur-3xl"></div>

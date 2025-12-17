@@ -37,7 +37,7 @@ function Navbar() {
             </div>
 
             <div className="flex flex-col">
-              <span className="font-black text-2xl md:text-3xl font-sans tracking-wide bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
+              <span className="font-black text-2xl md:text-3xl font-sans tracking-wide bg-linear-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                 Homieu
               </span>
               <span className="text-xs text-base-content/60 font-medium -mt-1">
@@ -80,7 +80,7 @@ function Navbar() {
               })}
 
               <div className="ml-4 mt-2">
-                <UserButton />
+                <UserButton userProfileUrl={user.imageUrl} />
               </div>
             </>
           ) : (

@@ -2,33 +2,60 @@ import { useRef, useState, useEffect } from "react";
 import { Pencil, X, User, Mail, Phone, Calendar, VenusAndMars } from "lucide-react";
 import SimpleField from "../SimpleField";
 import BudgetField from "../BudgetField";
+import { useUser } from "@clerk/clerk-react";
 
-function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
+function PersonalInfo({ dbUser, setDbUser, isEditMode = true }) {
+  const { user } = useUser();
   const fileInputRef = useRef(null);
   const [customPhoto, setCustomPhoto] = useState(null);
   const [profileImg, setProfileImg] = useState(
-    dbUser?.profileImageUrl || "https://i.pravatar.cc/200"
+    dbUser?.profileImageUrl || user.imageUrl
   );
 
   useEffect(() => {
     if (dbUser?.profileImageUrl) setProfileImg(dbUser.profileImageUrl);
   }, [dbUser]);
 
-  const handleImageUpload = (e) => {
+  const uploadToClerk = async (file) => {
+    if (!user) return;
+
+    await user.setProfileImage({ file });
+    await user.reload();
+
+    const imageUrl = user.imageUrl;
+    setProfileImg(imageUrl);
+
+    await fetch("/api/users/profile-image", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        clerkId: user.id,
+        imageUrl,
+      }),
+    });
+    setDbUser((prev) => ({
+      ...prev,
+      profileImageUrl: imageUrl,
+    }));
+    setCustomPhoto(null);
+  };
+
+  const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const url = URL.createObjectURL(file);
     setProfileImg(url);
     setCustomPhoto(url);
-  };
-  const handleRemove = (e) => {
-    e.stopPropagation();
-    setCustomPhoto(null);
-    setProfileImg(dbUser?.profileImageUrl || "https://i.pravatar.cc/200");
+    await uploadToClerk(file);
   };
 
+  // const handleRemove = (e) => {
+  //   e.stopPropagation();
+  //   setCustomPhoto(null);
+  //   setProfileImg(dbUser?.profileImageUrl || user.imageUrl);
+  // };
+
   const handleFieldUpdate = (field, newValue) => {
-    // Update parent state only (no API call)
     setDbUser((prev) => ({
       ...prev,
       [field]: newValue
@@ -52,14 +79,14 @@ function PersonalInfo({ dbUser, userId, setDbUser, isEditMode = true }) {
               <Pencil className="w-6 h-6" />
             </div>
           )}
-          {customPhoto && isEditMode && (
+          {/* {customPhoto && isEditMode && (
             <button
               className="absolute top-0 right-0 btn btn-circle btn-xs btn-error shadow-md z-10 scale-90"
               onClick={handleRemove}
             >
               <X className="w-3 h-3" />
             </button>
-          )}
+          )} */}
         </div>
         {isEditMode && <p className="mt-2 text-xs text-base-content/50">Tap image to change</p>}
         <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
