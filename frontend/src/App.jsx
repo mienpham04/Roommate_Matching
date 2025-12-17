@@ -4,7 +4,6 @@ import toast from "react-hot-toast";
 import { useEffect, useRef } from "react";
 import { useUser } from "@clerk/clerk-react";
 import HomePage from "./pages/HomePage";
-import ProfilePage from "./pages/ProfilePage";
 import ExplorePage from "./pages/ExplorePage";
 import ProcessPage from "./pages/ProcessPage";
 import UserPage from "./pages/UserPage";
@@ -35,7 +34,6 @@ function App() {
     <>
     <Routes>
       <Route path="/" element={<HomePage />}/>
-      <Route path="/profile/view/:id" element={<ProfilePage />}/>
       <Route path="/process/:id" element={<ProcessPage />} />
       <Route path="/explore" element={<ExplorePage />}/>
       <Route path="/user/:id" element={<UserPage />} />
