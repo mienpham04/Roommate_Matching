@@ -20,8 +20,10 @@ function PersonalInfo({ dbUser, setDbUser, isEditMode = true }) {
     if (!user) return;
 
     await user.setProfileImage({ file });
+    await user.reload();
 
     const imageUrl = user.imageUrl;
+    setProfileImg(imageUrl);
 
     await fetch("/api/users/profile-image", {
       method: "PUT",
@@ -35,6 +37,7 @@ function PersonalInfo({ dbUser, setDbUser, isEditMode = true }) {
       ...prev,
       profileImageUrl: imageUrl,
     }));
+    setCustomPhoto(null);
   };
 
   const handleImageUpload = async (e) => {
@@ -46,11 +49,11 @@ function PersonalInfo({ dbUser, setDbUser, isEditMode = true }) {
     await uploadToClerk(file);
   };
 
-  const handleRemove = (e) => {
-    e.stopPropagation();
-    setCustomPhoto(null);
-    setProfileImg(dbUser?.profileImageUrl || user.imageUrl);
-  };
+  // const handleRemove = (e) => {
+  //   e.stopPropagation();
+  //   setCustomPhoto(null);
+  //   setProfileImg(dbUser?.profileImageUrl || user.imageUrl);
+  // };
 
   const handleFieldUpdate = (field, newValue) => {
     setDbUser((prev) => ({
@@ -76,14 +79,14 @@ function PersonalInfo({ dbUser, setDbUser, isEditMode = true }) {
               <Pencil className="w-6 h-6" />
             </div>
           )}
-          {customPhoto && isEditMode && (
+          {/* {customPhoto && isEditMode && (
             <button
               className="absolute top-0 right-0 btn btn-circle btn-xs btn-error shadow-md z-10 scale-90"
               onClick={handleRemove}
             >
               <X className="w-3 h-3" />
             </button>
-          )}
+          )} */}
         </div>
         {isEditMode && <p className="mt-2 text-xs text-base-content/50">Tap image to change</p>}
         <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
