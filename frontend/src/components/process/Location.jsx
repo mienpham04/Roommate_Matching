@@ -57,9 +57,53 @@ function Location({ dbUser, id, setDbUser }) {
     finally { setIsLoadingZip(false); }
   }
 
+  // Load existing user data from database when component mounts
+  useEffect(() => {
+    if (dbUser) {
+      // Pre-populate budget from database
+      if (dbUser.budget) {
+        setMinBudget(dbUser.budget.min || "");
+        setMaxBudget(dbUser.budget.max || "");
+      }
+
+      // Pre-populate location from database if it exists
+      if (dbUser.zipCode) {
+        setZipCode(dbUser.zipCode);
+      }
+      if (dbUser.city) {
+        setCity(dbUser.city);
+      }
+    }
+  }, [dbUser]);
+
   useEffect(() => {
       if (!isLoaded) return;
-      if (navigator.geolocation) {
+
+      // If user already has a zipcode in the database, use that location
+      if (dbUser?.zipCode && !selectedPosition) {
+        // Geocode the existing zipcode to get lat/lng
+        const geocodeZipCode = async () => {
+          const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+          const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${dbUser.zipCode}&key=${apiKey}`;
+          try {
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.results?.length > 0) {
+              const location = data.results[0].geometry.location;
+              const newPos = { lat: location.lat, lng: location.lng };
+              setSelectedPosition(newPos);
+              return;
+            }
+          } catch (err) {
+            console.log("Failed to geocode existing zipcode:", err);
+          }
+        };
+        geocodeZipCode();
+        return;
+      }
+
+      // Otherwise, use geolocation as fallback
+      if (navigator.geolocation && !selectedPosition) {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             const { latitude, longitude } = pos.coords;
@@ -74,7 +118,7 @@ function Location({ dbUser, id, setDbUser }) {
           }
         );
       }
-  }, [isLoaded]);
+  }, [isLoaded, dbUser, selectedPosition]);
 
   async function onPlaceChanged() {
     if (isBudgetConfirmed) return;

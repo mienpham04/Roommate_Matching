@@ -53,9 +53,12 @@ public class ChatController {
                 return ResponseEntity.badRequest().body(Map.of("error", "Cannot send message to yourself"));
             }
 
-            // Check if users are matched
+            // Check if users are matched (both must have liked each other)
             if (!chatService.areUsersMatched(senderId, recipientId)) {
-                return ResponseEntity.status(403).body(Map.of("error", "Can only chat with matched users"));
+                return ResponseEntity.status(403).body(Map.of(
+                    "success", false,
+                    "error", "You can only message users you've matched with. Make sure you both have liked each other!"
+                ));
             }
 
             // Get or create conversation

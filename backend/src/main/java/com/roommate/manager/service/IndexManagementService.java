@@ -46,9 +46,12 @@ public class IndexManagementService {
         List<Float> profileEmbedding = embeddingService.generateProfileEmbedding(user);
         List<Float> preferenceEmbedding = embeddingService.generatePreferenceEmbedding(user);
 
+        // Extract city code for location filtering
+        String cityCode = getCityCode(user.getZipCode());
+
         // Create datapoint for PROFILE (who they are)
-        // Add restricts to mark this as a profile vector for filtering
-        IndexDatapoint profileDatapoint = IndexDatapoint.newBuilder()
+        // Add restricts to mark this as a profile vector and add city code for location filtering
+        IndexDatapoint.Builder profileBuilder = IndexDatapoint.newBuilder()
             .setDatapointId(user.getId() + "_profile")
             .addAllFeatureVector(profileEmbedding)
             .addRestricts(
@@ -56,12 +59,23 @@ public class IndexManagementService {
                     .setNamespace("vector_type")
                     .addAllowList("profile")
                     .build()
-            )
-            .build();
+            );
+
+        // Add city_code restriction if available
+        if (cityCode != null && !cityCode.isEmpty()) {
+            profileBuilder.addRestricts(
+                IndexDatapoint.Restriction.newBuilder()
+                    .setNamespace("city_code")
+                    .addAllowList(cityCode)
+                    .build()
+            );
+        }
+
+        IndexDatapoint profileDatapoint = profileBuilder.build();
 
         // Create datapoint for PREFERENCE (what they want)
-        // Add restricts to mark this as a preference vector for filtering
-        IndexDatapoint preferenceDatapoint = IndexDatapoint.newBuilder()
+        // Add restricts to mark this as a preference vector and add city code for location filtering
+        IndexDatapoint.Builder preferenceBuilder = IndexDatapoint.newBuilder()
             .setDatapointId(user.getId() + "_preference")
             .addAllFeatureVector(preferenceEmbedding)
             .addRestricts(
@@ -69,8 +83,19 @@ public class IndexManagementService {
                     .setNamespace("vector_type")
                     .addAllowList("preference")
                     .build()
-            )
-            .build();
+            );
+
+        // Add city_code restriction if available
+        if (cityCode != null && !cityCode.isEmpty()) {
+            preferenceBuilder.addRestricts(
+                IndexDatapoint.Restriction.newBuilder()
+                    .setNamespace("city_code")
+                    .addAllowList(cityCode)
+                    .build()
+            );
+        }
+
+        IndexDatapoint preferenceDatapoint = preferenceBuilder.build();
 
         // Upload BOTH vectors to index
         // Configure client with explicit endpoint for the region and credentials
@@ -194,5 +219,16 @@ public class IndexManagementService {
         } catch (Exception e) {
             throw new IOException("Failed to remove user vectors from index: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Extract city code from zipcode (first 3 digits)
+     * In US zipcodes, the first 3 digits represent the sectional center facility (roughly a city/metro area)
+     */
+    private String getCityCode(String zipCode) {
+        if (zipCode == null || zipCode.length() < 3) {
+            return null;
+        }
+        return zipCode.substring(0, 3);
     }
 }

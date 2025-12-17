@@ -218,7 +218,18 @@ function ChatPage() {
     } catch (error) {
       setMessages((prev) => prev.filter((msg) => msg.id !== optimisticMessage.id));
       setMessageInput(messageContent);
-      toast.error('Failed to send message');
+
+      // Parse error response to show specific message
+      let errorMsg = 'Failed to send message';
+      try {
+        if (error.message) {
+          errorMsg = error.message;
+        }
+      } catch (e) {
+        // Use default error message
+      }
+
+      toast.error(errorMsg);
     } finally { setSending(false); }
   };
 

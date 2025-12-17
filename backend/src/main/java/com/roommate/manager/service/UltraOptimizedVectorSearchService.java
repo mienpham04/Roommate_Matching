@@ -63,14 +63,50 @@ public class UltraOptimizedVectorSearchService {
         long startTime = System.currentTimeMillis();
 
         // STAGE 1: Get profile embeddings from Vertex AI for candidates
+        // LOCATION-AWARE: Prioritize same-city candidates
         int vectorSearchLimit = Math.min(topK * 10, 150);
+        String userCityCode = getCityCode(targetUser.getZipCode());
 
-        List<CandidateWithEmbeddings> candidates = queryVertexAIWithEmbeddings(
-            userId + "_preference",  // Query with preference to find matching profiles
-            "profile",               // Return profile vectors
-            vectorSearchLimit,
-            userId
-        );
+        List<CandidateWithEmbeddings> candidates = new ArrayList<>();
+
+        // First: Try to get same-city candidates
+        if (userCityCode != null) {
+            System.out.println("🌆 STAGE 1a: Searching for same-city candidates (city code: " + userCityCode + ")");
+            List<CandidateWithEmbeddings> sameCityCandidates = queryVertexAIWithEmbeddings(
+                userId + "_preference",
+                "profile",
+                vectorSearchLimit,
+                userId,
+                userCityCode  // Filter by city code
+            );
+            candidates.addAll(sameCityCandidates);
+            System.out.println("   Found " + sameCityCandidates.size() + " same-city candidates");
+        }
+
+        // Second: If we don't have enough candidates, search globally
+        if (candidates.size() < vectorSearchLimit) {
+            int remainingNeeded = vectorSearchLimit - candidates.size();
+            System.out.println("🌍 STAGE 1b: Searching globally for " + remainingNeeded + " more candidates");
+            List<CandidateWithEmbeddings> globalCandidates = queryVertexAIWithEmbeddings(
+                userId + "_preference",
+                "profile",
+                remainingNeeded,
+                userId,
+                null  // No city filter
+            );
+
+            // Add only candidates we don't already have (avoid duplicates)
+            Set<String> existingIds = candidates.stream()
+                .map(c -> c.userId)
+                .collect(java.util.stream.Collectors.toSet());
+
+            for (CandidateWithEmbeddings candidate : globalCandidates) {
+                if (!existingIds.contains(candidate.userId)) {
+                    candidates.add(candidate);
+                }
+            }
+            System.out.println("   Added " + (candidates.size() - existingIds.size()) + " global candidates");
+        }
 
         long stage1Time = System.currentTimeMillis() - startTime;
         System.out.println("STAGE 1: Got " + candidates.size() + " candidates with embeddings in " + stage1Time + "ms");
@@ -129,7 +165,8 @@ public class UltraOptimizedVectorSearchService {
             String queryDatapointId,
             String returnVectorType,
             int topK,
-            String excludeUserId) throws IOException {
+            String excludeUserId,
+            String cityCodeFilter) throws IOException {
 
         String vdbEndpoint = String.format("%s:443", config.getPublicEndpointDomain());
         MatchServiceSettings matchSettings = MatchServiceSettings.newBuilder()
@@ -138,20 +175,30 @@ public class UltraOptimizedVectorSearchService {
             .build();
 
         try (MatchServiceClient matchServiceClient = MatchServiceClient.create(matchSettings)) {
+            // Build restrictions for the query
+            IndexDatapoint.Builder datapointBuilder = IndexDatapoint.newBuilder()
+                .setDatapointId(queryDatapointId)
+                .addRestricts(
+                    IndexDatapoint.Restriction.newBuilder()
+                        .setNamespace("vector_type")
+                        .addAllowList(returnVectorType)
+                        .build()
+                );
+
+            // Add city filter if provided
+            if (cityCodeFilter != null && !cityCodeFilter.trim().isEmpty()) {
+                datapointBuilder.addRestricts(
+                    IndexDatapoint.Restriction.newBuilder()
+                        .setNamespace("city_code")
+                        .addAllowList(cityCodeFilter)
+                        .build()
+                );
+            }
+
             // Query by datapoint ID (more efficient than regenerating embedding)
             // Note: Vertex AI returns embeddings in the datapoint by default
             FindNeighborsRequest.Query query = FindNeighborsRequest.Query.newBuilder()
-                .setDatapoint(
-                    IndexDatapoint.newBuilder()
-                        .setDatapointId(queryDatapointId)
-                        .addRestricts(
-                            IndexDatapoint.Restriction.newBuilder()
-                                .setNamespace("vector_type")
-                                .addAllowList(returnVectorType)
-                                .build()
-                        )
-                        .build()
-                )
+                .setDatapoint(datapointBuilder.build())
                 .setNeighborCount(topK)
                 .build();
 
@@ -292,6 +339,13 @@ public class UltraOptimizedVectorSearchService {
             Map<String, List<Float>> preferenceEmbeddings) {
 
         List<Map<String, Object>> results = new ArrayList<>();
+        int skippedIncomplete = 0;
+        int skippedHardRequirements = 0;
+        int skippedMissingEmbeddings = 0;
+
+        System.out.println("\n🔍 SCORING CANDIDATES FOR: " + targetUser.getFirstName() + " " + targetUser.getLastName());
+        System.out.println("   Target user profile complete: " + isProfileComplete(targetUser));
+        System.out.println("   Total candidates to evaluate: " + candidates.size());
 
         for (CandidateWithEmbeddings candidate : candidates) {
             try {
@@ -299,6 +353,8 @@ public class UltraOptimizedVectorSearchService {
 
                 // Skip incomplete profiles
                 if (!isProfileComplete(candidateUser)) {
+                    skippedIncomplete++;
+                    System.out.println("   ❌ Skipped " + candidateUser.getFirstName() + ": Incomplete profile");
                     continue;
                 }
 
@@ -307,6 +363,10 @@ public class UltraOptimizedVectorSearchService {
                 boolean bWantsARequirements = attributeMatchingService.meetsHardRequirements(candidateUser, targetUser);
 
                 if (!aWantsBRequirements || !bWantsARequirements) {
+                    skippedHardRequirements++;
+                    System.out.println("   ❌ Skipped " + candidateUser.getFirstName() + ": Hard requirements failed");
+                    System.out.println("      - " + targetUser.getFirstName() + " wants " + candidateUser.getFirstName() + ": " + aWantsBRequirements);
+                    System.out.println("      - " + candidateUser.getFirstName() + " wants " + targetUser.getFirstName() + ": " + bWantsARequirements);
                     continue;
                 }
 
@@ -315,6 +375,8 @@ public class UltraOptimizedVectorSearchService {
                 List<Float> candidatePreferenceEmb = preferenceEmbeddings.get(candidateUser.getId());
 
                 if (candidateProfileEmb == null || candidatePreferenceEmb == null) {
+                    skippedMissingEmbeddings++;
+                    System.out.println("   ❌ Skipped " + candidateUser.getFirstName() + ": Missing embeddings");
                     continue; // Skip if embeddings not found
                 }
 
@@ -344,10 +406,29 @@ public class UltraOptimizedVectorSearchService {
                 result.put("embeddingScore", mutualEmbeddingScore);
 
                 results.add(result);
+                System.out.println("   ✅ Added " + candidateUser.getFirstName() + ": mutualScore=" + String.format("%.2f%%", hybridMutualScore * 100));
 
             } catch (Exception e) {
                 System.err.println("Error scoring candidate " + candidate.userId + ": " + e.getMessage());
+                e.printStackTrace();
             }
+        }
+
+        // Print summary
+        System.out.println("\n📊 SCORING SUMMARY FOR: " + targetUser.getFirstName());
+        System.out.println("   ✅ Successful matches: " + results.size());
+        System.out.println("   ❌ Skipped (incomplete): " + skippedIncomplete);
+        System.out.println("   ❌ Skipped (hard requirements): " + skippedHardRequirements);
+        System.out.println("   ❌ Skipped (missing embeddings): " + skippedMissingEmbeddings);
+        System.out.println("   📝 Total evaluated: " + candidates.size());
+
+        if (results.isEmpty()) {
+            System.out.println("\n⚠️  WARNING: NO MATCHES FOUND FOR " + targetUser.getFirstName());
+            System.out.println("   Possible reasons:");
+            System.out.println("   1. All candidates have incomplete profiles");
+            System.out.println("   2. Hard requirements are too restrictive");
+            System.out.println("   3. Missing embeddings in Vertex AI");
+            System.out.println("   4. Target user's preferences not set up properly");
         }
 
         return results;
@@ -361,6 +442,17 @@ public class UltraOptimizedVectorSearchService {
         boolean hasZipCode = user.getZipCode() != null && !user.getZipCode().trim().isEmpty();
         boolean hasDateOfBirth = user.getDateOfBirth() != null;
         return hasName && hasGender && hasZipCode && hasDateOfBirth;
+    }
+
+    /**
+     * Extract city code from zipcode (first 3 digits)
+     * In US zipcodes, the first 3 digits represent the sectional center facility (roughly a city/metro area)
+     */
+    private String getCityCode(String zipCode) {
+        if (zipCode == null || zipCode.length() < 3) {
+            return null;
+        }
+        return zipCode.substring(0, 3);
     }
 
     private double calculateCosineSimilarity(List<Float> vec1, List<Float> vec2) {
