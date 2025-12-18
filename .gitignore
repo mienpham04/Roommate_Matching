@@ -1,2 +1,9 @@
 .DS_Store
 .vscode
+
+# Logs
+*.log
+logs/
+
+# Test data
+test-users/

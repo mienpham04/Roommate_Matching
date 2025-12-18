@@ -63,14 +63,50 @@ public class UltraOptimizedVectorSearchService {
         long startTime = System.currentTimeMillis();
 
         // STAGE 1: Get profile embeddings from Vertex AI for candidates
+        // LOCATION-AWARE: Prioritize same-city candidates
         int vectorSearchLimit = Math.min(topK * 10, 150);
+        String userCityCode = getCityCode(targetUser.getZipCode());
 
-        List<CandidateWithEmbeddings> candidates = queryVertexAIWithEmbeddings(
-            userId + "_preference",  // Query with preference to find matching profiles
-            "profile",               // Return profile vectors
-            vectorSearchLimit,
-            userId
-        );
+        List<CandidateWithEmbeddings> candidates = new ArrayList<>();
+
+        // First: Try to get same-city candidates
+        if (userCityCode != null) {
+            System.out.println("🌆 STAGE 1a: Searching for same-city candidates (city code: " + userCityCode + ")");
+            List<CandidateWithEmbeddings> sameCityCandidates = queryVertexAIWithEmbeddings(
+                userId + "_preference",
+                "profile",
+                vectorSearchLimit,
+                userId,
+                userCityCode  // Filter by city code
+            );
+            candidates.addAll(sameCityCandidates);
+            System.out.println("   Found " + sameCityCandidates.size() + " same-city candidates");
+        }
+
+        // Second: If we don't have enough candidates, search globally
+        if (candidates.size() < vectorSearchLimit) {
+            int remainingNeeded = vectorSearchLimit - candidates.size();
+            System.out.println("🌍 STAGE 1b: Searching globally for " + remainingNeeded + " more candidates");
+            List<CandidateWithEmbeddings> globalCandidates = queryVertexAIWithEmbeddings(
+                userId + "_preference",
+                "profile",
+                remainingNeeded,
+                userId,
+                null  // No city filter
+            );
+
+            // Add only candidates we don't already have (avoid duplicates)
+            Set<String> existingIds = candidates.stream()
+                .map(c -> c.userId)
+                .collect(java.util.stream.Collectors.toSet());
+
+            for (CandidateWithEmbeddings candidate : globalCandidates) {
+                if (!existingIds.contains(candidate.userId)) {
+                    candidates.add(candidate);
+                }
+            }
+            System.out.println("   Added " + (candidates.size() - existingIds.size()) + " global candidates");
+        }
 
         long stage1Time = System.currentTimeMillis() - startTime;
         System.out.println("STAGE 1: Got " + candidates.size() + " candidates with embeddings in " + stage1Time + "ms");
@@ -129,7 +165,8 @@ public class UltraOptimizedVectorSearchService {
             String queryDatapointId,
             String returnVectorType,
             int topK,
-            String excludeUserId) throws IOException {
+            String excludeUserId,
+            String cityCodeFilter) throws IOException {
 
         String vdbEndpoint = String.format("%s:443", config.getPublicEndpointDomain());
         MatchServiceSettings matchSettings = MatchServiceSettings.newBuilder()
@@ -138,20 +175,30 @@ public class UltraOptimizedVectorSearchService {
             .build();
 
         try (MatchServiceClient matchServiceClient = MatchServiceClient.create(matchSettings)) {
+            // Build restrictions for the query
+            IndexDatapoint.Builder datapointBuilder = IndexDatapoint.newBuilder()
+                .setDatapointId(queryDatapointId)
+                .addRestricts(
+                    IndexDatapoint.Restriction.newBuilder()
+                        .setNamespace("vector_type")
+                        .addAllowList(returnVectorType)
+                        .build()
+                );
+
+            // Add city filter if provided
+            if (cityCodeFilter != null && !cityCodeFilter.trim().isEmpty()) {
+                datapointBuilder.addRestricts(
+                    IndexDatapoint.Restriction.newBuilder()
+                        .setNamespace("city_code")
+                        .addAllowList(cityCodeFilter)
+                        .build()
+                );
+            }
+
             // Query by datapoint ID (more efficient than regenerating embedding)
             // Note: Vertex AI returns embeddings in the datapoint by default
             FindNeighborsRequest.Query query = FindNeighborsRequest.Query.newBuilder()
-                .setDatapoint(
-                    IndexDatapoint.newBuilder()
-                        .setDatapointId(queryDatapointId)
-                        .addRestricts(
-                            IndexDatapoint.Restriction.newBuilder()
-                                .setNamespace("vector_type")
-                                .addAllowList(returnVectorType)
-                                .build()
-                        )
-                        .build()
-                )
+                .setDatapoint(datapointBuilder.build())
                 .setNeighborCount(topK)
                 .build();
 
@@ -292,6 +339,13 @@ public class UltraOptimizedVectorSearchService {
             Map<String, List<Float>> preferenceEmbeddings) {
 
         List<Map<String, Object>> results = new ArrayList<>();
+        int skippedIncomplete = 0;
+        int skippedHardRequirements = 0;
+        int skippedMissingEmbeddings = 0;
+
+        System.out.println("\n🔍 SCORING CANDIDATES FOR: " + targetUser.getFirstName() + " " + targetUser.getLastName());
+        System.out.println("   Target user profile complete: " + isProfileComplete(targetUser));
+        System.out.println("   Total candidates to evaluate: " + candidates.size());
 
         for (CandidateWithEmbeddings candidate : candidates) {
             try {
@@ -299,6 +353,8 @@ public class UltraOptimizedVectorSearchService {
 
                 // Skip incomplete profiles
                 if (!isProfileComplete(candidateUser)) {
+                    skippedIncomplete++;
+                    System.out.println("   ❌ Skipped " + candidateUser.getFirstName() + ": Incomplete profile");
                     continue;
                 }
 
@@ -307,6 +363,10 @@ public class UltraOptimizedVectorSearchService {
                 boolean bWantsARequirements = attributeMatchingService.meetsHardRequirements(candidateUser, targetUser);
 
                 if (!aWantsBRequirements || !bWantsARequirements) {
+                    skippedHardRequirements++;
+                    System.out.println("   ❌ Skipped " + candidateUser.getFirstName() + ": Hard requirements failed");
+                    System.out.println("      - " + targetUser.getFirstName() + " wants " + candidateUser.getFirstName() + ": " + aWantsBRequirements);
+                    System.out.println("      - " + candidateUser.getFirstName() + " wants " + targetUser.getFirstName() + ": " + bWantsARequirements);
                     continue;
                 }
 
@@ -315,6 +375,8 @@ public class UltraOptimizedVectorSearchService {
                 List<Float> candidatePreferenceEmb = preferenceEmbeddings.get(candidateUser.getId());
 
                 if (candidateProfileEmb == null || candidatePreferenceEmb == null) {
+                    skippedMissingEmbeddings++;
+                    System.out.println("   ❌ Skipped " + candidateUser.getFirstName() + ": Missing embeddings");
                     continue; // Skip if embeddings not found
                 }
 
@@ -344,10 +406,29 @@ public class UltraOptimizedVectorSearchService {
                 result.put("embeddingScore", mutualEmbeddingScore);
 
                 results.add(result);
+                System.out.println("   ✅ Added " + candidateUser.getFirstName() + ": mutualScore=" + String.format("%.2f%%", hybridMutualScore * 100));
 
             } catch (Exception e) {
                 System.err.println("Error scoring candidate " + candidate.userId + ": " + e.getMessage());
+                e.printStackTrace();
             }
+        }
+
+        // Print summary
+        System.out.println("\n📊 SCORING SUMMARY FOR: " + targetUser.getFirstName());
+        System.out.println("   ✅ Successful matches: " + results.size());
+        System.out.println("   ❌ Skipped (incomplete): " + skippedIncomplete);
+        System.out.println("   ❌ Skipped (hard requirements): " + skippedHardRequirements);
+        System.out.println("   ❌ Skipped (missing embeddings): " + skippedMissingEmbeddings);
+        System.out.println("   📝 Total evaluated: " + candidates.size());
+
+        if (results.isEmpty()) {
+            System.out.println("\n⚠️  WARNING: NO MATCHES FOUND FOR " + targetUser.getFirstName());
+            System.out.println("   Possible reasons:");
+            System.out.println("   1. All candidates have incomplete profiles");
+            System.out.println("   2. Hard requirements are too restrictive");
+            System.out.println("   3. Missing embeddings in Vertex AI");
+            System.out.println("   4. Target user's preferences not set up properly");
         }
 
         return results;
@@ -361,6 +442,17 @@ public class UltraOptimizedVectorSearchService {
         boolean hasZipCode = user.getZipCode() != null && !user.getZipCode().trim().isEmpty();
         boolean hasDateOfBirth = user.getDateOfBirth() != null;
         return hasName && hasGender && hasZipCode && hasDateOfBirth;
+    }
+
+    /**
+     * Extract city code from zipcode (first 3 digits)
+     * In US zipcodes, the first 3 digits represent the sectional center facility (roughly a city/metro area)
+     */
+    private String getCityCode(String zipCode) {
+        if (zipCode == null || zipCode.length() < 3) {
+            return null;
+        }
+        return zipCode.substring(0, 3);
     }
 
     private double calculateCosineSimilarity(List<Float> vec1, List<Float> vec2) {
@@ -383,6 +475,175 @@ public class UltraOptimizedVectorSearchService {
         }
 
         return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
+    }
+
+    /**
+     * Calculate compatibility scores between exactly TWO users (efficient for real-time updates)
+     * Uses embeddings directly from Vertex AI - ULTRA FAST, no regeneration!
+     *
+     * IMPORTANT: This method is SYMMETRIC - it returns the same mutualScore regardless of parameter order
+     * validate(A, B) === validate(B, A)
+     *
+     * @param userId1 First user ID
+     * @param userId2 Second user ID
+     * @return Map containing mutualScore, similarityScore, and detailed breakdown
+     */
+    public Map<String, Object> calculatePairwiseScores(String userId1, String userId2) throws IOException {
+        // Normalize user order to ensure consistent scoring (alphabetical order)
+        // This guarantees symmetry: calculatePairwiseScores(A, B) === calculatePairwiseScores(B, A)
+        String normalizedUserId1, normalizedUserId2;
+        if (userId1.compareTo(userId2) < 0) {
+            normalizedUserId1 = userId1;
+            normalizedUserId2 = userId2;
+        } else {
+            normalizedUserId1 = userId2;
+            normalizedUserId2 = userId1;
+        }
+
+        // Get both users using normalized order
+        Optional<UserModel> user1Optional = userRepository.findById(normalizedUserId1);
+        Optional<UserModel> user2Optional = userRepository.findById(normalizedUserId2);
+
+        if (user1Optional.isEmpty() || user2Optional.isEmpty()) {
+            throw new IllegalArgumentException("One or both users not found");
+        }
+
+        UserModel user1 = user1Optional.get();
+        UserModel user2 = user2Optional.get();
+
+        System.out.println("====== ULTRA-FAST PAIRWISE MATCHING ======");
+        System.out.println("Original request: userId1=" + userId1 + ", userId2=" + userId2);
+        System.out.println("Normalized order: userId1=" + normalizedUserId1 + ", userId2=" + normalizedUserId2);
+        System.out.println("User 1: " + user1.getFirstName() + " " + user1.getLastName());
+        System.out.println("User 2: " + user2.getFirstName() + " " + user2.getLastName());
+
+        // Check if both profiles are complete
+        if (!isProfileComplete(user1) || !isProfileComplete(user2)) {
+            System.out.println("❌ One or both users have incomplete profiles - Returning 0% score");
+            System.out.println("==========================================\n");
+            Map<String, Object> result = new HashMap<>();
+            result.put("mutualScore", 0.0);
+            result.put("similarityScore", 0.0);
+            result.put("meetsRequirements", false);
+            result.put("isLowMatch", true);
+            return result;
+        }
+
+        Map<String, Object> result = new HashMap<>();
+
+        // Check hard requirements first (bidirectional)
+        boolean user1WantsUser2 = attributeMatchingService.meetsHardRequirements(user1, user2);
+        boolean user2WantsUser1 = attributeMatchingService.meetsHardRequirements(user2, user1);
+
+        System.out.println("Hard Requirements Check:");
+        System.out.println("  " + user1.getFirstName() + " wants " + user2.getFirstName() + ": " + user1WantsUser2);
+        System.out.println("  " + user2.getFirstName() + " wants " + user1.getFirstName() + ": " + user2WantsUser1);
+
+        if (!user1WantsUser2 || !user2WantsUser1) {
+            // Hard requirements not met - return 0 scores
+            System.out.println("❌ FAILED HARD REQUIREMENTS - Returning 0% score");
+            if (!user1WantsUser2) {
+                System.out.println("   Reason: " + user1.getFirstName() + " doesn't want " + user2.getFirstName());
+            }
+            if (!user2WantsUser1) {
+                System.out.println("   Reason: " + user2.getFirstName() + " doesn't want " + user1.getFirstName());
+            }
+            System.out.println("==========================================\n");
+            result.put("mutualScore", 0.0);
+            result.put("similarityScore", 0.0);
+            result.put("meetsRequirements", false);
+            result.put("isLowMatch", true);
+            result.put("failureReason", !user1WantsUser2 && !user2WantsUser1 ? "Both hard requirements failed" :
+                                        !user1WantsUser2 ? user1.getFirstName() + " requirements not met" :
+                                        user2.getFirstName() + " requirements not met");
+            return result;
+        }
+
+        try {
+            // Get embeddings directly from Vertex AI (NO regeneration!)
+            // Use normalized IDs to ensure consistent embedding retrieval
+            List<Float> user1ProfileEmb = getEmbeddingFromVertexAI(normalizedUserId1 + "_profile");
+            List<Float> user1PreferenceEmb = getEmbeddingFromVertexAI(normalizedUserId1 + "_preference");
+            List<Float> user2ProfileEmb = getEmbeddingFromVertexAI(normalizedUserId2 + "_profile");
+            List<Float> user2PreferenceEmb = getEmbeddingFromVertexAI(normalizedUserId2 + "_preference");
+
+            System.out.println("✓ Successfully fetched all embeddings from Vertex AI");
+
+            // Calculate attribute-based compatibility scores
+            double forwardAttributeScore = attributeMatchingService.calculateCompatibilityScore(user1, user2);
+            double reverseAttributeScore = attributeMatchingService.calculateCompatibilityScore(user2, user1);
+            double mutualAttributeScore = (forwardAttributeScore + reverseAttributeScore) / 2.0;
+
+            // Calculate embedding-based similarity (preference vs profile matching)
+            double forwardEmbeddingScore = calculateCosineSimilarity(user1PreferenceEmb, user2ProfileEmb);
+            double reverseEmbeddingScore = calculateCosineSimilarity(user2PreferenceEmb, user1ProfileEmb);
+            double mutualEmbeddingScore = (forwardEmbeddingScore + reverseEmbeddingScore) / 2.0;
+
+            // Calculate similarity score (profile vs profile - lifestyle similarity)
+            double similarityScore = calculateCosineSimilarity(user1ProfileEmb, user2ProfileEmb);
+
+            // Combine scores with weighting (50% attribute + 50% embedding)
+            double hybridForwardScore = (forwardAttributeScore * 0.5) + (forwardEmbeddingScore * 0.5);
+            double hybridReverseScore = (reverseAttributeScore * 0.5) + (reverseEmbeddingScore * 0.5);
+            double hybridMutualScore = (hybridForwardScore + hybridReverseScore) / 2.0;
+
+            System.out.println("\n📊 SCORE CALCULATION:");
+            System.out.println("  Forward (" + user1.getFirstName() + " → " + user2.getFirstName() + "):");
+            System.out.println("    Attribute: " + String.format("%.2f", forwardAttributeScore));
+            System.out.println("    Embedding: " + String.format("%.2f", forwardEmbeddingScore));
+            System.out.println("    Hybrid: " + String.format("%.2f", hybridForwardScore));
+            System.out.println("  Reverse (" + user2.getFirstName() + " → " + user1.getFirstName() + "):");
+            System.out.println("    Attribute: " + String.format("%.2f", reverseAttributeScore));
+            System.out.println("    Embedding: " + String.format("%.2f", reverseEmbeddingScore));
+            System.out.println("    Hybrid: " + String.format("%.2f", hybridReverseScore));
+            System.out.println("  MUTUAL SCORE: " + String.format("%.2f (%.0f%%)", hybridMutualScore, hybridMutualScore * 100));
+            System.out.println("  Similarity: " + String.format("%.2f (%.0f%%)", similarityScore, similarityScore * 100));
+
+            // Build result - return original user IDs as requested
+            result.put("userId1", userId1);
+            result.put("userId2", userId2);
+            result.put("normalizedUserId1", normalizedUserId1);
+            result.put("normalizedUserId2", normalizedUserId2);
+            result.put("mutualScore", hybridMutualScore);
+            result.put("similarityScore", similarityScore);
+            result.put("meetsRequirements", true);
+            result.put("isLowMatch", hybridMutualScore <= 0.5);
+
+            // Detailed breakdown
+            result.put("attributeScore", mutualAttributeScore);
+            result.put("embeddingScore", mutualEmbeddingScore);
+            result.put("forwardScore", hybridForwardScore);
+            result.put("reverseScore", hybridReverseScore);
+
+            System.out.println("\n✅ PAIRWISE SCORE: " + user1.getFirstName() + " <-> " + user2.getFirstName() +
+                " | Mutual=" + String.format("%.0f%%", hybridMutualScore * 100) +
+                " | Similarity=" + String.format("%.0f%%", similarityScore * 100));
+            System.out.println("   This score is SYMMETRIC - same result regardless of parameter order");
+            System.out.println("==========================================\n");
+
+            return result;
+
+        } catch (IOException e) {
+            // If we can't fetch embeddings from Vertex AI, fall back to 0
+            System.err.println("❌ EMBEDDING FETCH FAILED - Returning 0% score");
+            System.err.println("   Error: " + e.getMessage());
+            System.err.println("   User 1: " + normalizedUserId1 + " (" + user1.getFirstName() + ")");
+            System.err.println("   User 2: " + normalizedUserId2 + " (" + user2.getFirstName() + ")");
+            System.err.println("   This could indicate:");
+            System.err.println("   - Missing embeddings in Vertex AI index");
+            System.err.println("   - User profile was recently updated but embeddings not yet indexed");
+            System.err.println("   - Network/permission issues accessing Vertex AI");
+            e.printStackTrace();
+            System.out.println("==========================================\n");
+            result.put("mutualScore", 0.0);
+            result.put("similarityScore", 0.0);
+            result.put("meetsRequirements", false);
+            result.put("isLowMatch", true);
+            result.put("error", "Failed to fetch embeddings: " + e.getMessage());
+            result.put("userId1", userId1);
+            result.put("userId2", userId2);
+            return result;
+        }
     }
 
     // Helper class to hold candidate with their Vertex AI embeddings
