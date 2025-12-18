@@ -1,13 +1,12 @@
 import { Link, useLocation } from "react-router";
-import { 
-  User, Users, Compass, Rocket, Sparkles, 
-  ChevronUp, Heart, MessageCircle, Menu, X 
+import {
+  Users, Compass, Rocket, Sparkles,
+  ChevronUp, Heart, MessageCircle
 } from "lucide-react";
 import { UserButton, useUser, SignInButton } from "@clerk/clerk-react";
 import { useEffect, useState, useMemo } from "react";
 import useChatSSE from "../hooks/useChatSSE";
-import { clsx } from "clsx"; // *Optional: makes class logic cleaner, or just use template literals
-import { twMerge } from "tailwind-merge"; // *Optional: handles class conflicts
+import { twMerge } from "tailwind-merge";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
